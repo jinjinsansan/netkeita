@@ -21,7 +21,7 @@
           "trainer": "田中剛",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -30,7 +30,7 @@
           "trainer": "奥平",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -39,7 +39,7 @@
           "trainer": "小野",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 4,
@@ -48,7 +48,7 @@
           "trainer": "秋本",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -57,7 +57,7 @@
           "trainer": "木村",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 6,
@@ -66,7 +66,7 @@
           "trainer": "水野",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 7,
@@ -75,7 +75,7 @@
           "trainer": "古賀慎",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 8,
@@ -84,7 +84,7 @@
           "trainer": "林",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 9,
@@ -93,7 +93,7 @@
           "trainer": "高柳瑞",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 10,
@@ -102,7 +102,7 @@
           "trainer": "上原博",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 11,
@@ -111,7 +111,7 @@
           "trainer": "西田",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 12,
@@ -120,7 +120,7 @@
           "trainer": "堀内",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -129,7 +129,7 @@
           "trainer": "田村",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -138,7 +138,7 @@
           "trainer": "尾形",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 15,
@@ -147,7 +147,7 @@
           "trainer": "金成",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 16,
@@ -156,7 +156,7 @@
           "trainer": "嘉藤",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 53
+          "weight": 53.0
         }
       ]
     },
@@ -179,7 +179,7 @@
           "trainer": "尾関",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -188,7 +188,7 @@
           "trainer": "矢野",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -197,7 +197,7 @@
           "trainer": "新開",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 4,
@@ -206,7 +206,7 @@
           "trainer": "柄崎",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 5,
@@ -215,7 +215,7 @@
           "trainer": "嘉藤",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 6,
@@ -224,7 +224,7 @@
           "trainer": "武藤",
           "post": 3,
           "sex_age": "セ3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -233,7 +233,7 @@
           "trainer": "木村",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -242,7 +242,7 @@
           "trainer": "蛯名利",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 9,
@@ -251,7 +251,7 @@
           "trainer": "堀内",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 10,
@@ -260,7 +260,7 @@
           "trainer": "堀内",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 11,
@@ -269,7 +269,7 @@
           "trainer": "田中剛",
           "post": 6,
           "sex_age": "セ3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -278,7 +278,7 @@
           "trainer": "蛯名利",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -287,7 +287,7 @@
           "trainer": "和田雄",
           "post": 7,
           "sex_age": "セ3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 14,
@@ -296,7 +296,7 @@
           "trainer": "中舘",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 15,
@@ -305,7 +305,7 @@
           "trainer": "松永康",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 16,
@@ -314,7 +314,7 @@
           "trainer": "杉浦",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -337,7 +337,7 @@
           "trainer": "古賀慎",
           "post": 1,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -346,7 +346,7 @@
           "trainer": "大和田",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 3,
@@ -355,7 +355,7 @@
           "trainer": "岩戸",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -364,7 +364,7 @@
           "trainer": "鈴木慎",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -373,7 +373,7 @@
           "trainer": "高木",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -382,7 +382,7 @@
           "trainer": "新開",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -391,7 +391,7 @@
           "trainer": "松永康",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -400,7 +400,7 @@
           "trainer": "加藤征",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -409,7 +409,7 @@
           "trainer": "中舘",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 10,
@@ -418,7 +418,7 @@
           "trainer": "青木",
           "post": 6,
           "sex_age": "セ3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -427,7 +427,7 @@
           "trainer": "水野",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -436,7 +436,7 @@
           "trainer": "中川",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -445,7 +445,7 @@
           "trainer": "稲垣",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 14,
@@ -454,7 +454,7 @@
           "trainer": "久保田",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 15,
@@ -463,7 +463,7 @@
           "trainer": "伊藤圭",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 51
+          "weight": 51.0
         }
       ]
     },
@@ -486,7 +486,7 @@
           "trainer": "水野",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -495,7 +495,7 @@
           "trainer": "武井",
           "post": 1,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -504,7 +504,7 @@
           "trainer": "稲垣",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 4,
@@ -513,7 +513,7 @@
           "trainer": "栗田",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -522,7 +522,7 @@
           "trainer": "堀内",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -531,7 +531,7 @@
           "trainer": "加藤士",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 7,
@@ -540,7 +540,7 @@
           "trainer": "和田雄",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -549,7 +549,7 @@
           "trainer": "伊藤大",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 9,
@@ -558,7 +558,7 @@
           "trainer": "勢司",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -567,7 +567,7 @@
           "trainer": "浅利",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -576,7 +576,7 @@
           "trainer": "森一",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 12,
@@ -585,7 +585,7 @@
           "trainer": "小笠",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -594,7 +594,7 @@
           "trainer": "伊坂",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -603,7 +603,7 @@
           "trainer": "中川",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 15,
@@ -612,7 +612,7 @@
           "trainer": "久保田",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 16,
@@ -621,7 +621,7 @@
           "trainer": "西田",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         }
       ]
     },
@@ -644,7 +644,7 @@
           "trainer": "嘉藤",
           "post": 1,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -653,7 +653,7 @@
           "trainer": "古賀慎",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -662,7 +662,7 @@
           "trainer": "田中博",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -671,7 +671,7 @@
           "trainer": "林",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 5,
@@ -680,7 +680,7 @@
           "trainer": "鈴木伸",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 6,
@@ -689,7 +689,7 @@
           "trainer": "中川",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -698,7 +698,7 @@
           "trainer": "奥村武",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -707,7 +707,7 @@
           "trainer": "岩戸",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -716,7 +716,7 @@
           "trainer": "田島",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -725,7 +725,7 @@
           "trainer": "手塚久",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -734,7 +734,7 @@
           "trainer": "戸田",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -743,7 +743,7 @@
           "trainer": "古賀慎",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -752,7 +752,7 @@
           "trainer": "竹内",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -775,7 +775,7 @@
           "trainer": "杉浦",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -784,7 +784,7 @@
           "trainer": "小栗",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 3,
@@ -793,7 +793,7 @@
           "trainer": "伊藤伸",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 4,
@@ -802,7 +802,7 @@
           "trainer": "黒岩",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -811,7 +811,7 @@
           "trainer": "牧",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -820,7 +820,7 @@
           "trainer": "蛯名正",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -829,7 +829,7 @@
           "trainer": "鹿戸",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -838,7 +838,7 @@
           "trainer": "西田",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 9,
@@ -847,7 +847,7 @@
           "trainer": "畠山",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 10,
@@ -856,7 +856,7 @@
           "trainer": "伊藤圭",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 11,
@@ -865,7 +865,7 @@
           "trainer": "栗田",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -874,7 +874,7 @@
           "trainer": "加藤和",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -883,7 +883,7 @@
           "trainer": "本間",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -906,7 +906,7 @@
           "trainer": "平岩",
           "post": 1,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -915,7 +915,7 @@
           "trainer": "田中剛",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -924,7 +924,7 @@
           "trainer": "萩原",
           "post": 2,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -933,7 +933,7 @@
           "trainer": "黒岩",
           "post": 3,
           "sex_age": "牡4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 5,
@@ -942,7 +942,7 @@
           "trainer": "牧",
           "post": 3,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 6,
@@ -951,7 +951,7 @@
           "trainer": "佐藤吉",
           "post": 4,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -960,7 +960,7 @@
           "trainer": "粕谷",
           "post": 4,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 8,
@@ -969,7 +969,7 @@
           "trainer": "高木",
           "post": 5,
           "sex_age": "牝5",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 9,
@@ -978,7 +978,7 @@
           "trainer": "松永康",
           "post": 5,
           "sex_age": "牡5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 10,
@@ -987,7 +987,7 @@
           "trainer": "深山",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -996,7 +996,7 @@
           "trainer": "田村",
           "post": 6,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -1005,7 +1005,7 @@
           "trainer": "矢野",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 13,
@@ -1014,7 +1014,7 @@
           "trainer": "手塚徳",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 14,
@@ -1023,7 +1023,7 @@
           "trainer": "高橋文",
           "post": 8,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 15,
@@ -1032,7 +1032,7 @@
           "trainer": "高木",
           "post": 8,
           "sex_age": "セ7",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -1055,7 +1055,7 @@
           "trainer": "池上",
           "post": 1,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -1064,7 +1064,7 @@
           "trainer": "尾形",
           "post": 1,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -1073,7 +1073,7 @@
           "trainer": "金成",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -1082,7 +1082,7 @@
           "trainer": "鹿戸",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -1091,7 +1091,7 @@
           "trainer": "畠山",
           "post": 3,
           "sex_age": "セ4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 6,
@@ -1100,7 +1100,7 @@
           "trainer": "粕谷",
           "post": 3,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 7,
@@ -1109,7 +1109,7 @@
           "trainer": "加藤和",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 8,
@@ -1118,7 +1118,7 @@
           "trainer": "林",
           "post": 4,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 9,
@@ -1127,7 +1127,7 @@
           "trainer": "加藤征",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 10,
@@ -1136,7 +1136,7 @@
           "trainer": "伊藤大",
           "post": 5,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -1145,7 +1145,7 @@
           "trainer": "岩戸",
           "post": 6,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 12,
@@ -1154,7 +1154,7 @@
           "trainer": "小笠",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 13,
@@ -1163,7 +1163,7 @@
           "trainer": "大和田",
           "post": 7,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 14,
@@ -1172,7 +1172,7 @@
           "trainer": "天間",
           "post": 7,
           "sex_age": "牡5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 15,
@@ -1181,7 +1181,7 @@
           "trainer": "秋本",
           "post": 8,
           "sex_age": "牝4",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 16,
@@ -1190,7 +1190,7 @@
           "trainer": "清水英",
           "post": 8,
           "sex_age": "セ7",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -1213,7 +1213,7 @@
           "trainer": "村田",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -1222,7 +1222,7 @@
           "trainer": "上原佑",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -1231,7 +1231,7 @@
           "trainer": "辻",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 4,
@@ -1240,7 +1240,7 @@
           "trainer": "粕谷",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -1249,7 +1249,7 @@
           "trainer": "宮田",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 6,
@@ -1258,7 +1258,7 @@
           "trainer": "蛯名利",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 7,
@@ -1267,7 +1267,7 @@
           "trainer": "鹿戸",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         }
       ]
     },
@@ -1290,7 +1290,7 @@
           "trainer": "宮",
           "post": 1,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -1299,7 +1299,7 @@
           "trainer": "畠山",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -1308,7 +1308,7 @@
           "trainer": "藤野",
           "post": 2,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -1317,7 +1317,7 @@
           "trainer": "田中勝",
           "post": 3,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 5,
@@ -1326,7 +1326,7 @@
           "trainer": "和田勇",
           "post": 3,
           "sex_age": "牝6",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 6,
@@ -1335,7 +1335,7 @@
           "trainer": "西園翔",
           "post": 4,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -1344,7 +1344,7 @@
           "trainer": "加藤公",
           "post": 4,
           "sex_age": "牝6",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 8,
@@ -1353,7 +1353,7 @@
           "trainer": "安田",
           "post": 5,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -1362,7 +1362,7 @@
           "trainer": "和田郎",
           "post": 5,
           "sex_age": "牡8",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 10,
@@ -1371,7 +1371,7 @@
           "trainer": "武英",
           "post": 6,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 11,
@@ -1380,7 +1380,7 @@
           "trainer": "藤岡健",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -1389,7 +1389,7 @@
           "trainer": "菊沢",
           "post": 7,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 13,
@@ -1398,7 +1398,7 @@
           "trainer": "鈴木伸",
           "post": 7,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 14,
@@ -1407,7 +1407,7 @@
           "trainer": "青木",
           "post": 8,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 15,
@@ -1416,7 +1416,7 @@
           "trainer": "菊沢",
           "post": 8,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -1439,7 +1439,7 @@
           "trainer": "大久保",
           "post": 1,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -1448,7 +1448,7 @@
           "trainer": "松永幹",
           "post": 1,
           "sex_age": "セ7",
-          "weight": 59
+          "weight": 59.0
         },
         {
           "horse_number": 3,
@@ -1457,7 +1457,7 @@
           "trainer": "大竹",
           "post": 2,
           "sex_age": "牡6",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 4,
@@ -1466,7 +1466,7 @@
           "trainer": "中舘",
           "post": 2,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -1475,7 +1475,7 @@
           "trainer": "矢作",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -1484,7 +1484,7 @@
           "trainer": "高木",
           "post": 3,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.5
         },
         {
           "horse_number": 7,
@@ -1493,7 +1493,7 @@
           "trainer": "池上",
           "post": 4,
           "sex_age": "牡6",
-          "weight": 57
+          "weight": 57.5
         },
         {
           "horse_number": 8,
@@ -1502,7 +1502,7 @@
           "trainer": "竹内",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 9,
@@ -1511,7 +1511,7 @@
           "trainer": "安田",
           "post": 5,
           "sex_age": "牡6",
-          "weight": 59
+          "weight": 59.0
         },
         {
           "horse_number": 10,
@@ -1520,7 +1520,7 @@
           "trainer": "渡辺",
           "post": 5,
           "sex_age": "牝5",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 11,
@@ -1529,7 +1529,7 @@
           "trainer": "高木",
           "post": 6,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.5
         },
         {
           "horse_number": 12,
@@ -1538,7 +1538,7 @@
           "trainer": "西園翔",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -1547,7 +1547,7 @@
           "trainer": "高橋亮",
           "post": 7,
           "sex_age": "牡8",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 14,
@@ -1556,7 +1556,7 @@
           "trainer": "栗田",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 15,
@@ -1565,7 +1565,7 @@
           "trainer": "東田",
           "post": 8,
           "sex_age": "牡6",
-          "weight": 59
+          "weight": 59.0
         },
         {
           "horse_number": 16,
@@ -1574,7 +1574,7 @@
           "trainer": "中竹",
           "post": 8,
           "sex_age": "セ6",
-          "weight": 56
+          "weight": 56.0
         }
       ]
     },
@@ -1597,7 +1597,7 @@
           "trainer": "村田",
           "post": 1,
           "sex_age": "牝5",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 2,
@@ -1606,7 +1606,7 @@
           "trainer": "浅利",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -1615,7 +1615,7 @@
           "trainer": "武藤",
           "post": 3,
           "sex_age": "牡4",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 4,
@@ -1624,7 +1624,7 @@
           "trainer": "和田雄",
           "post": 4,
           "sex_age": "牡8",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -1633,7 +1633,7 @@
           "trainer": "武井",
           "post": 5,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 6,
@@ -1642,7 +1642,7 @@
           "trainer": "杉浦",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 7,
@@ -1651,7 +1651,7 @@
           "trainer": "武市",
           "post": 6,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 8,
@@ -1660,7 +1660,7 @@
           "trainer": "橋田",
           "post": 7,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -1669,7 +1669,7 @@
           "trainer": "高柳瑞",
           "post": 7,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 10,
@@ -1678,7 +1678,7 @@
           "trainer": "佐藤吉",
           "post": 8,
           "sex_age": "牡6",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 11,
@@ -1687,7 +1687,7 @@
           "trainer": "加藤公",
           "post": 8,
           "sex_age": "セ4",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -1700,7 +1700,7 @@
       "distance": "ダ1800m",
       "headcount": 14,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -1710,7 +1710,7 @@
           "trainer": "笹田",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -1719,7 +1719,7 @@
           "trainer": "杉山佳",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -1728,7 +1728,7 @@
           "trainer": "坂口",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 4,
@@ -1737,7 +1737,7 @@
           "trainer": "渡辺",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -1746,7 +1746,7 @@
           "trainer": "上村",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 6,
@@ -1755,7 +1755,7 @@
           "trainer": "武英",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 7,
@@ -1764,7 +1764,7 @@
           "trainer": "宮本",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 8,
@@ -1773,7 +1773,7 @@
           "trainer": "尾形",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 9,
@@ -1782,7 +1782,7 @@
           "trainer": "森田",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 10,
@@ -1791,7 +1791,7 @@
           "trainer": "高橋忠",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 11,
@@ -1800,7 +1800,7 @@
           "trainer": "高野",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 12,
@@ -1809,7 +1809,7 @@
           "trainer": "西園翔",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -1818,7 +1818,7 @@
           "trainer": "吉村",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -1827,7 +1827,7 @@
           "trainer": "宮本",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         }
       ]
     },
@@ -1840,7 +1840,7 @@
       "distance": "ダ2000m",
       "headcount": 9,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -1850,7 +1850,7 @@
           "trainer": "吉村",
           "post": 1,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -1859,7 +1859,7 @@
           "trainer": "池江",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -1868,7 +1868,7 @@
           "trainer": "中村",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -1877,7 +1877,7 @@
           "trainer": "岡田",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -1886,7 +1886,7 @@
           "trainer": "杉山佳",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -1895,7 +1895,7 @@
           "trainer": "松永幹",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -1904,7 +1904,7 @@
           "trainer": "佐藤悠",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 8,
@@ -1913,7 +1913,7 @@
           "trainer": "清水久",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -1922,7 +1922,7 @@
           "trainer": "石坂",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -1935,7 +1935,7 @@
       "distance": "ダ1400m",
       "headcount": 16,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -1945,7 +1945,7 @@
           "trainer": "四位",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -1954,7 +1954,7 @@
           "trainer": "大根田",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -1963,7 +1963,7 @@
           "trainer": "緒方",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 4,
@@ -1972,7 +1972,7 @@
           "trainer": "中村",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -1981,7 +1981,7 @@
           "trainer": "牧浦",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -1990,7 +1990,7 @@
           "trainer": "高橋康",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -1999,7 +1999,7 @@
           "trainer": "加藤公",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 8,
@@ -2008,7 +2008,7 @@
           "trainer": "秋山",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -2017,7 +2017,7 @@
           "trainer": "荒川",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -2026,7 +2026,7 @@
           "trainer": "河嶋",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -2035,7 +2035,7 @@
           "trainer": "小椋",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -2044,7 +2044,7 @@
           "trainer": "森田",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -2053,7 +2053,7 @@
           "trainer": "橋田",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 14,
@@ -2062,7 +2062,7 @@
           "trainer": "東田",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 15,
@@ -2071,7 +2071,7 @@
           "trainer": "羽月",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 16,
@@ -2080,7 +2080,7 @@
           "trainer": "東田",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         }
       ]
     },
@@ -2093,7 +2093,7 @@
       "distance": "障2970m",
       "headcount": 14,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -2103,7 +2103,7 @@
           "trainer": "谷",
           "post": 1,
           "sex_age": "牡5",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 2,
@@ -2112,7 +2112,7 @@
           "trainer": "谷",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 59
+          "weight": 59.0
         },
         {
           "horse_number": 3,
@@ -2121,7 +2121,7 @@
           "trainer": "飯田",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 4,
@@ -2130,7 +2130,7 @@
           "trainer": "的場",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 5,
@@ -2139,7 +2139,7 @@
           "trainer": "石栗",
           "post": 4,
           "sex_age": "牡6",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 6,
@@ -2148,7 +2148,7 @@
           "trainer": "粕谷",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 7,
@@ -2157,7 +2157,7 @@
           "trainer": "坂口",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 59
+          "weight": 59.0
         },
         {
           "horse_number": 8,
@@ -2166,7 +2166,7 @@
           "trainer": "宮",
           "post": 5,
           "sex_age": "牡6",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -2175,7 +2175,7 @@
           "trainer": "田中剛",
           "post": 6,
           "sex_age": "牡7",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 10,
@@ -2184,7 +2184,7 @@
           "trainer": "金成",
           "post": 6,
           "sex_age": "牡6",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 11,
@@ -2193,7 +2193,7 @@
           "trainer": "東田",
           "post": 7,
           "sex_age": "セ5",
-          "weight": 60
+          "weight": 60.0
         },
         {
           "horse_number": 12,
@@ -2202,7 +2202,7 @@
           "trainer": "蛯名利",
           "post": 7,
           "sex_age": "牝4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -2211,7 +2211,7 @@
           "trainer": "天間",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 14,
@@ -2220,7 +2220,7 @@
           "trainer": "和田郎",
           "post": 8,
           "sex_age": "牡6",
-          "weight": 60
+          "weight": 60.0
         }
       ]
     },
@@ -2243,7 +2243,7 @@
           "trainer": "池添",
           "post": 1,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -2252,7 +2252,7 @@
           "trainer": "清水久",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -2261,7 +2261,7 @@
           "trainer": "田中克",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -2270,7 +2270,7 @@
           "trainer": "四位",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -2279,7 +2279,7 @@
           "trainer": "梅田",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -2288,7 +2288,7 @@
           "trainer": "岡田",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -2297,7 +2297,7 @@
           "trainer": "上村",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -2306,7 +2306,7 @@
           "trainer": "畑端",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 9,
@@ -2315,7 +2315,7 @@
           "trainer": "吉田",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -2324,7 +2324,7 @@
           "trainer": "西村",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 11,
@@ -2333,7 +2333,7 @@
           "trainer": "高野",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -2342,7 +2342,7 @@
           "trainer": "杉山佳",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -2355,7 +2355,7 @@
       "distance": "ダ1200m",
       "headcount": 10,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -2365,7 +2365,7 @@
           "trainer": "中尾",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -2374,7 +2374,7 @@
           "trainer": "前川",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -2383,7 +2383,7 @@
           "trainer": "石栗",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -2392,7 +2392,7 @@
           "trainer": "四位",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -2401,7 +2401,7 @@
           "trainer": "今野",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -2410,7 +2410,7 @@
           "trainer": "田島",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 7,
@@ -2419,7 +2419,7 @@
           "trainer": "森秀",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -2428,7 +2428,7 @@
           "trainer": "上村",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -2437,7 +2437,7 @@
           "trainer": "黒岩",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -2446,7 +2446,7 @@
           "trainer": "中竹",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -2469,7 +2469,7 @@
           "trainer": "松永幹",
           "post": 1,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 2,
@@ -2478,7 +2478,7 @@
           "trainer": "梅田",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -2487,7 +2487,7 @@
           "trainer": "小椋",
           "post": 3,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -2496,7 +2496,7 @@
           "trainer": "藤野",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -2505,7 +2505,7 @@
           "trainer": "本間",
           "post": 4,
           "sex_age": "セ4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 6,
@@ -2514,7 +2514,7 @@
           "trainer": "角田",
           "post": 4,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 7,
@@ -2523,7 +2523,7 @@
           "trainer": "鈴木孝",
           "post": 5,
           "sex_age": "牝4",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 8,
@@ -2532,7 +2532,7 @@
           "trainer": "小栗",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -2541,7 +2541,7 @@
           "trainer": "杉山晴",
           "post": 6,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 10,
@@ -2550,7 +2550,7 @@
           "trainer": "西村",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -2559,7 +2559,7 @@
           "trainer": "吉田",
           "post": 7,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -2568,7 +2568,7 @@
           "trainer": "北出",
           "post": 7,
           "sex_age": "セ4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 13,
@@ -2577,7 +2577,7 @@
           "trainer": "牧田",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 14,
@@ -2586,7 +2586,7 @@
           "trainer": "鈴木孝",
           "post": 8,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -2609,7 +2609,7 @@
           "trainer": "中内田",
           "post": 1,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 2,
@@ -2618,7 +2618,7 @@
           "trainer": "杉山晴",
           "post": 2,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 3,
@@ -2627,7 +2627,7 @@
           "trainer": "藤岡健",
           "post": 3,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 4,
@@ -2636,7 +2636,7 @@
           "trainer": "石橋",
           "post": 4,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 5,
@@ -2645,7 +2645,7 @@
           "trainer": "上村",
           "post": 5,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 6,
@@ -2654,7 +2654,7 @@
           "trainer": "松永幹",
           "post": 6,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 7,
@@ -2663,7 +2663,7 @@
           "trainer": "斉藤崇",
           "post": 7,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         }
       ]
     },
@@ -2676,7 +2676,7 @@
       "distance": "ダ1800m",
       "headcount": 15,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -2686,7 +2686,7 @@
           "trainer": "安達",
           "post": 1,
           "sex_age": "セ7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -2695,7 +2695,7 @@
           "trainer": "笹田",
           "post": 2,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 3,
@@ -2704,7 +2704,7 @@
           "trainer": "牧田",
           "post": 2,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -2713,7 +2713,7 @@
           "trainer": "谷",
           "post": 3,
           "sex_age": "セ9",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -2722,7 +2722,7 @@
           "trainer": "畑端",
           "post": 3,
           "sex_age": "セ4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 6,
@@ -2731,7 +2731,7 @@
           "trainer": "本田",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -2740,7 +2740,7 @@
           "trainer": "大橋",
           "post": 4,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 8,
@@ -2749,7 +2749,7 @@
           "trainer": "中内田",
           "post": 5,
           "sex_age": "セ4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -2758,7 +2758,7 @@
           "trainer": "河嶋",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 10,
@@ -2767,7 +2767,7 @@
           "trainer": "西村",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -2776,7 +2776,7 @@
           "trainer": "武英",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -2785,7 +2785,7 @@
           "trainer": "宮地",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 13,
@@ -2794,7 +2794,7 @@
           "trainer": "前川",
           "post": 7,
           "sex_age": "牡5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -2803,7 +2803,7 @@
           "trainer": "秋山",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 15,
@@ -2812,7 +2812,7 @@
           "trainer": "渡辺",
           "post": 8,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -2835,7 +2835,7 @@
           "trainer": "安田",
           "post": 1,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -2844,7 +2844,7 @@
           "trainer": "友道",
           "post": 2,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -2853,7 +2853,7 @@
           "trainer": "池江",
           "post": 3,
           "sex_age": "セ4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -2862,7 +2862,7 @@
           "trainer": "大久保",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -2871,7 +2871,7 @@
           "trainer": "長谷川",
           "post": 5,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 6,
@@ -2880,7 +2880,7 @@
           "trainer": "宮本",
           "post": 6,
           "sex_age": "牡8",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -2889,7 +2889,7 @@
           "trainer": "中竹",
           "post": 6,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 8,
@@ -2898,7 +2898,7 @@
           "trainer": "矢作",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -2907,7 +2907,7 @@
           "trainer": "長谷川",
           "post": 7,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 10,
@@ -2916,7 +2916,7 @@
           "trainer": "杉山佳",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -2925,7 +2925,7 @@
           "trainer": "武英",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -2948,7 +2948,7 @@
           "trainer": "本田",
           "post": 1,
           "sex_age": "牡9",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -2957,7 +2957,7 @@
           "trainer": "松下",
           "post": 2,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 3,
@@ -2966,7 +2966,7 @@
           "trainer": "千田",
           "post": 3,
           "sex_age": "牡8",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -2975,7 +2975,7 @@
           "trainer": "藤原",
           "post": 4,
           "sex_age": "セ6",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -2984,7 +2984,7 @@
           "trainer": "武市",
           "post": 4,
           "sex_age": "牡6",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -2993,7 +2993,7 @@
           "trainer": "上村",
           "post": 5,
           "sex_age": "牡5",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -3002,7 +3002,7 @@
           "trainer": "杉山晴",
           "post": 5,
           "sex_age": "牝5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 8,
@@ -3011,7 +3011,7 @@
           "trainer": "小島",
           "post": 6,
           "sex_age": "セ7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -3020,7 +3020,7 @@
           "trainer": "宮本",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -3029,7 +3029,7 @@
           "trainer": "森秀",
           "post": 7,
           "sex_age": "牡6",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -3038,7 +3038,7 @@
           "trainer": "金成",
           "post": 7,
           "sex_age": "牡7",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -3047,7 +3047,7 @@
           "trainer": "池江",
           "post": 8,
           "sex_age": "牡8",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 13,
@@ -3056,7 +3056,7 @@
           "trainer": "梅田",
           "post": 8,
           "sex_age": "牡7",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -3069,7 +3069,7 @@
       "distance": "ダ1200m",
       "headcount": 16,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -3079,7 +3079,7 @@
           "trainer": "岡田",
           "post": 1,
           "sex_age": "牡5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 2,
@@ -3088,7 +3088,7 @@
           "trainer": "小椋",
           "post": 1,
           "sex_age": "セ6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -3097,7 +3097,7 @@
           "trainer": "石栗",
           "post": 2,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -3106,7 +3106,7 @@
           "trainer": "茶木",
           "post": 2,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -3115,7 +3115,7 @@
           "trainer": "中竹",
           "post": 3,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 6,
@@ -3124,7 +3124,7 @@
           "trainer": "杉山晴",
           "post": 3,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -3133,7 +3133,7 @@
           "trainer": "東田",
           "post": 4,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 8,
@@ -3142,7 +3142,7 @@
           "trainer": "矢作",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -3151,7 +3151,7 @@
           "trainer": "杉山佳",
           "post": 5,
           "sex_age": "セ5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 10,
@@ -3160,7 +3160,7 @@
           "trainer": "大根田",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -3169,7 +3169,7 @@
           "trainer": "室井",
           "post": 6,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -3178,7 +3178,7 @@
           "trainer": "柴田",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 13,
@@ -3187,7 +3187,7 @@
           "trainer": "吉岡",
           "post": 7,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 14,
@@ -3196,7 +3196,7 @@
           "trainer": "梅田",
           "post": 7,
           "sex_age": "セ8",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 15,
@@ -3205,7 +3205,7 @@
           "trainer": "森秀",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 16,
@@ -3214,7 +3214,7 @@
           "trainer": "斉藤崇",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -3227,7 +3227,7 @@
       "distance": "ダ1400m",
       "headcount": 16,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -3237,7 +3237,7 @@
           "trainer": "鹿戸",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -3246,7 +3246,7 @@
           "trainer": "武市",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -3255,7 +3255,7 @@
           "trainer": "小野",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 4,
@@ -3264,7 +3264,7 @@
           "trainer": "羽月",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -3273,7 +3273,7 @@
           "trainer": "竹内",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 6,
@@ -3282,7 +3282,7 @@
           "trainer": "平田",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 7,
@@ -3291,7 +3291,7 @@
           "trainer": "牧",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 8,
@@ -3300,7 +3300,7 @@
           "trainer": "昆",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 9,
@@ -3309,7 +3309,7 @@
           "trainer": "鈴木伸",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 10,
@@ -3318,7 +3318,7 @@
           "trainer": "上原佑",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 11,
@@ -3327,7 +3327,7 @@
           "trainer": "渡辺",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 51
+          "weight": 51.0
         },
         {
           "horse_number": 12,
@@ -3336,7 +3336,7 @@
           "trainer": "田中克",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -3345,7 +3345,7 @@
           "trainer": "藤野",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -3354,7 +3354,7 @@
           "trainer": "宮地",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 15,
@@ -3363,7 +3363,7 @@
           "trainer": "今野",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 16,
@@ -3372,7 +3372,7 @@
           "trainer": "高橋一",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         }
       ]
     },
@@ -3385,7 +3385,7 @@
       "distance": "ダ1900m",
       "headcount": 14,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -3395,7 +3395,7 @@
           "trainer": "梅田",
           "post": 1,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -3404,7 +3404,7 @@
           "trainer": "青木",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 3,
@@ -3413,7 +3413,7 @@
           "trainer": "森秀",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 4,
@@ -3422,7 +3422,7 @@
           "trainer": "秋山",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -3431,7 +3431,7 @@
           "trainer": "坂口",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -3440,7 +3440,7 @@
           "trainer": "藤岡健",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 7,
@@ -3449,7 +3449,7 @@
           "trainer": "高橋文",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -3458,7 +3458,7 @@
           "trainer": "福永",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -3467,7 +3467,7 @@
           "trainer": "飯田",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -3476,7 +3476,7 @@
           "trainer": "武英",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -3485,7 +3485,7 @@
           "trainer": "和田勇",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 12,
@@ -3494,7 +3494,7 @@
           "trainer": "吉岡",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -3503,7 +3503,7 @@
           "trainer": "荒川",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 14,
@@ -3512,7 +3512,7 @@
           "trainer": "天間",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         }
       ]
     },
@@ -3525,7 +3525,7 @@
       "distance": "ダ1200m",
       "headcount": 15,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -3535,7 +3535,7 @@
           "trainer": "小椋",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -3544,7 +3544,7 @@
           "trainer": "伊坂",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -3553,7 +3553,7 @@
           "trainer": "今野",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 4,
@@ -3562,7 +3562,7 @@
           "trainer": "田中克",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 5,
@@ -3571,7 +3571,7 @@
           "trainer": "小笠",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -3580,7 +3580,7 @@
           "trainer": "安達",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 7,
@@ -3589,7 +3589,7 @@
           "trainer": "栗田",
           "post": 4,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -3598,7 +3598,7 @@
           "trainer": "緒方",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 9,
@@ -3607,7 +3607,7 @@
           "trainer": "飯田",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -3616,7 +3616,7 @@
           "trainer": "粕谷",
           "post": 6,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 11,
@@ -3625,7 +3625,7 @@
           "trainer": "伊藤圭",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -3634,7 +3634,7 @@
           "trainer": "東田",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -3643,7 +3643,7 @@
           "trainer": "水野",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -3652,7 +3652,7 @@
           "trainer": "尾形",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 15,
@@ -3661,7 +3661,7 @@
           "trainer": "岡田",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -3684,7 +3684,7 @@
           "trainer": "羽月",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -3693,7 +3693,7 @@
           "trainer": "西園翔",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 3,
@@ -3702,7 +3702,7 @@
           "trainer": "勢司",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 4,
@@ -3711,7 +3711,7 @@
           "trainer": "緒方",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -3720,7 +3720,7 @@
           "trainer": "森一",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 6,
@@ -3729,7 +3729,7 @@
           "trainer": "高橋忠",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -3738,7 +3738,7 @@
           "trainer": "加藤征",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 8,
@@ -3747,7 +3747,7 @@
           "trainer": "新谷",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 9,
@@ -3756,7 +3756,7 @@
           "trainer": "松下",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 10,
@@ -3765,7 +3765,7 @@
           "trainer": "藤野",
           "post": 5,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 11,
@@ -3774,7 +3774,7 @@
           "trainer": "石栗",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 12,
@@ -3783,7 +3783,7 @@
           "trainer": "中村",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -3792,7 +3792,7 @@
           "trainer": "高橋亮",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -3801,7 +3801,7 @@
           "trainer": "杉浦",
           "post": 7,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 15,
@@ -3810,7 +3810,7 @@
           "trainer": "上原佑",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 16,
@@ -3819,7 +3819,7 @@
           "trainer": "鈴木孝",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 17,
@@ -3828,7 +3828,7 @@
           "trainer": "安達",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 18,
@@ -3837,7 +3837,7 @@
           "trainer": "笹田",
           "post": 8,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         }
       ]
     },
@@ -3860,7 +3860,7 @@
           "trainer": "新谷",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -3869,7 +3869,7 @@
           "trainer": "高野",
           "post": 1,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 3,
@@ -3878,7 +3878,7 @@
           "trainer": "大和田",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 4,
@@ -3887,7 +3887,7 @@
           "trainer": "昆",
           "post": 2,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -3896,7 +3896,7 @@
           "trainer": "須貝",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 6,
@@ -3905,7 +3905,7 @@
           "trainer": "矢野",
           "post": 3,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 7,
@@ -3914,7 +3914,7 @@
           "trainer": "堀",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 8,
@@ -3923,7 +3923,7 @@
           "trainer": "清水久",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 9,
@@ -3932,7 +3932,7 @@
           "trainer": "奥村豊",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 10,
@@ -3941,7 +3941,7 @@
           "trainer": "前川",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 11,
@@ -3950,7 +3950,7 @@
           "trainer": "中竹",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 12,
@@ -3959,7 +3959,7 @@
           "trainer": "勢司",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -3968,7 +3968,7 @@
           "trainer": "深山",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 14,
@@ -3977,7 +3977,7 @@
           "trainer": "青木",
           "post": 7,
           "sex_age": "セ3",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 15,
@@ -3986,7 +3986,7 @@
           "trainer": "鈴木孝",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 16,
@@ -3995,7 +3995,7 @@
           "trainer": "矢作",
           "post": 8,
           "sex_age": "牡3",
-          "weight": 55
+          "weight": 55.0
         }
       ]
     },
@@ -4018,7 +4018,7 @@
           "trainer": "前川",
           "post": 1,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -4027,7 +4027,7 @@
           "trainer": "武井",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -4036,7 +4036,7 @@
           "trainer": "茶木",
           "post": 3,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -4045,7 +4045,7 @@
           "trainer": "鹿戸",
           "post": 4,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 5,
@@ -4054,7 +4054,7 @@
           "trainer": "高橋忠",
           "post": 4,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -4063,7 +4063,7 @@
           "trainer": "相沢",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -4072,7 +4072,7 @@
           "trainer": "加藤公",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -4081,7 +4081,7 @@
           "trainer": "藤岡健",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -4090,7 +4090,7 @@
           "trainer": "高橋康",
           "post": 6,
           "sex_age": "牝5",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 10,
@@ -4099,7 +4099,7 @@
           "trainer": "斉藤崇",
           "post": 7,
           "sex_age": "セ7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -4108,7 +4108,7 @@
           "trainer": "高柳大",
           "post": 7,
           "sex_age": "牝4",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 12,
@@ -4117,7 +4117,7 @@
           "trainer": "相沢",
           "post": 8,
           "sex_age": "牡5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 13,
@@ -4126,7 +4126,7 @@
           "trainer": "田中剛",
           "post": 8,
           "sex_age": "牝4",
-          "weight": 52
+          "weight": 52.0
         }
       ]
     },
@@ -4139,7 +4139,7 @@
       "distance": "ダ1800m",
       "headcount": 13,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -4149,7 +4149,7 @@
           "trainer": "尾関",
           "post": 1,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 2,
@@ -4158,7 +4158,7 @@
           "trainer": "堀内",
           "post": 2,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 3,
@@ -4167,7 +4167,7 @@
           "trainer": "寺島",
           "post": 3,
           "sex_age": "牝4",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 4,
@@ -4176,7 +4176,7 @@
           "trainer": "菊沢",
           "post": 4,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 5,
@@ -4185,7 +4185,7 @@
           "trainer": "清水久",
           "post": 4,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 6,
@@ -4194,7 +4194,7 @@
           "trainer": "高橋忠",
           "post": 5,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 7,
@@ -4203,7 +4203,7 @@
           "trainer": "尾関",
           "post": 5,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 8,
@@ -4212,7 +4212,7 @@
           "trainer": "宮田",
           "post": 6,
           "sex_age": "牝4",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 9,
@@ -4221,7 +4221,7 @@
           "trainer": "梅田",
           "post": 6,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 10,
@@ -4230,7 +4230,7 @@
           "trainer": "松山",
           "post": 7,
           "sex_age": "牝5",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 11,
@@ -4239,7 +4239,7 @@
           "trainer": "高柳大",
           "post": 7,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 12,
@@ -4248,7 +4248,7 @@
           "trainer": "大久保",
           "post": 8,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 13,
@@ -4257,7 +4257,7 @@
           "trainer": "大橋",
           "post": 8,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         }
       ]
     },
@@ -4280,7 +4280,7 @@
           "trainer": "安田",
           "post": 1,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 2,
@@ -4289,7 +4289,7 @@
           "trainer": "安達",
           "post": 2,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 3,
@@ -4298,7 +4298,7 @@
           "trainer": "佐藤悠",
           "post": 3,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 4,
@@ -4307,7 +4307,7 @@
           "trainer": "高木",
           "post": 4,
           "sex_age": "牝3",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 5,
@@ -4316,7 +4316,7 @@
           "trainer": "池江",
           "post": 5,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 6,
@@ -4325,7 +4325,7 @@
           "trainer": "斉藤崇",
           "post": 6,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 7,
@@ -4334,7 +4334,7 @@
           "trainer": "矢作",
           "post": 7,
           "sex_age": "牡3",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -4357,7 +4357,7 @@
           "trainer": "森田",
           "post": 1,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -4366,7 +4366,7 @@
           "trainer": "高柳大",
           "post": 1,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 3,
@@ -4375,7 +4375,7 @@
           "trainer": "小崎",
           "post": 2,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -4384,7 +4384,7 @@
           "trainer": "小崎",
           "post": 2,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -4393,7 +4393,7 @@
           "trainer": "矢嶋",
           "post": 3,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 6,
@@ -4402,7 +4402,7 @@
           "trainer": "宮田",
           "post": 3,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -4411,7 +4411,7 @@
           "trainer": "河嶋",
           "post": 4,
           "sex_age": "牝4",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 8,
@@ -4420,7 +4420,7 @@
           "trainer": "西園翔",
           "post": 4,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 9,
@@ -4429,7 +4429,7 @@
           "trainer": "畑端",
           "post": 5,
           "sex_age": "牝5",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 10,
@@ -4438,7 +4438,7 @@
           "trainer": "堀",
           "post": 5,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -4447,7 +4447,7 @@
           "trainer": "藤原",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -4456,7 +4456,7 @@
           "trainer": "藤野",
           "post": 6,
           "sex_age": "牝5",
-          "weight": 53
+          "weight": 53.0
         },
         {
           "horse_number": 13,
@@ -4465,7 +4465,7 @@
           "trainer": "武幸",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 14,
@@ -4474,7 +4474,7 @@
           "trainer": "宮本",
           "post": 7,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 15,
@@ -4483,7 +4483,7 @@
           "trainer": "勢司",
           "post": 8,
           "sex_age": "牡6",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 16,
@@ -4492,7 +4492,7 @@
           "trainer": "小椋",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     },
@@ -4505,7 +4505,7 @@
       "distance": "ダ1900m",
       "headcount": 15,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -4515,7 +4515,7 @@
           "trainer": "池江",
           "post": 1,
           "sex_age": "牡5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 2,
@@ -4524,7 +4524,7 @@
           "trainer": "本田",
           "post": 2,
           "sex_age": "牝6",
-          "weight": 52
+          "weight": 52.0
         },
         {
           "horse_number": 3,
@@ -4533,7 +4533,7 @@
           "trainer": "中尾",
           "post": 2,
           "sex_age": "牡7",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 4,
@@ -4542,7 +4542,7 @@
           "trainer": "松尾",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 5,
@@ -4551,7 +4551,7 @@
           "trainer": "宮地",
           "post": 3,
           "sex_age": "セ5",
-          "weight": 55
+          "weight": 55.0
         },
         {
           "horse_number": 6,
@@ -4560,7 +4560,7 @@
           "trainer": "高木",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 7,
@@ -4569,7 +4569,7 @@
           "trainer": "大橋",
           "post": 4,
           "sex_age": "牡5",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 8,
@@ -4578,7 +4578,7 @@
           "trainer": "小林",
           "post": 5,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 9,
@@ -4587,7 +4587,7 @@
           "trainer": "鈴木慎",
           "post": 5,
           "sex_age": "牡5",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 10,
@@ -4596,7 +4596,7 @@
           "trainer": "藤原",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 11,
@@ -4605,7 +4605,7 @@
           "trainer": "鹿戸",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 54
+          "weight": 54.0
         },
         {
           "horse_number": 12,
@@ -4614,7 +4614,7 @@
           "trainer": "斎藤誠",
           "post": 7,
           "sex_age": "牡7",
-          "weight": 57
+          "weight": 57.0
         },
         {
           "horse_number": 13,
@@ -4623,7 +4623,7 @@
           "trainer": "笹田",
           "post": 7,
           "sex_age": "牡5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 14,
@@ -4632,7 +4632,7 @@
           "trainer": "奥村豊",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 15,
@@ -4641,7 +4641,7 @@
           "trainer": "上原佑",
           "post": 8,
           "sex_age": "牡4",
-          "weight": 57
+          "weight": 57.0
         }
       ]
     },
@@ -4664,7 +4664,7 @@
           "trainer": "橋口",
           "post": 1,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -4673,7 +4673,7 @@
           "trainer": "杉山晴",
           "post": 1,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -4682,7 +4682,7 @@
           "trainer": "武英",
           "post": 2,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 4,
@@ -4691,7 +4691,7 @@
           "trainer": "藤原",
           "post": 2,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -4700,7 +4700,7 @@
           "trainer": "斉藤崇",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 6,
@@ -4709,7 +4709,7 @@
           "trainer": "蛯名正",
           "post": 3,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -4718,7 +4718,7 @@
           "trainer": "中尾",
           "post": 4,
           "sex_age": "牡8",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 8,
@@ -4727,7 +4727,7 @@
           "trainer": "鹿戸",
           "post": 4,
           "sex_age": "牡9",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -4736,7 +4736,7 @@
           "trainer": "堀",
           "post": 5,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 10,
@@ -4745,7 +4745,7 @@
           "trainer": "池江",
           "post": 5,
           "sex_age": "牝7",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 11,
@@ -4754,7 +4754,7 @@
           "trainer": "大竹",
           "post": 6,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -4763,7 +4763,7 @@
           "trainer": "安田",
           "post": 6,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 13,
@@ -4772,7 +4772,7 @@
           "trainer": "長谷川",
           "post": 7,
           "sex_age": "牝7",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 14,
@@ -4781,7 +4781,7 @@
           "trainer": "中竹",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 15,
@@ -4790,7 +4790,7 @@
           "trainer": "伊藤大",
           "post": 7,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 16,
@@ -4799,7 +4799,7 @@
           "trainer": "柴田",
           "post": 8,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 17,
@@ -4808,7 +4808,7 @@
           "trainer": "梅田",
           "post": 8,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 18,
@@ -4817,7 +4817,7 @@
           "trainer": "武英",
           "post": 8,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         }
       ]
     },
@@ -4830,7 +4830,7 @@
       "distance": "ダ1400m",
       "headcount": 16,
       "start_time": "",
-      "track_condition": "良",
+      "track_condition": "−",
       "date": "20260329",
       "entries": [
         {
@@ -4840,7 +4840,7 @@
           "trainer": "高木",
           "post": 1,
           "sex_age": "セ6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 2,
@@ -4849,7 +4849,7 @@
           "trainer": "小崎",
           "post": 1,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 3,
@@ -4858,7 +4858,7 @@
           "trainer": "鈴木伸",
           "post": 2,
           "sex_age": "牝4",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 4,
@@ -4867,7 +4867,7 @@
           "trainer": "小林",
           "post": 2,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 5,
@@ -4876,7 +4876,7 @@
           "trainer": "岩戸",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 6,
@@ -4885,7 +4885,7 @@
           "trainer": "須貝",
           "post": 3,
           "sex_age": "牡5",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 7,
@@ -4894,7 +4894,7 @@
           "trainer": "高橋文",
           "post": 4,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 8,
@@ -4903,7 +4903,7 @@
           "trainer": "小笠",
           "post": 4,
           "sex_age": "牡6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 9,
@@ -4912,7 +4912,7 @@
           "trainer": "松下",
           "post": 5,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 10,
@@ -4921,7 +4921,7 @@
           "trainer": "大和田",
           "post": 5,
           "sex_age": "セ6",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 11,
@@ -4930,7 +4930,7 @@
           "trainer": "福永",
           "post": 6,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 12,
@@ -4939,7 +4939,7 @@
           "trainer": "菊川",
           "post": 6,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 13,
@@ -4948,7 +4948,7 @@
           "trainer": "和田郎",
           "post": 7,
           "sex_age": "牡4",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 14,
@@ -4957,7 +4957,7 @@
           "trainer": "飯田",
           "post": 7,
           "sex_age": "牝5",
-          "weight": 56
+          "weight": 56.0
         },
         {
           "horse_number": 15,
@@ -4966,7 +4966,7 @@
           "trainer": "小手川",
           "post": 8,
           "sex_age": "牡7",
-          "weight": 58
+          "weight": 58.0
         },
         {
           "horse_number": 16,
@@ -4975,14 +4975,9 @@
           "trainer": "和田郎",
           "post": 8,
           "sex_age": "セ4",
-          "weight": 58
+          "weight": 58.0
         }
       ]
     }
-  ],
-  "venues": {
-    "中山": 12,
-    "阪神": 12,
-    "中京": 12
-  }
+  ]
 }
