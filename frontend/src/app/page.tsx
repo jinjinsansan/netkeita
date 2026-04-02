@@ -1,32 +1,73 @@
 "use client";
 
-import { useState } from "react";
-import { MOCK_RACES } from "@/lib/mock";
+import { useState, useEffect } from "react";
+import { fetchRaces } from "@/lib/api";
+import type { RaceSummary } from "@/lib/types";
 import Link from "next/link";
 
-export default function Home() {
-  const dates = [...new Set(MOCK_RACES.map((r) => r.date))];
-  const [selectedDate, setSelectedDate] = useState(dates[0]);
-  const venues = [...new Set(MOCK_RACES.filter((r) => r.date === selectedDate).map((r) => r.venue))];
-  const [selectedVenue, setSelectedVenue] = useState(venues[0]);
+// Generate this week's Sat/Sun dates
+function getWeekendDates(): string[] {
+  const now = new Date();
+  const day = now.getDay();
+  const dates: string[] = [];
 
-  const currentGroup = MOCK_RACES.find(
-    (r) => r.date === selectedDate && r.venue === selectedVenue
-  );
+  // Find this Saturday
+  const satOffset = day <= 6 ? 6 - day : 0;
+  const sat = new Date(now);
+  sat.setDate(now.getDate() + satOffset);
+  dates.push(formatDate(sat));
 
-  function handleDateChange(date: string) {
-    setSelectedDate(date);
-    const newVenues = [...new Set(MOCK_RACES.filter((r) => r.date === date).map((r) => r.venue))];
-    if (!newVenues.includes(selectedVenue)) {
-      setSelectedVenue(newVenues[0]);
-    }
+  // Sunday
+  const sun = new Date(sat);
+  sun.setDate(sat.getDate() + 1);
+  dates.push(formatDate(sun));
+
+  // If today is Sunday or later, also show last Saturday
+  if (day === 0) {
+    const lastSat = new Date(now);
+    lastSat.setDate(now.getDate() - 1);
+    dates.unshift(formatDate(lastSat));
   }
 
-  const dayLabel = (d: string) => {
-    const dt = new Date(d);
-    const days = ["日", "月", "火", "水", "木", "金", "土"];
-    return `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]})`;
-  };
+  return [...new Set(dates)];
+}
+
+function formatDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${dd}`;
+}
+
+function dateLabel(d: string): string {
+  const dt = new Date(`${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`);
+  const days = ["日", "月", "火", "水", "木", "金", "土"];
+  return `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]})`;
+}
+
+export default function Home() {
+  const dates = getWeekendDates();
+  const [selectedDate, setSelectedDate] = useState(dates[0]);
+  const [venues, setVenues] = useState<{ venue: string; races: RaceSummary[] }[]>([]);
+  const [selectedVenue, setSelectedVenue] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchRaces(selectedDate).then((data) => {
+      setVenues(data.venues);
+      if (data.venues.length > 0) {
+        setSelectedVenue((prev) =>
+          data.venues.find((v) => v.venue === prev) ? prev : data.venues[0].venue
+        );
+      } else {
+        setSelectedVenue("");
+      }
+      setLoading(false);
+    });
+  }, [selectedDate]);
+
+  const currentRaces = venues.find((v) => v.venue === selectedVenue)?.races || [];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
@@ -37,39 +78,43 @@ export default function Home() {
         {dates.map((d) => (
           <button
             key={d}
-            onClick={() => handleDateChange(d)}
+            onClick={() => setSelectedDate(d)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
               selectedDate === d
                 ? "bg-[#E53935] text-white border-[#E53935]"
                 : "bg-white text-[#555] border-[#ddd] hover:bg-[#f5f5f5]"
             }`}
           >
-            {dayLabel(d)}
+            {dateLabel(d)}
           </button>
         ))}
       </div>
 
       {/* Venue tabs */}
-      <div className="flex gap-2 mb-5">
-        {venues.map((v) => (
-          <button
-            key={v}
-            onClick={() => setSelectedVenue(v)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
-              selectedVenue === v
-                ? "bg-[#333] text-white border-[#333]"
-                : "bg-white text-[#555] border-[#ddd] hover:bg-[#f5f5f5]"
-            }`}
-          >
-            {v}
-          </button>
-        ))}
-      </div>
+      {venues.length > 0 && (
+        <div className="flex gap-2 mb-5">
+          {venues.map((v) => (
+            <button
+              key={v.venue}
+              onClick={() => setSelectedVenue(v.venue)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+                selectedVenue === v.venue
+                  ? "bg-[#333] text-white border-[#333]"
+                  : "bg-white text-[#555] border-[#ddd] hover:bg-[#f5f5f5]"
+              }`}
+            >
+              {v.venue}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Race list */}
-      {currentGroup ? (
+      {loading ? (
+        <p className="text-[#888] text-sm py-8 text-center">読み込み中...</p>
+      ) : currentRaces.length > 0 ? (
         <div className="grid gap-2">
-          {currentGroup.races.map((race) => (
+          {currentRaces.map((race) => (
             <Link
               key={race.race_id}
               href={`/race/${encodeURIComponent(race.race_id)}`}
@@ -86,7 +131,7 @@ export default function Home() {
           ))}
         </div>
       ) : (
-        <p className="text-[#888] text-sm">レースデータがありません</p>
+        <p className="text-[#888] text-sm py-8 text-center">この日のレースデータはまだありません</p>
       )}
     </div>
   );

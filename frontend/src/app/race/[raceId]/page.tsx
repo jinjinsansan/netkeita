@@ -1,19 +1,44 @@
-import { MOCK_MATRIX } from "@/lib/mock";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { fetchMatrix } from "@/lib/api";
+import type { RaceMatrix } from "@/lib/types";
 import RankMatrix from "@/components/RankMatrix";
 import Link from "next/link";
 
-export default async function RacePage({
-  params,
-}: {
-  params: Promise<{ raceId: string }>;
-}) {
-  const { raceId } = await params;
-  // TODO: fetch from API by raceId. Using mock for now.
-  const matrix = MOCK_MATRIX;
+export default function RacePage() {
+  const params = useParams();
+  const raceId = params.raceId as string;
+  const [matrix, setMatrix] = useState<RaceMatrix | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMatrix(raceId).then((data) => {
+      setMatrix(data);
+      setLoading(false);
+    });
+  }, [raceId]);
+
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-12 text-center text-[#888]">
+        読み込み中...
+      </div>
+    );
+  }
+
+  if (!matrix) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-12 text-center">
+        <p className="text-[#888] mb-4">レースデータが見つかりません</p>
+        <Link href="/" className="text-[#1E88E5] hover:underline">← レース一覧に戻る</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
-      {/* Back link */}
       <Link href="/" className="text-sm text-[#1E88E5] hover:underline mb-4 inline-block">
         ← レース一覧
       </Link>
@@ -31,31 +56,27 @@ export default async function RacePage({
         </p>
       </div>
 
-      {/* Rank matrix */}
       <RankMatrix horses={matrix.horses} />
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-3 text-xs text-[#888]">
-        <span className="flex items-center gap-1">
-          <span className="w-5 h-5 rounded bg-[#FFD700] text-[#333] text-center leading-5 font-bold text-[10px]">S</span>
-          1位
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-5 h-5 rounded bg-[#E53935] text-white text-center leading-5 font-bold text-[10px]">A</span>
-          上位25%
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-5 h-5 rounded bg-[#1E88E5] text-white text-center leading-5 font-bold text-[10px]">B</span>
-          上位50%
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-5 h-5 rounded bg-[#43A047] text-white text-center leading-5 font-bold text-[10px]">C</span>
-          上位75%
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-5 h-5 rounded bg-[#9E9E9E] text-white text-center leading-5 font-bold text-[10px]">D</span>
-          下位25%
-        </span>
+        {[
+          { grade: "S", label: "1位", color: "#FFD700", text: "#333" },
+          { grade: "A", label: "上位25%", color: "#E53935", text: "#fff" },
+          { grade: "B", label: "上位50%", color: "#1E88E5", text: "#fff" },
+          { grade: "C", label: "上位75%", color: "#43A047", text: "#fff" },
+          { grade: "D", label: "下位25%", color: "#9E9E9E", text: "#fff" },
+        ].map((r) => (
+          <span key={r.grade} className="flex items-center gap-1">
+            <span
+              className="w-5 h-5 rounded text-center leading-5 font-bold text-[10px]"
+              style={{ backgroundColor: r.color, color: r.text }}
+            >
+              {r.grade}
+            </span>
+            {r.label}
+          </span>
+        ))}
       </div>
     </div>
   );
