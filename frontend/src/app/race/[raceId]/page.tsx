@@ -55,7 +55,7 @@ export default function RacePage() {
       {/* Race header (netkeiba style) */}
       <div className="border border-[#c6c9d3] rounded bg-white mb-3">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[#e0e0e0] bg-[#f5f5f5]">
-          <span className="bg-[#1f7a1f] text-white text-[11px] font-bold px-2 py-0.5 rounded">
+          <span className="bg-[#3251BC] text-white text-[11px] font-bold px-2 py-0.5 rounded">
             {matrix.race_number}R
           </span>
           <h1 className="text-sm font-bold">{matrix.race_name}</h1>

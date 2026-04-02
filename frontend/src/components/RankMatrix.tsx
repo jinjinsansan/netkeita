@@ -54,7 +54,7 @@ export default function RankMatrix({ horses }: Props) {
                 onClick={() => handleSort(col.key)}
                 className="cursor-pointer hover:bg-[#ddd] select-none w-[34px]"
               >
-                <span className={sortKey === col.key ? "text-[#E53935]" : ""}>
+                <span className={sortKey === col.key ? "text-[#3251BC] font-bold" : ""}>
                   {col.label}
                 </span>
                 {sortKey === col.key && (
