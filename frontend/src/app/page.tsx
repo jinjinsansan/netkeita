@@ -1,43 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchRaces } from "@/lib/api";
+import { fetchRaces, getAvailableDates } from "@/lib/api";
 import type { RaceSummary } from "@/lib/types";
 import Link from "next/link";
-
-// Generate this week's Sat/Sun dates
-function getWeekendDates(): string[] {
-  const now = new Date();
-  const day = now.getDay();
-  const dates: string[] = [];
-
-  // Find this Saturday
-  const satOffset = day <= 6 ? 6 - day : 0;
-  const sat = new Date(now);
-  sat.setDate(now.getDate() + satOffset);
-  dates.push(formatDate(sat));
-
-  // Sunday
-  const sun = new Date(sat);
-  sun.setDate(sat.getDate() + 1);
-  dates.push(formatDate(sun));
-
-  // If today is Sunday or later, also show last Saturday
-  if (day === 0) {
-    const lastSat = new Date(now);
-    lastSat.setDate(now.getDate() - 1);
-    dates.unshift(formatDate(lastSat));
-  }
-
-  return [...new Set(dates)];
-}
-
-function formatDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}${m}${dd}`;
-}
 
 function dateLabel(d: string): string {
   const dt = new Date(`${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`);
@@ -46,7 +12,8 @@ function dateLabel(d: string): string {
 }
 
 export default function Home() {
-  const dates = getWeekendDates();
+  const mockDates = getAvailableDates();
+  const dates = mockDates.length > 0 ? mockDates : ["20260329"];
   const [selectedDate, setSelectedDate] = useState(dates[0]);
   const [venues, setVenues] = useState<{ venue: string; races: RaceSummary[] }[]>([]);
   const [selectedVenue, setSelectedVenue] = useState("");
@@ -104,6 +71,7 @@ export default function Home() {
               }`}
             >
               {v.venue}
+              <span className="ml-1 text-xs opacity-70">{v.races.length}R</span>
             </button>
           ))}
         </div>
@@ -123,7 +91,9 @@ export default function Home() {
               <span className="text-sm font-bold text-[#E53935] w-8 shrink-0">
                 {race.race_number}R
               </span>
-              <span className="text-sm text-[#888] w-12 shrink-0">{race.start_time}</span>
+              {race.start_time && (
+                <span className="text-sm text-[#888] w-12 shrink-0">{race.start_time}</span>
+              )}
               <span className="text-sm font-medium flex-1 truncate">{race.race_name}</span>
               <span className="text-xs text-[#888]">{race.distance}</span>
               <span className="text-xs text-[#aaa]">{race.headcount}頭</span>

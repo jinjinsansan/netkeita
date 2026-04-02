@@ -1,14 +1,18 @@
 import type { RaceSummary, RaceMatrix } from "./types";
-import { MOCK_RACES, MOCK_MATRIX } from "./mock";
+import { MOCK_RACES, getMockMatrix } from "./mock";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const USE_MOCK = !API_URL || API_URL === "mock";
 
-export async function fetchRaces(date: string): Promise<{ date: string; venues: { venue: string; races: RaceSummary[] }[] }> {
+export async function fetchRaces(date: string): Promise<{
+  date: string;
+  venues: { venue: string; races: RaceSummary[] }[];
+}> {
   if (USE_MOCK) {
-    const groups = MOCK_RACES.filter((r) => r.date === date);
+    // Filter by date (mock data has single date)
+    const groups = MOCK_RACES.filter((r) => r.date === date || date === "");
     return {
-      date,
+      date: date || MOCK_RACES[0]?.date || "",
       venues: groups.map((g) => ({ venue: g.venue, races: g.races })),
     };
   }
@@ -18,7 +22,6 @@ export async function fetchRaces(date: string): Promise<{ date: string; venues: 
   const data = await res.json();
   const races: RaceSummary[] = data.races || [];
 
-  // Group by venue
   const venueMap: Record<string, RaceSummary[]> = {};
   for (const r of races) {
     const v = r.venue || "不明";
@@ -32,7 +35,7 @@ export async function fetchRaces(date: string): Promise<{ date: string; venues: 
 
 export async function fetchMatrix(raceId: string): Promise<RaceMatrix | null> {
   if (USE_MOCK) {
-    return MOCK_MATRIX;
+    return getMockMatrix(raceId);
   }
 
   const res = await fetch(`${API_URL}/api/race/${encodeURIComponent(raceId)}/matrix`, {
@@ -40,4 +43,11 @@ export async function fetchMatrix(raceId: string): Promise<RaceMatrix | null> {
   });
   if (!res.ok) return null;
   return res.json();
+}
+
+export function getAvailableDates(): string[] {
+  if (USE_MOCK) {
+    return [...new Set(MOCK_RACES.map((r) => r.date))];
+  }
+  return [];
 }
