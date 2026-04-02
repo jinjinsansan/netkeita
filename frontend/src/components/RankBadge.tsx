@@ -12,7 +12,7 @@ export default function RankBadge({ grade }: { grade: Grade }) {
   const c = COLORS[grade];
   return (
     <span
-      className="inline-flex items-center justify-center w-[20px] h-[18px] rounded-sm text-[10px] font-bold leading-none"
+      className="inline-flex items-center justify-center w-[24px] h-[22px] rounded text-[11px] font-bold leading-none"
       style={{ backgroundColor: c.bg, color: c.text }}
     >
       {grade}
