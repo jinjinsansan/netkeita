@@ -9,7 +9,7 @@ import Link from "next/link";
 
 export default function RacePage() {
   const params = useParams();
-  const raceId = params.raceId as string;
+  const raceId = decodeURIComponent(params.raceId as string);
   const [matrix, setMatrix] = useState<RaceMatrix | null>(null);
   const [loading, setLoading] = useState(true);
 

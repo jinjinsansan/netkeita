@@ -99,7 +99,8 @@ for (const race of sampleData.races) {
 }
 
 export function getMockMatrix(raceId: string): RaceMatrix | null {
-  return _matrixCache[raceId] || null;
+  const decoded = decodeURIComponent(raceId);
+  return _matrixCache[decoded] || _matrixCache[raceId] || null;
 }
 
 // Keep MOCK_MATRIX for backward compat (first race)
