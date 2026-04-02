@@ -4,11 +4,21 @@ import { useState } from "react";
 import type { HorseRank, RankKey } from "@/lib/types";
 import { RANK_COLUMNS } from "@/lib/types";
 import RankBadge from "./RankBadge";
-import FrameBadge from "./FrameBadge";
 
 interface Props {
   horses: HorseRank[];
 }
+
+const WAKU_BG: Record<number, string> = {
+  1: "waku-bg-1",
+  2: "waku-bg-2",
+  3: "waku-bg-3",
+  4: "waku-bg-4",
+  5: "waku-bg-5",
+  6: "waku-bg-6",
+  7: "waku-bg-7",
+  8: "waku-bg-8",
+};
 
 export default function RankMatrix({ horses }: Props) {
   const [sortKey, setSortKey] = useState<RankKey>("total");
@@ -30,49 +40,45 @@ export default function RankMatrix({ horses }: Props) {
   }
 
   return (
-    <div className="relative overflow-x-auto border border-[#e0e0e0] rounded-lg">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto">
+      <table className="nk-table">
         <thead>
-          <tr className="bg-[#f5f5f5] border-b border-[#e0e0e0]">
-            <th className="sticky left-0 z-10 bg-[#f5f5f5] px-3 py-2 text-left whitespace-nowrap min-w-[140px]">
-              馬名
-            </th>
+          <tr>
+            <th className="w-8">枠</th>
+            <th className="w-8">番</th>
+            <th className="min-w-[100px] text-left">馬名</th>
+            <th className="w-16">騎手</th>
             {RANK_COLUMNS.map((col) => (
               <th
                 key={col.key}
                 onClick={() => handleSort(col.key)}
-                className="px-2 py-2 text-center cursor-pointer hover:bg-[#eee] whitespace-nowrap min-w-[56px] select-none"
+                className="cursor-pointer hover:bg-[#ddd] select-none w-[34px]"
               >
-                <span className={sortKey === col.key ? "text-[#E53935] font-bold" : "text-[#555]"}>
+                <span className={sortKey === col.key ? "text-[#E53935]" : ""}>
                   {col.label}
                 </span>
                 {sortKey === col.key && (
-                  <span className="ml-0.5 text-[10px]">{sortAsc ? "▼" : "▲"}</span>
+                  <span className="text-[9px]">{sortAsc ? "▼" : "▲"}</span>
                 )}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {sorted.map((horse, i) => (
-            <tr
-              key={horse.horse_number}
-              className={`border-b border-[#f0f0f0] ${i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"}`}
-            >
-              <td className="sticky left-0 z-10 px-3 py-2 whitespace-nowrap bg-inherit">
-                <div className="flex items-center gap-2">
-                  <FrameBadge post={horse.post} />
-                  <span className="font-bold text-sm">{horse.horse_number}</span>
-                  <a
-                    href={`/horse/${horse.horse_number}`}
-                    className="text-sm font-medium hover:text-[#1E88E5] hover:underline truncate max-w-[90px]"
-                  >
-                    {horse.horse_name}
-                  </a>
-                </div>
+          {sorted.map((horse) => (
+            <tr key={horse.horse_number}>
+              <td className={`text-center font-bold text-xs ${WAKU_BG[horse.post] || ""}`}>
+                {horse.post}
+              </td>
+              <td className="text-center font-bold">{horse.horse_number}</td>
+              <td className="text-left font-medium whitespace-nowrap">
+                {horse.horse_name}
+              </td>
+              <td className="text-center text-[11px] text-[#555] whitespace-nowrap">
+                {horse.jockey}
               </td>
               {RANK_COLUMNS.map((col) => (
-                <td key={col.key} className="px-2 py-2 text-center">
+                <td key={col.key} className="text-center">
                   <RankBadge grade={horse.ranks[col.key]} />
                 </td>
               ))}

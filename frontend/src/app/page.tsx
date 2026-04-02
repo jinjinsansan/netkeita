@@ -37,19 +37,17 @@ export default function Home() {
   const currentRaces = venues.find((v) => v.venue === selectedVenue)?.races || [];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <h1 className="text-xl font-bold mb-4">JRA レース一覧</h1>
-
+    <div className="max-w-[960px] mx-auto px-3 py-4">
       {/* Date tabs */}
-      <div className="flex gap-2 mb-3">
+      <div className="flex items-center gap-1 mb-2 border-b border-[#c6c9d3] pb-2">
         {dates.map((d) => (
           <button
             key={d}
             onClick={() => setSelectedDate(d)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+            className={`px-3 py-1 text-xs font-bold rounded-t border border-b-0 transition ${
               selectedDate === d
-                ? "bg-[#E53935] text-white border-[#E53935]"
-                : "bg-white text-[#555] border-[#ddd] hover:bg-[#f5f5f5]"
+                ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
+                : "bg-[#f0f0f0] text-[#555] border-[#ccc] hover:bg-[#e8e8e8]"
             }`}
           >
             {dateLabel(d)}
@@ -59,49 +57,78 @@ export default function Home() {
 
       {/* Venue tabs */}
       {venues.length > 0 && (
-        <div className="flex gap-2 mb-5">
+        <div className="flex items-center gap-0 mb-3">
           {venues.map((v) => (
             <button
               key={v.venue}
               onClick={() => setSelectedVenue(v.venue)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+              className={`px-4 py-1.5 text-xs font-bold border transition ${
                 selectedVenue === v.venue
-                  ? "bg-[#333] text-white border-[#333]"
-                  : "bg-white text-[#555] border-[#ddd] hover:bg-[#f5f5f5]"
+                  ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
+                  : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
               }`}
             >
               {v.venue}
-              <span className="ml-1 text-xs opacity-70">{v.races.length}R</span>
             </button>
           ))}
         </div>
       )}
 
-      {/* Race list */}
+      {/* Race number tiles (netkeiba style) */}
       {loading ? (
-        <p className="text-[#888] text-sm py-8 text-center">読み込み中...</p>
+        <p className="text-[#888] text-xs py-6 text-center">読み込み中...</p>
       ) : currentRaces.length > 0 ? (
-        <div className="grid gap-2">
-          {currentRaces.map((race) => (
-            <Link
-              key={race.race_id}
-              href={`/race/${encodeURIComponent(race.race_id)}`}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#e0e0e0] hover:bg-[#fafafa] transition"
-            >
-              <span className="text-sm font-bold text-[#E53935] w-8 shrink-0">
-                {race.race_number}R
-              </span>
-              {race.start_time && (
-                <span className="text-sm text-[#888] w-12 shrink-0">{race.start_time}</span>
-              )}
-              <span className="text-sm font-medium flex-1 truncate">{race.race_name}</span>
-              <span className="text-xs text-[#888]">{race.distance}</span>
-              <span className="text-xs text-[#aaa]">{race.headcount}頭</span>
-            </Link>
-          ))}
-        </div>
+        <>
+          <div className="flex flex-wrap gap-1 mb-4">
+            {currentRaces.map((race) => (
+              <Link
+                key={race.race_id}
+                href={`/race/${encodeURIComponent(race.race_id)}`}
+                className="flex flex-col items-center justify-center w-[72px] h-[52px] border border-[#c6c9d3] rounded bg-white hover:bg-[#f0f4ff] transition text-center"
+              >
+                <span className="text-sm font-bold text-[#1f7a1f]">{race.race_number}R</span>
+                <span className="text-[10px] text-[#888] truncate max-w-[68px] leading-tight">
+                  {race.race_name}
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Race list table */}
+          <table className="nk-table">
+            <thead>
+              <tr>
+                <th className="w-10">R</th>
+                <th>レース名</th>
+                <th className="w-20">距離</th>
+                <th className="w-12">頭数</th>
+                <th className="w-14">発走</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentRaces.map((race) => (
+                <tr key={race.race_id}>
+                  <td className="text-center font-bold text-[#1f7a1f]">{race.race_number}</td>
+                  <td>
+                    <Link
+                      href={`/race/${encodeURIComponent(race.race_id)}`}
+                      className="text-[#1E88E5] hover:underline font-medium"
+                    >
+                      {race.race_name}
+                    </Link>
+                  </td>
+                  <td className="text-center text-[#555]">{race.distance}</td>
+                  <td className="text-center">{race.headcount}</td>
+                  <td className="text-center text-[#888]">{race.start_time || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       ) : (
-        <p className="text-[#888] text-sm py-8 text-center">この日のレースデータはまだありません</p>
+        <p className="text-[#888] text-xs py-6 text-center">
+          この日のレースデータはまだありません
+        </p>
       )}
     </div>
   );

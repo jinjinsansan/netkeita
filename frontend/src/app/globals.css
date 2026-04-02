@@ -3,11 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #333333;
-  --border: #e0e0e0;
+  --border: #c6c9d3;
   --header-bg: #f5f5f5;
   --muted: #888888;
+  --accent: #1f7a1f;
 
-  /* Rank badge colors */
   --rank-s: #FFD700;
   --rank-s-text: #333;
   --rank-a: #E53935;
@@ -19,15 +19,14 @@
   --rank-d: #9E9E9E;
   --rank-d-text: #fff;
 
-  /* Frame colors (JRA standard) */
-  --frame-1: #ffffff;
-  --frame-2: #000000;
-  --frame-3: #ee0000;
-  --frame-4: #0066ff;
-  --frame-5: #ffcc00;
-  --frame-6: #00aa00;
-  --frame-7: #ff8800;
-  --frame-8: #ff66cc;
+  --waku-1: #ffffff;
+  --waku-2: #000000;
+  --waku-3: #ee0000;
+  --waku-4: #0066ff;
+  --waku-5: #ffcc00;
+  --waku-6: #00aa00;
+  --waku-7: #ff8800;
+  --waku-8: #ff66cc;
 }
 
 @theme inline {
@@ -41,4 +40,52 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: -apple-system, 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
 }
+
+/* netkeiba-style table */
+.nk-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+.nk-table th {
+  background: #e8e8e8;
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #333;
+}
+.nk-table td {
+  border: 1px solid #ddd;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+.nk-table tbody tr:hover {
+  background: #f0f4ff;
+}
+
+/* Waku colors as left border */
+.waku-1 { border-left: 4px solid var(--waku-1) !important; }
+.waku-2 { border-left: 4px solid var(--waku-2) !important; }
+.waku-3 { border-left: 4px solid var(--waku-3) !important; }
+.waku-4 { border-left: 4px solid var(--waku-4) !important; }
+.waku-5 { border-left: 4px solid var(--waku-5) !important; }
+.waku-6 { border-left: 4px solid var(--waku-6) !important; }
+.waku-7 { border-left: 4px solid var(--waku-7) !important; }
+.waku-8 { border-left: 4px solid var(--waku-8) !important; }
+
+/* Waku background colors (netkeiba style) */
+.waku-bg-1 { background: #fff; }
+.waku-bg-2 { background: #222; color: #fff; }
+.waku-bg-3 { background: #f44; color: #fff; }
+.waku-bg-4 { background: #36f; color: #fff; }
+.waku-bg-5 { background: #fc0; color: #333; }
+.waku-bg-6 { background: #0a0; color: #fff; }
+.waku-bg-7 { background: #f80; color: #fff; }
+.waku-bg-8 { background: #f6c; color: #fff; }
