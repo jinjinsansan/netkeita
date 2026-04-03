@@ -20,7 +20,7 @@ const FROZEN_TD: React.CSSProperties = { position: "sticky", zIndex: 10, backgro
 const HOVER_BG = "#f0f7f0";
 
 export default function RankMatrix({ horses, raceId, jockeyData }: Props) {
-  const [sortKey, setSortKey] = useState<SortMode>("total");
+  const [sortKey, setSortKey] = useState<SortMode>("number");
   const [sortAsc, setSortAsc] = useState(true);
   const [expandedHorse, setExpandedHorse] = useState<number | null>(null);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
