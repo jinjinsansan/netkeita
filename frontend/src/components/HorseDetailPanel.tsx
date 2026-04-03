@@ -112,9 +112,9 @@ export default function HorseDetailPanel({
           ) : tab === "jockey" ? (
             <JockeyTab jockeyName={jockeyName} jockeyData={jockeyData} />
           ) : loading ? (
-            <div className="py-10 text-center text-xs text-[#888]">読み込み中...</div>
+            <div className="py-10 text-center text-xs text-[#888] animate-pulse">読み込み中...</div>
           ) : !data ? (
-            <div className="py-10 text-center text-xs text-[#888]">データを取得できませんでした</div>
+            <EmptyState icon="📡" title="データを取得できませんでした" sub="しばらく経ってから再度お試しください" />
           ) : (
             <>
               {tab === "stable" && <StableTab data={data} />}
@@ -183,7 +183,7 @@ function ScoresTab({ scores, ranks }: { scores: HorseRank["scores"]; ranks: Hors
 function StableTab({ data }: { data: HorseDetail }) {
   const sc = data.stable_comment;
   if (!sc || (!sc.mark && !sc.comment && !sc.status)) {
-    return <div className="text-xs text-[#888] text-center py-6">関係者情報はまだ公開されていません</div>;
+    return <EmptyState icon="📋" title="関係者情報はまだ公開されていません" sub="レース前日〜当日朝に更新されることが多いです" />;
   }
   return (
     <div className="space-y-3">
@@ -215,7 +215,7 @@ function StableTab({ data }: { data: HorseDetail }) {
 function RecentTab({ data }: { data: HorseDetail }) {
   const runs = data.recent_runs;
   if (!runs || runs.length === 0) {
-    return <div className="text-xs text-[#888] text-center py-6">直近走データがありません</div>;
+    return <EmptyState icon="🏁" title="直近走データがありません" sub="新馬戦や長期休養明けの馬が該当します" />;
   }
   return (
     <div className="space-y-2">
@@ -247,87 +247,107 @@ function RecentTab({ data }: { data: HorseDetail }) {
   );
 }
 
+function EmptyState({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
+  return (
+    <div className="py-10 text-center">
+      <div className="text-3xl mb-3">{icon}</div>
+      <div className="text-sm font-bold text-[#999] mb-1">{title}</div>
+      {sub && <div className="text-[11px] text-[#bbb] leading-relaxed">{sub}</div>}
+    </div>
+  );
+}
+
 function JockeyTab({ jockeyName, jockeyData }: { jockeyName?: string; jockeyData?: JockeyData }) {
-  if (!jockeyName || !jockeyData) {
-    return <div className="text-xs text-[#888] text-center py-6">騎手分析データがありません</div>;
+  if (!jockeyName) {
+    return <EmptyState icon="🏇" title="騎手情報がありません" sub="出馬表確定後に更新されます" />;
   }
 
-  const postStats = jockeyData.jockey_post_stats?.[jockeyName];
-  const courseStats = jockeyData.jockey_course_stats?.[jockeyName];
-
-  if (!postStats && !courseStats) {
-    return <div className="text-xs text-[#888] text-center py-6">{jockeyName}騎手の分析データがありません</div>;
-  }
+  const postStats = jockeyData?.jockey_post_stats?.[jockeyName];
+  const courseStats = jockeyData?.jockey_course_stats?.[jockeyName];
+  const hasData = postStats || courseStats;
 
   return (
     <div className="space-y-4">
       {/* Jockey header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-[#163016] rounded-full flex items-center justify-center shrink-0">
-          <span className="text-white text-sm font-black">🏇</span>
+          <span className="text-white text-sm">🏇</span>
         </div>
         <div>
           <div className="text-base font-bold text-[#222]">{jockeyName}</div>
-          {postStats && (
+          {postStats ? (
             <div className="text-[11px] text-[#888]">{postStats.horse} に騎乗</div>
+          ) : (
+            <div className="text-[11px] text-[#888]">騎乗予定</div>
           )}
         </div>
       </div>
 
-      {/* Post zone performance */}
-      {postStats && (
-        <div className="border border-[#d0d0d0] rounded-lg overflow-hidden">
-          <div className="bg-[#f0f7f0] px-3 py-2">
-            <span className="text-xs font-bold text-[#333]">枠別複勝率</span>
+      {!hasData ? (
+        <div className="border border-dashed border-[#d0d0d0] rounded-lg p-6 text-center">
+          <div className="text-[11px] text-[#999] leading-relaxed">
+            {jockeyName}騎手のコース別・枠別データは<br />まだ蓄積されていません
           </div>
-          <div className="px-3 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#666]">{postStats.post_zone}</span>
-              <span className="text-xs text-[#888]">{postStats.race_count}走</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-6 bg-[#eee] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#1f7a1f] flex items-center justify-end pr-2"
-                  style={{ width: `${Math.min(postStats.fukusho_rate, 100)}%`, minWidth: postStats.fukusho_rate > 0 ? "40px" : "0" }}
-                >
-                  {postStats.fukusho_rate > 10 && (
-                    <span className="text-[10px] font-bold text-white">{postStats.fukusho_rate}%</span>
+          <div className="text-[10px] text-[#ccc] mt-2">データは随時更新されます</div>
+        </div>
+      ) : (
+        <>
+          {/* Post zone performance */}
+          {postStats && (
+            <div className="border border-[#d0d0d0] rounded-lg overflow-hidden">
+              <div className="bg-[#f0f7f0] px-3 py-2">
+                <span className="text-xs font-bold text-[#333]">枠別複勝率</span>
+              </div>
+              <div className="px-3 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[#666]">{postStats.post_zone}</span>
+                  <span className="text-xs text-[#888]">{postStats.race_count}走</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-6 bg-[#eee] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[#1f7a1f] flex items-center justify-end pr-2"
+                      style={{ width: `${Math.min(postStats.fukusho_rate, 100)}%`, minWidth: postStats.fukusho_rate > 0 ? "40px" : "0" }}
+                    >
+                      {postStats.fukusho_rate > 10 && (
+                        <span className="text-[10px] font-bold text-white">{postStats.fukusho_rate.toFixed(1)}%</span>
+                      )}
+                    </div>
+                  </div>
+                  {postStats.fukusho_rate <= 10 && (
+                    <span className="text-sm font-black text-[#1f7a1f] shrink-0">{postStats.fukusho_rate.toFixed(1)}%</span>
                   )}
                 </div>
               </div>
-              {postStats.fukusho_rate <= 10 && (
-                <span className="text-sm font-black text-[#1f7a1f] shrink-0">{postStats.fukusho_rate}%</span>
-              )}
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Course performance */}
-      {courseStats && (
-        <div className="border border-[#d0d0d0] rounded-lg overflow-hidden">
-          <div className="bg-[#f0f7f0] px-3 py-2">
-            <span className="text-xs font-bold text-[#333]">{courseStats.course_key} での成績</span>
-          </div>
-          <div className="px-3 py-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="text-center">
-                <div className="text-2xl font-black text-[#1f7a1f]">{courseStats.win_rate}%</div>
-                <div className="text-[10px] text-[#888]">勝率</div>
+          {/* Course performance */}
+          {courseStats && (
+            <div className="border border-[#d0d0d0] rounded-lg overflow-hidden">
+              <div className="bg-[#f0f7f0] px-3 py-2">
+                <span className="text-xs font-bold text-[#333]">{courseStats.course_key} での成績</span>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-black text-[#E53935]">{courseStats.fukusho_rate}%</div>
-                <div className="text-[10px] text-[#888]">複勝率</div>
+              <div className="px-3 py-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center">
+                    <div className="text-2xl font-black text-[#1f7a1f]">{courseStats.win_rate.toFixed(1)}%</div>
+                    <div className="text-[10px] text-[#888]">勝率</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-black text-[#E53935]">{courseStats.fukusho_rate.toFixed(1)}%</div>
+                    <div className="text-[10px] text-[#888]">複勝率</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center gap-4 text-[11px] text-[#666] border-t border-[#eee] pt-2">
+                  <span>{courseStats.total_runs}走</span>
+                  <span>{courseStats.wins}勝</span>
+                  <span>複勝{courseStats.fukusho_count}回</span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-4 text-[11px] text-[#666] border-t border-[#eee] pt-2">
-              <span>{courseStats.total_runs}走</span>
-              <span>{courseStats.wins}勝</span>
-              <span>複勝{courseStats.fukusho_count}回</span>
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -336,7 +356,7 @@ function JockeyTab({ jockeyName, jockeyData }: { jockeyName?: string; jockeyData
 function BloodlineTab({ data }: { data: HorseDetail }) {
   const bl = data.bloodline;
   if (!bl || !bl.sire) {
-    return <div className="text-xs text-[#888] text-center py-6">血統データがありません</div>;
+    return <EmptyState icon="🧬" title="血統データがありません" sub="データベースに情報がまだ登録されていません" />;
   }
   const sp = bl.sire_performance;
   const bp = bl.broodmare_performance;
