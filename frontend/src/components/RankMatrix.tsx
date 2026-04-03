@@ -80,26 +80,30 @@ export default function RankMatrix({ horses, raceId }: Props) {
     </th>
   );
 
-  const frozenThStyle = (left: number, extra?: React.CSSProperties): React.CSSProperties => ({
-    ...FROZEN_TH, left, ...extra,
+  const COL0_W = 36;
+  const COL1_W = 36;
+  const COL2_LEFT = COL0_W + COL1_W;
+
+  const frozenThStyle = (left: number, minW?: number, extra?: React.CSSProperties): React.CSSProperties => ({
+    ...FROZEN_TH, left, ...(minW ? { minWidth: minW, maxWidth: minW } : {}), ...extra,
   });
-  const frozenTdStyle = (left: number, isHovered: boolean, extra?: React.CSSProperties): React.CSSProperties => ({
-    ...FROZEN_TD, left, background: isHovered ? HOVER_BG : "#fff", ...extra,
+  const frozenTdStyle = (left: number, isHovered: boolean, minW?: number, extra?: React.CSSProperties): React.CSSProperties => ({
+    ...FROZEN_TD, left, background: isHovered ? HOVER_BG : "#fff", ...(minW ? { minWidth: minW, maxWidth: minW } : {}), ...extra,
   });
   const shadowExtra: React.CSSProperties = { boxShadow: "2px 0 4px rgba(0,0,0,0.1)" };
 
   return (
     <div>
-      <div className="overflow-x-auto -mx-4 px-4">
+      <div className="overflow-x-auto -mx-4">
         <table className="nk-table">
           <thead>
             <tr>
-              <th className="w-8" style={frozenThStyle(0)}>枠</th>
-              <th className="w-8 cursor-pointer hover:bg-[#ccc] select-none" style={frozenThStyle(33)} onClick={() => handleSort("number")}>
+              <th style={frozenThStyle(0, COL0_W)}>枠</th>
+              <th className="cursor-pointer hover:bg-[#ccc] select-none" style={frozenThStyle(COL0_W, COL1_W)} onClick={() => handleSort("number")}>
                 <span className={sortKey === "number" ? "text-[#1f7a1f] font-bold" : ""}>番</span>
                 {sortKey === "number" && <span className="text-[9px] ml-0.5">{sortAsc ? "▼" : "▲"}</span>}
               </th>
-              <th className="min-w-[72px] sm:min-w-[90px] text-left" style={frozenThStyle(66, shadowExtra)}>馬名</th>
+              <th className="min-w-[72px] sm:min-w-[90px] text-left" style={frozenThStyle(COL2_LEFT, undefined, shadowExtra)}>馬名</th>
               <th className="w-14">騎手</th>
               <SortHeader col="odds" label="オッズ" className="w-12" />
               <th className="w-8">人気</th>
@@ -121,15 +125,15 @@ export default function RankMatrix({ horses, raceId }: Props) {
                   onMouseEnter={() => setHoveredRow(horse.horse_number)}
                   onMouseLeave={() => setHoveredRow(null)}
                 >
-                  <td className="text-center" style={frozenTdStyle(0, isHovered || isExpanded)}>
+                  <td className="text-center" style={frozenTdStyle(0, isHovered || isExpanded, COL0_W)}>
                     <FrameBadge post={horse.post} />
                   </td>
-                  <td className="text-center font-bold" style={frozenTdStyle(33, isHovered || isExpanded)}>
+                  <td className="text-center font-bold" style={frozenTdStyle(COL0_W, isHovered || isExpanded, COL1_W)}>
                     {horse.horse_number}
                   </td>
                   <td
                     className={`text-left font-medium whitespace-nowrap ${raceId ? "cursor-pointer hover:text-[#1f7a1f]" : ""}`}
-                    style={frozenTdStyle(66, isHovered || isExpanded, shadowExtra)}
+                    style={frozenTdStyle(COL2_LEFT, isHovered || isExpanded, undefined, shadowExtra)}
                     onClick={() => raceId && setExpandedHorse(isExpanded ? null : horse.horse_number)}
                   >
                     <span className="inline-flex items-center gap-0.5">
