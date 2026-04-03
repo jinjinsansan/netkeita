@@ -81,15 +81,22 @@ body {
     padding: 6px 6px;
   }
 }
-.nk-table tbody tr:hover {
+.nk-table tbody tr:hover td {
   background: #f0f7f0;
+}
+/* Sticky columns: must have opaque bg to prevent content bleeding through */
+.nk-table thead th.sticky {
+  background: #ddd !important;
+}
+.nk-table tbody td.sticky {
+  background: #fff !important;
 }
 .nk-table tbody tr:hover td.sticky {
-  background: #f0f7f0;
+  background: #f0f7f0 !important;
 }
-/* Sticky column shadow hint */
-.nk-table th.sticky, .nk-table td.sticky {
-  background: inherit;
+/* Right shadow on last sticky column for scroll hint */
+.nk-table .sticky-last {
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08);
 }
 
 /* Waku colors as left border */

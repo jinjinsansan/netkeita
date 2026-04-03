@@ -116,7 +116,7 @@ export default function RankMatrix({ horses, raceId }: Props) {
           <tr>
             <th className="w-8 sticky left-0 z-10 bg-[#ddd]">枠</th>
             <SortHeader col="number" label="番" className="w-8 sticky left-[33px] z-10 bg-[#ddd]" />
-            <th className="min-w-[72px] sm:min-w-[90px] text-left sticky left-[66px] z-10 bg-[#ddd]">馬名</th>
+            <th className="min-w-[72px] sm:min-w-[90px] text-left sticky left-[66px] z-10 bg-[#ddd] sticky-last">馬名</th>
             <th className="w-14">騎手</th>
             <SortHeader col="odds" label="オッズ" className="w-12" />
             <th className="w-8">人気</th>
@@ -136,7 +136,7 @@ export default function RankMatrix({ horses, raceId }: Props) {
               </td>
               <td className="text-center font-bold sticky left-[33px] z-10 bg-white">{horse.horse_number}</td>
               <td
-                className={`text-left font-medium whitespace-nowrap sticky left-[66px] z-10 bg-white ${raceId ? "cursor-pointer hover:text-[#1f7a1f]" : ""}`}
+                className={`text-left font-medium whitespace-nowrap sticky left-[66px] z-10 bg-white sticky-last ${raceId ? "cursor-pointer hover:text-[#1f7a1f]" : ""}`}
                 onClick={() => raceId && setExpandedHorse(expandedHorse === horse.horse_number ? null : horse.horse_number)}
               >
                 <span className="inline-flex items-center gap-0.5">
