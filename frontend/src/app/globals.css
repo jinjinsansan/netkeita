@@ -51,74 +51,69 @@ body {
 }
 
 /* netkeiba-style table */
-.nk-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--border);
-  font-size: 13px;
-}
-.nk-table th {
-  background: #ddd;
-  border: 1px solid var(--border);
-  padding: 4px 3px;
-  font-weight: 700;
-  text-align: center;
-  white-space: nowrap;
-  font-size: 11px;
-  color: #222;
-}
-.nk-table td {
-  border: 1px solid #ddd;
-  padding: 4px 3px;
-  vertical-align: middle;
-}
-@media (min-width: 640px) {
+@layer base {
+  .nk-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
   .nk-table th {
-    padding: 6px 6px;
-    font-size: 12px;
+    background: #ddd;
+    border: 1px solid var(--border);
+    padding: 4px 3px;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 11px;
+    color: #222;
   }
   .nk-table td {
-    padding: 6px 6px;
+    border: 1px solid #ddd;
+    padding: 4px 3px;
+    vertical-align: middle;
+  }
+  .nk-table tbody tr:hover td {
+    background: #f0f7f0;
   }
 }
-.nk-table tbody tr:hover td {
-  background: #f0f7f0;
+@layer components {
+  .nk-frozen {
+    position: sticky;
+    z-index: 10;
+  }
+  .nk-frozen-last {
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  }
 }
-/* Sticky frozen columns — use data attribute for reliable targeting */
-.nk-table [data-frozen] {
-  position: sticky;
-  z-index: 10;
-}
-.nk-table thead [data-frozen] {
-  background: #ddd !important;
-}
-.nk-table tbody [data-frozen] {
-  background: #fff !important;
-}
-.nk-table tbody tr:hover [data-frozen] {
-  background: #f0f7f0 !important;
-}
-/* Shadow on the last frozen column */
-.nk-table [data-frozen-last] {
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-}
+@layer base {
+  @media (min-width: 640px) {
+    .nk-table th {
+      padding: 6px 6px;
+      font-size: 12px;
+    }
+    .nk-table td {
+      padding: 6px 6px;
+    }
+  }
 
-/* Waku colors as left border */
-.waku-1 { border-left: 4px solid var(--waku-1) !important; }
-.waku-2 { border-left: 4px solid var(--waku-2) !important; }
-.waku-3 { border-left: 4px solid var(--waku-3) !important; }
-.waku-4 { border-left: 4px solid var(--waku-4) !important; }
-.waku-5 { border-left: 4px solid var(--waku-5) !important; }
-.waku-6 { border-left: 4px solid var(--waku-6) !important; }
-.waku-7 { border-left: 4px solid var(--waku-7) !important; }
-.waku-8 { border-left: 4px solid var(--waku-8) !important; }
+  /* Waku colors as left border */
+  .waku-1 { border-left: 4px solid var(--waku-1) !important; }
+  .waku-2 { border-left: 4px solid var(--waku-2) !important; }
+  .waku-3 { border-left: 4px solid var(--waku-3) !important; }
+  .waku-4 { border-left: 4px solid var(--waku-4) !important; }
+  .waku-5 { border-left: 4px solid var(--waku-5) !important; }
+  .waku-6 { border-left: 4px solid var(--waku-6) !important; }
+  .waku-7 { border-left: 4px solid var(--waku-7) !important; }
+  .waku-8 { border-left: 4px solid var(--waku-8) !important; }
 
-/* Waku background colors (netkeiba style) */
-.waku-bg-1 { background: #fff; }
-.waku-bg-2 { background: #222; color: #fff; }
-.waku-bg-3 { background: #f44; color: #fff; }
-.waku-bg-4 { background: #36f; color: #fff; }
-.waku-bg-5 { background: #fc0; color: #333; }
-.waku-bg-6 { background: #0a0; color: #fff; }
-.waku-bg-7 { background: #f80; color: #fff; }
-.waku-bg-8 { background: #f6c; color: #fff; }
+  /* Waku background colors (netkeiba style) */
+  .waku-bg-1 { background: #fff; }
+  .waku-bg-2 { background: #222; color: #fff; }
+  .waku-bg-3 { background: #f44; color: #fff; }
+  .waku-bg-4 { background: #36f; color: #fff; }
+  .waku-bg-5 { background: #fc0; color: #333; }
+  .waku-bg-6 { background: #0a0; color: #fff; }
+  .waku-bg-7 { background: #f80; color: #fff; }
+  .waku-bg-8 { background: #f6c; color: #fff; }
+}

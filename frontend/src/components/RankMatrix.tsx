@@ -14,10 +14,15 @@ interface Props {
 
 type SortMode = RankKey | "odds" | "number" | "win_prob" | "place_prob";
 
+const FROZEN_TH: React.CSSProperties = { position: "sticky", zIndex: 10, background: "#ddd" };
+const FROZEN_TD: React.CSSProperties = { position: "sticky", zIndex: 10, background: "#fff" };
+const HOVER_BG = "#f0f7f0";
+
 export default function RankMatrix({ horses, raceId }: Props) {
   const [sortKey, setSortKey] = useState<SortMode>("total");
   const [sortAsc, setSortAsc] = useState(true);
   const [expandedHorse, setExpandedHorse] = useState<number | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
   const popularity = useMemo(() => {
     const withOdds = horses
@@ -75,9 +80,13 @@ export default function RankMatrix({ horses, raceId }: Props) {
     </th>
   );
 
-  const frozenStyle0 = { left: 0 } as const;
-  const frozenStyle1 = { left: 33 } as const;
-  const frozenStyle2 = { left: 66 } as const;
+  const frozenThStyle = (left: number, extra?: React.CSSProperties): React.CSSProperties => ({
+    ...FROZEN_TH, left, ...extra,
+  });
+  const frozenTdStyle = (left: number, isHovered: boolean, extra?: React.CSSProperties): React.CSSProperties => ({
+    ...FROZEN_TD, left, background: isHovered ? HOVER_BG : "#fff", ...extra,
+  });
+  const shadowExtra: React.CSSProperties = { boxShadow: "2px 0 4px rgba(0,0,0,0.1)" };
 
   return (
     <div>
@@ -85,12 +94,12 @@ export default function RankMatrix({ horses, raceId }: Props) {
         <table className="nk-table">
           <thead>
             <tr>
-              <th className="w-8" data-frozen style={frozenStyle0}>枠</th>
-              <th className="w-8 cursor-pointer hover:bg-[#ccc] select-none" data-frozen style={frozenStyle1} onClick={() => handleSort("number")}>
+              <th className="w-8" style={frozenThStyle(0)}>枠</th>
+              <th className="w-8 cursor-pointer hover:bg-[#ccc] select-none" style={frozenThStyle(33)} onClick={() => handleSort("number")}>
                 <span className={sortKey === "number" ? "text-[#1f7a1f] font-bold" : ""}>番</span>
                 {sortKey === "number" && <span className="text-[9px] ml-0.5">{sortAsc ? "▼" : "▲"}</span>}
               </th>
-              <th className="min-w-[72px] sm:min-w-[90px] text-left" data-frozen data-frozen-last="" style={frozenStyle2}>馬名</th>
+              <th className="min-w-[72px] sm:min-w-[90px] text-left" style={frozenThStyle(66, shadowExtra)}>馬名</th>
               <th className="w-14">騎手</th>
               <SortHeader col="odds" label="オッズ" className="w-12" />
               <th className="w-8">人気</th>
@@ -102,43 +111,53 @@ export default function RankMatrix({ horses, raceId }: Props) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((horse) => (
-              <tr key={horse.horse_number} className={expandedHorse === horse.horse_number ? "bg-[#f0f7f0]" : ""}>
-                <td className="text-center" data-frozen style={frozenStyle0}>
-                  <FrameBadge post={horse.post} />
-                </td>
-                <td className="text-center font-bold" data-frozen style={frozenStyle1}>{horse.horse_number}</td>
-                <td
-                  className={`text-left font-medium whitespace-nowrap ${raceId ? "cursor-pointer hover:text-[#1f7a1f]" : ""}`}
-                  data-frozen data-frozen-last=""
-                  style={frozenStyle2}
-                  onClick={() => raceId && setExpandedHorse(expandedHorse === horse.horse_number ? null : horse.horse_number)}
+            {sorted.map((horse) => {
+              const isHovered = hoveredRow === horse.horse_number;
+              const isExpanded = expandedHorse === horse.horse_number;
+              return (
+                <tr
+                  key={horse.horse_number}
+                  className={isExpanded ? "bg-[#f0f7f0]" : ""}
+                  onMouseEnter={() => setHoveredRow(horse.horse_number)}
+                  onMouseLeave={() => setHoveredRow(null)}
                 >
-                  <span className="inline-flex items-center gap-0.5">
-                    {raceId && <span className="text-[9px] text-[#999] mr-0.5">{expandedHorse === horse.horse_number ? "▼" : "▶"}</span>}
-                    {horse.horse_name}
-                  </span>
-                </td>
-                <td className="text-center text-[11px] text-[#444] whitespace-nowrap font-medium">{horse.jockey}</td>
-                <td className="text-center text-[12px] font-mono font-bold" style={{ color: oddsRank[horse.horse_number] || "#666" }}>
-                  {horse.odds ? horse.odds.toFixed(1) : "-"}
-                </td>
-                <td className="text-center text-[12px] font-bold" style={{ color: popRank[horse.horse_number] || "#666" }}>
-                  {popularity[horse.horse_number] || "-"}
-                </td>
-                <td className="text-center text-[11px] font-mono font-bold" style={{ color: winRank[horse.horse_number] || "#666" }}>
-                  {horse.win_prob ? `${horse.win_prob}%` : "-"}
-                </td>
-                <td className="text-center text-[11px] font-mono font-bold" style={{ color: placeRank[horse.horse_number] || "#666" }}>
-                  {horse.place_prob ? `${horse.place_prob}%` : "-"}
-                </td>
-                {RANK_COLUMNS.map((col) => (
-                  <td key={col.key} className="text-center">
-                    <RankBadge grade={horse.ranks[col.key]} />
+                  <td className="text-center" style={frozenTdStyle(0, isHovered || isExpanded)}>
+                    <FrameBadge post={horse.post} />
                   </td>
-                ))}
-              </tr>
-            ))}
+                  <td className="text-center font-bold" style={frozenTdStyle(33, isHovered || isExpanded)}>
+                    {horse.horse_number}
+                  </td>
+                  <td
+                    className={`text-left font-medium whitespace-nowrap ${raceId ? "cursor-pointer hover:text-[#1f7a1f]" : ""}`}
+                    style={frozenTdStyle(66, isHovered || isExpanded, shadowExtra)}
+                    onClick={() => raceId && setExpandedHorse(isExpanded ? null : horse.horse_number)}
+                  >
+                    <span className="inline-flex items-center gap-0.5">
+                      {raceId && <span className="text-[9px] text-[#999] mr-0.5">{isExpanded ? "▼" : "▶"}</span>}
+                      {horse.horse_name}
+                    </span>
+                  </td>
+                  <td className="text-center text-[11px] text-[#444] whitespace-nowrap font-medium">{horse.jockey}</td>
+                  <td className="text-center text-[12px] font-mono font-bold" style={{ color: oddsRank[horse.horse_number] || "#666" }}>
+                    {horse.odds ? horse.odds.toFixed(1) : "-"}
+                  </td>
+                  <td className="text-center text-[12px] font-bold" style={{ color: popRank[horse.horse_number] || "#666" }}>
+                    {popularity[horse.horse_number] || "-"}
+                  </td>
+                  <td className="text-center text-[11px] font-mono font-bold" style={{ color: winRank[horse.horse_number] || "#666" }}>
+                    {horse.win_prob ? `${horse.win_prob}%` : "-"}
+                  </td>
+                  <td className="text-center text-[11px] font-mono font-bold" style={{ color: placeRank[horse.horse_number] || "#666" }}>
+                    {horse.place_prob ? `${horse.place_prob}%` : "-"}
+                  </td>
+                  {RANK_COLUMNS.map((col) => (
+                    <td key={col.key} className="text-center">
+                      <RankBadge grade={horse.ranks[col.key]} />
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
