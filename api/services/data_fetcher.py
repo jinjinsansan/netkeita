@@ -128,8 +128,24 @@ def get_odds_from_prefetch(date_str: str, race_id: str) -> dict:
     return {}
 
 
+def get_full_scores(race_data: dict) -> dict:
+    """Call full-scores API. Returns all horses' engine scores + track_adjustment."""
+    payload = _build_payload(race_data)
+    try:
+        resp = _client.post(
+            f"{DLOGIC_API_URL}/api/v2/predictions/full-scores",
+            json=payload,
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        logger.exception("Full-scores API call failed")
+        return {}
+
+
 def get_predictions(race_data: dict) -> dict:
-    """Call predictions API. Returns newspaper response."""
+    """Call predictions API. Returns newspaper response (legacy)."""
     payload = _build_payload(race_data)
     try:
         resp = _client.post(

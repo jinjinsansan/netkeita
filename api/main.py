@@ -6,7 +6,7 @@ import sys
 from fastapi import FastAPI, HTTPException
 
 from config import PORT
-from services.data_fetcher import get_races, get_race_entries, get_today_str, get_predictions, get_analysis, get_odds_from_prefetch, get_available_dates
+from services.data_fetcher import get_races, get_race_entries, get_today_str, get_full_scores, get_analysis, get_odds_from_prefetch, get_available_dates
 from services.ranking import calculate_matrix
 
 logging.basicConfig(
@@ -50,15 +50,15 @@ def api_matrix(race_id: str, date: str = ""):
 
     logger.info(f"Building matrix for {race_id} ({len(race_data['entries'])} horses)")
 
-    # Fetch all data from backend
-    pred_raw = get_predictions(race_data)
+    # Fetch full-scores (all engines + track_adjustment) from backend
+    full_scores_raw = get_full_scores(race_data)
+    predictions = _build_full_predictions(full_scores_raw, race_data)
+
+    # Fetch analysis data from backend
     flow_data = get_analysis("/api/v2/analysis/race-flow", race_data)
     jockey_data = get_analysis("/api/v2/analysis/jockey-analysis", race_data)
     bloodline_data = get_analysis("/api/v2/analysis/bloodline-analysis", race_data)
     recent_data = get_analysis("/api/v2/analysis/recent-runs", race_data)
-
-    # Build per-horse prediction scores from the raw newspaper response
-    predictions = _build_prediction_scores(pred_raw, race_data)
 
     # Odds from prefetch data
     odds_data = get_odds_from_prefetch(date_str, race_id)
@@ -86,14 +86,13 @@ def api_matrix(race_id: str, date: str = ""):
     }
 
 
-def _build_prediction_scores(pred_raw: dict, race_data: dict) -> dict:
-    """Convert newspaper API response to per-horse score dict.
+def _build_full_predictions(full_scores_raw: dict, race_data: dict) -> dict:
+    """Convert full-scores API response to per-horse score dict.
 
-    The newspaper API returns top-N horse numbers per engine.
-    We convert rank position to a score (higher = better).
+    Returns {horse_number: {dlogic_score, ilogic_score, viewlogic_score,
+                            metalogic_score, track_adjustment}}.
     """
     entries = race_data.get("entries", [])
-    total = len(entries)
     scores: dict[int, dict] = {}
 
     for entry in entries:
@@ -103,20 +102,19 @@ def _build_prediction_scores(pred_raw: dict, race_data: dict) -> dict:
             "ilogic_score": 0,
             "viewlogic_score": 0,
             "metalogic_score": 0,
+            "track_adjustment": 1.0,
         }
 
-    engine_map = {
-        "dlogic": "dlogic_score",
-        "ilogic": "ilogic_score",
-        "viewlogic": "viewlogic_score",
-        "metalogic": "metalogic_score",
-    }
-
-    for engine_key, score_key in engine_map.items():
-        ranked_nums = pred_raw.get(engine_key, [])
-        for rank_idx, horse_num in enumerate(ranked_nums):
-            if horse_num in scores:
-                scores[horse_num][score_key] = max(0, (total - rank_idx) * 10)
+    for h in full_scores_raw.get("horses", []):
+        num = h.get("horse_number", 0)
+        if num in scores:
+            scores[num] = {
+                "dlogic_score": h.get("dlogic_score", 0),
+                "ilogic_score": h.get("ilogic_score", 0),
+                "viewlogic_score": h.get("viewlogic_score", 0),
+                "metalogic_score": h.get("metalogic_score", 0),
+                "track_adjustment": h.get("track_adjustment", 1.0),
+            }
 
     return scores
 
