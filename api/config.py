@@ -10,3 +10,7 @@ PORT = int(os.getenv("PORT", "5002"))
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
+LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID", "")
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://www.netkeita.com")

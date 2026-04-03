@@ -6,9 +6,18 @@ import { fetchMatrix } from "@/lib/api";
 import type { RaceMatrix } from "@/lib/types";
 import RankMatrix from "@/components/RankMatrix";
 import InternetPredictionDrawer from "@/components/InternetPredictionDrawer";
+import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
 
 export default function RacePage() {
+  return (
+    <AuthGuard>
+      <RaceContent />
+    </AuthGuard>
+  );
+}
+
+function RaceContent() {
   const params = useParams();
   const raceId = decodeURIComponent(params.raceId as string);
   const [matrix, setMatrix] = useState<RaceMatrix | null>(null);

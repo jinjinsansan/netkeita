@@ -1,8 +1,57 @@
 import type { RaceSummary, RaceMatrix } from "./types";
 
-// API URL — hardcoded to prevent mixed content (Vercel HTTPS → HTTP IP).
-// For local dev, change this value or use .env.local override below.
 const API_URL = "https://bot.dlogicai.in/nk";
+
+// --- Auth helpers ---
+
+const TOKEN_KEY = "nk_token";
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export function isLoggedIn(): boolean {
+  return !!getToken();
+}
+
+export async function getLineLoginUrl(): Promise<{ url: string; state: string }> {
+  const res = await fetch(`${API_URL}/api/auth/line-url`);
+  return res.json();
+}
+
+export async function lineCallback(code: string, state: string): Promise<{
+  success: boolean;
+  token?: string;
+  user?: { display_name: string; picture_url: string };
+  error?: string;
+}> {
+  const res = await fetch(`${API_URL}/api/auth/callback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, state }),
+  });
+  return res.json();
+}
+
+export async function getMe(): Promise<{
+  authenticated: boolean;
+  user?: { display_name: string; picture_url: string };
+}> {
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}/api/auth/me`, { headers });
+  return res.json();
+}
 
 export async function fetchDates(): Promise<string[]> {
   if (!API_URL) return [];

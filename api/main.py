@@ -2,12 +2,16 @@
 
 import asyncio
 import logging
+import secrets
 import sys
 import time
+import urllib.parse
 
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel
 
-from config import PORT
+from config import PORT, LINE_CHANNEL_ID, LINE_CHANNEL_SECRET, FRONTEND_URL
 from services.data_fetcher import (
     get_races, get_race_entries, get_today_str, get_full_scores, get_analysis,
     get_odds_from_prefetch, get_available_dates, get_internet_predictions,
@@ -31,6 +35,100 @@ app = FastAPI(title="netkeita API", version="0.3.0")
 # In-memory cache for matrix responses (race_id -> (timestamp, response))
 _matrix_cache: dict[str, tuple[float, dict]] = {}
 MATRIX_CACHE_TTL = 60  # seconds
+
+# In-memory session store (token -> user_info)
+_sessions: dict[str, dict] = {}
+
+
+class LineCallbackRequest(BaseModel):
+    code: str
+    state: str
+
+
+@app.get("/api/auth/line-url")
+def get_line_login_url():
+    """Generate LINE Login URL with bot_prompt for friend-adding."""
+    state = secrets.token_urlsafe(16)
+    params = {
+        "response_type": "code",
+        "client_id": LINE_CHANNEL_ID,
+        "redirect_uri": f"{FRONTEND_URL}/api/auth/callback",
+        "state": state,
+        "scope": "profile openid",
+        "bot_prompt": "aggressive",
+    }
+    url = f"https://access.line.me/oauth2/v2.1/authorize?{urllib.parse.urlencode(params)}"
+    return {"url": url, "state": state}
+
+
+@app.post("/api/auth/callback")
+async def line_callback(req: LineCallbackRequest):
+    """LINE callback: code -> access_token -> profile -> session token."""
+    try:
+        async with httpx.AsyncClient() as client:
+            token_resp = await client.post(
+                "https://api.line.me/oauth2/v2.1/token",
+                data={
+                    "grant_type": "authorization_code",
+                    "code": req.code,
+                    "redirect_uri": f"{FRONTEND_URL}/api/auth/callback",
+                    "client_id": LINE_CHANNEL_ID,
+                    "client_secret": LINE_CHANNEL_SECRET,
+                },
+            )
+            if token_resp.status_code != 200:
+                logger.error(f"LINE token error: {token_resp.text}")
+                return {"success": False, "error": "LINE認証に失敗しました"}
+
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+
+            profile_resp = await client.get(
+                "https://api.line.me/v2/profile",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if profile_resp.status_code != 200:
+                return {"success": False, "error": "プロフィール取得に失敗しました"}
+
+            profile = profile_resp.json()
+
+        line_user_id = profile.get("userId")
+        display_name = profile.get("displayName", "")
+        picture_url = profile.get("pictureUrl", "")
+
+        session_token = secrets.token_urlsafe(32)
+        _sessions[session_token] = {
+            "line_user_id": line_user_id,
+            "display_name": display_name,
+            "picture_url": picture_url,
+        }
+
+        logger.info(f"LINE login: {display_name} ({line_user_id})")
+
+        return {
+            "success": True,
+            "token": session_token,
+            "user": {"display_name": display_name, "picture_url": picture_url},
+        }
+    except Exception as e:
+        logger.exception(f"LINE callback error: {e}")
+        return {"success": False, "error": "認証処理中にエラーが発生しました"}
+
+
+@app.get("/api/auth/me")
+def get_me(authorization: str = Header(default="")):
+    """Get current user info from session token."""
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else ""
+    if not token or token not in _sessions:
+        return {"authenticated": False}
+    user = _sessions[token]
+    return {
+        "authenticated": True,
+        "user": {
+            "display_name": user["display_name"],
+            "picture_url": user.get("picture_url", ""),
+        },
+    }
 
 
 @app.get("/api/races")
