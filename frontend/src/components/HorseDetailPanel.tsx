@@ -3,10 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchHorseDetail } from "@/lib/api";
 import type { HorseDetail } from "@/lib/api";
+import type { HorseRank, Grade } from "@/lib/types";
+import { RANK_COLUMNS } from "@/lib/types";
 
-type Tab = "stable" | "recent" | "bloodline";
+type Tab = "scores" | "stable" | "recent" | "bloodline";
 
 const TABS: { key: Tab; label: string }[] = [
+  { key: "scores", label: "AIスコア" },
   { key: "stable", label: "関係者情報" },
   { key: "recent", label: "直近5走" },
   { key: "bloodline", label: "血統" },
@@ -16,21 +19,25 @@ export default function HorseDetailPanel({
   raceId,
   horseNumber,
   horseName,
+  scores,
+  ranks,
   onClose,
 }: {
   raceId: string;
   horseNumber: number;
   horseName: string;
+  scores: HorseRank["scores"];
+  ranks: HorseRank["ranks"];
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<Tab>("stable");
+  const [tab, setTab] = useState<Tab>("scores");
   const [data, setData] = useState<HorseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    setTab("stable");
+    setTab("scores");
     fetchHorseDetail(raceId, horseNumber).then((d) => {
       setData(d);
       setLoading(false);
@@ -95,7 +102,9 @@ export default function HorseDetailPanel({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {loading ? (
+          {tab === "scores" ? (
+            <ScoresTab scores={scores} ranks={ranks} />
+          ) : loading ? (
             <div className="py-10 text-center text-xs text-[#888]">読み込み中...</div>
           ) : !data ? (
             <div className="py-10 text-center text-xs text-[#888]">データを取得できませんでした</div>
@@ -109,6 +118,58 @@ export default function HorseDetailPanel({
         </div>
       </div>
     </>
+  );
+}
+
+const GRADE_COLORS: Record<Grade, { bg: string; text: string }> = {
+  S: { bg: "#FFD700", text: "#333" },
+  A: { bg: "#E53935", text: "#fff" },
+  B: { bg: "#1E88E5", text: "#fff" },
+  C: { bg: "#43A047", text: "#fff" },
+  D: { bg: "#9E9E9E", text: "#fff" },
+};
+
+function ScoresTab({ scores, ranks }: { scores: HorseRank["scores"]; ranks: HorseRank["ranks"] }) {
+  const maxScore = Math.max(...RANK_COLUMNS.map((c) => scores[c.key]), 1);
+
+  return (
+    <div className="space-y-3">
+      {RANK_COLUMNS.map((col) => {
+        const score = scores[col.key];
+        const grade = ranks[col.key];
+        const gc = GRADE_COLORS[grade];
+        const pct = Math.round((score / maxScore) * 100);
+        const isTotal = col.key === "total";
+
+        return (
+          <div key={col.key} className={isTotal ? "pb-3 border-b border-[#ddd]" : ""}>
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-xs ${isTotal ? "font-black text-[#222]" : "font-bold text-[#444]"}`}>
+                {col.label}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-[#333]">{score.toFixed(1)}</span>
+                <span
+                  className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold"
+                  style={{ backgroundColor: gc.bg, color: gc.text }}
+                >
+                  {grade}
+                </span>
+              </div>
+            </div>
+            <div className="h-2.5 bg-[#eee] rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${pct}%`,
+                  backgroundColor: isTotal ? "#1f7a1f" : gc.bg,
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
