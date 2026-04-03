@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="border-b border-[#c6c9d3] bg-white sticky top-0 z-50">
           <div className="max-w-[960px] mx-auto px-4 h-12 flex items-center justify-between">
             <a href="/" className="text-lg font-bold text-[#333] tracking-tight">
-              net<span className="text-[#3251BC]">keita</span>
+              net<span className="text-[#1f7a1f]">keita</span>
             </a>
             <nav className="flex items-center gap-4 text-sm">
               <a href="#features" className="text-[#888] hover:text-[#333] hidden sm:inline">
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-[#c6c9d3] bg-[#f5f5f5] mt-0">
           <div className="max-w-[960px] mx-auto px-4 py-5 text-center">
             <p className="text-xs text-[#888] mb-1">
-              net<span className="text-[#3251BC] font-bold">keita</span> — JRA全レース ランク指数
+              net<span className="text-[#1f7a1f] font-bold">keita</span> — JRA全レース ランク指数
             </p>
             <p className="text-[11px] text-[#aaa]">
               &copy; 2026 netkeita. 競馬の未来を、データで。

@@ -6,7 +6,7 @@
   --border: #c6c9d3;
   --header-bg: #f5f5f5;
   --muted: #888888;
-  --accent: #3251BC;
+  --accent: #1f7a1f;
 
   --rank-s: #FFD700;
   --rank-s-text: #333;
@@ -74,10 +74,10 @@ body {
   vertical-align: middle;
 }
 .nk-table tbody tr:hover {
-  background: #f0f4ff;
+  background: #f0f7f0;
 }
 .nk-table tbody tr:hover td.sticky {
-  background: #f0f4ff;
+  background: #f0f7f0;
 }
 /* Sticky column shadow hint */
 .nk-table th.sticky, .nk-table td.sticky {
