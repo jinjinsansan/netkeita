@@ -167,13 +167,12 @@ export default function RankMatrix({ horses, raceId }: Props) {
       </div>
 
       {raceId && expandedHorse !== null && (
-        <div className="border border-[#bbb] border-t-0 rounded-b bg-white shadow-sm">
-          <HorseDetailPanel
-            raceId={raceId}
-            horseNumber={expandedHorse}
-            horseName={sorted.find((h) => h.horse_number === expandedHorse)?.horse_name || ""}
-          />
-        </div>
+        <HorseDetailPanel
+          raceId={raceId}
+          horseNumber={expandedHorse}
+          horseName={sorted.find((h) => h.horse_number === expandedHorse)?.horse_name || ""}
+          onClose={() => setExpandedHorse(null)}
+        />
       )}
     </div>
   );
