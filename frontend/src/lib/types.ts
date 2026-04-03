@@ -41,6 +41,28 @@ export interface RaceSummary {
   track_condition?: string;
 }
 
+export interface JockeyPostStats {
+  horse: string;
+  horse_number: number;
+  post_zone: string;
+  fukusho_rate: number;
+  race_count: number;
+}
+
+export interface JockeyCourseStats {
+  course_key: string;
+  total_runs: number;
+  wins: number;
+  fukusho_count: number;
+  win_rate: number;
+  fukusho_rate: number;
+}
+
+export interface JockeyData {
+  jockey_post_stats: Record<string, JockeyPostStats>;
+  jockey_course_stats: Record<string, JockeyCourseStats>;
+}
+
 export interface RaceMatrix {
   race_id: string;
   race_name: string;
@@ -49,6 +71,7 @@ export interface RaceMatrix {
   race_number: number;
   track_condition: string;
   horses: HorseRank[];
+  jockey_data?: JockeyData;
 }
 
 export const RANK_COLUMNS = [

@@ -91,7 +91,7 @@ function RaceContent() {
       </div>
 
       {/* Rank matrix */}
-      <RankMatrix horses={matrix.horses} raceId={raceId} />
+      <RankMatrix horses={matrix.horses} raceId={raceId} jockeyData={matrix.jockey_data} />
 
       {/* Legend */}
       <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2 text-[10px] text-[#666] border-t border-[#d0d0d0] pt-2">

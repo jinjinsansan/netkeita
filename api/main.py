@@ -197,6 +197,10 @@ async def api_matrix(race_id: str, date: str = ""):
         "race_number": race_data.get("race_number", 0),
         "track_condition": race_data.get("track_condition", ""),
         "horses": horses,
+        "jockey_data": {
+            "jockey_post_stats": jockey_data.get("jockey_post_stats", {}),
+            "jockey_course_stats": jockey_data.get("jockey_course_stats", {}),
+        },
     }
 
     # Store in cache

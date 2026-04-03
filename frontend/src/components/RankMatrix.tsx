@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import type { HorseRank, RankKey } from "@/lib/types";
+import type { HorseRank, RankKey, JockeyData } from "@/lib/types";
 import { RANK_COLUMNS } from "@/lib/types";
 import RankBadge from "./RankBadge";
 import FrameBadge from "./FrameBadge";
@@ -10,6 +10,7 @@ import HorseDetailPanel from "./HorseDetailPanel";
 interface Props {
   horses: HorseRank[];
   raceId?: string;
+  jockeyData?: JockeyData;
 }
 
 type SortMode = RankKey | "odds" | "number" | "win_prob" | "place_prob";
@@ -18,7 +19,7 @@ const FROZEN_TH: React.CSSProperties = { position: "sticky", zIndex: 10, backgro
 const FROZEN_TD: React.CSSProperties = { position: "sticky", zIndex: 10, background: "#fff" };
 const HOVER_BG = "#f0f7f0";
 
-export default function RankMatrix({ horses, raceId }: Props) {
+export default function RankMatrix({ horses, raceId, jockeyData }: Props) {
   const [sortKey, setSortKey] = useState<SortMode>("total");
   const [sortAsc, setSortAsc] = useState(true);
   const [expandedHorse, setExpandedHorse] = useState<number | null>(null);
@@ -173,8 +174,10 @@ export default function RankMatrix({ horses, raceId }: Props) {
             raceId={raceId}
             horseNumber={expandedHorse}
             horseName={h.horse_name}
+            jockeyName={h.jockey}
             scores={h.scores}
             ranks={h.ranks}
+            jockeyData={jockeyData}
             onClose={() => setExpandedHorse(null)}
           />
         ) : null;
