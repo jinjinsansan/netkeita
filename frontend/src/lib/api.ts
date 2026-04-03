@@ -1,6 +1,6 @@
 import type { RaceSummary, RaceMatrix } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://220.158.24.157/netkeita-api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://bot.dlogicai.in/nk";
 
 export async function fetchDates(): Promise<string[]> {
   if (!API_URL) return [];
