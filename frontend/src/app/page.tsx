@@ -63,27 +63,41 @@ interface VenueGroup {
   races: RaceSummary[];
 }
 
+interface DateData {
+  date: string;
+  label: string;
+  venues: VenueGroup[];
+}
+
 export default function LandingPage() {
-  const [venues, setVenues] = useState<VenueGroup[]>([]);
+  const [allDates, setAllDates] = useState<DateData[]>([]);
+  const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const [selectedVenue, setSelectedVenue] = useState("");
-  const [dateLabel, setDateLabel] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
         const dates = await fetchDates();
-        const latestDate = dates.length > 0 ? dates[0] : "";
-        if (!latestDate) {
+        // Take the latest weekend pair (up to 2 dates)
+        const recentDates = dates.slice(0, 2);
+        if (recentDates.length === 0) {
           setLoading(false);
           return;
         }
-        const result = await fetchRaces(latestDate);
-        const sorted = result.venues.sort((a, b) => venueSort(a.venue, b.venue));
-        setVenues(sorted);
-        setDateLabel(formatDate(latestDate));
-        if (sorted.length > 0) {
-          setSelectedVenue(sorted[0].venue);
+        const results: DateData[] = await Promise.all(
+          recentDates.map(async (d) => {
+            const result = await fetchRaces(d);
+            const sorted = result.venues.sort((a, b) => venueSort(a.venue, b.venue));
+            return { date: d, label: formatDate(d), venues: sorted };
+          })
+        );
+        // Sort by date ascending (Saturday first, Sunday second)
+        results.sort((a, b) => a.date.localeCompare(b.date));
+        setAllDates(results);
+        setSelectedDateIdx(0);
+        if (results[0].venues.length > 0) {
+          setSelectedVenue(results[0].venues[0].venue);
         }
       } catch (e) {
         console.error("Failed to fetch races:", e);
@@ -93,7 +107,17 @@ export default function LandingPage() {
     })();
   }, []);
 
+  const currentDateData = allDates[selectedDateIdx];
+  const venues = currentDateData?.venues || [];
   const currentRaces = venues.find((v) => v.venue === selectedVenue)?.races || [];
+
+  function handleDateChange(idx: number) {
+    setSelectedDateIdx(idx);
+    const v = allDates[idx]?.venues || [];
+    if (v.length > 0) {
+      setSelectedVenue(v[0].venue);
+    }
+  }
 
   return (
     <div className="bg-white">
@@ -158,19 +182,36 @@ export default function LandingPage() {
         <div className="max-w-[960px] mx-auto px-4">
           <div className="text-center mb-5">
             <h2 className="text-xl md:text-2xl font-black text-[#222] mb-1">
-              🏇 最新のJRAレース
+              🏇 今週のJRAレース
             </h2>
             {loading ? (
               <p className="text-sm text-[#888]">読み込み中...</p>
-            ) : venues.length > 0 ? (
-              <p className="text-sm text-[#888]">{dateLabel} 開催 — レースをタップしてランク指数をチェック</p>
+            ) : allDates.length > 0 ? (
+              <p className="text-sm text-[#888]">レースをタップしてランク指数をチェック</p>
             ) : (
               <p className="text-sm text-[#888]">現在表示できるレースデータがありません</p>
             )}
           </div>
 
-          {venues.length > 0 && (
+          {allDates.length > 0 && (
             <>
+              {/* Date tabs */}
+              <div className="flex items-center gap-2 mb-4 justify-center">
+                {allDates.map((d, i) => (
+                  <button
+                    key={d.date}
+                    onClick={() => handleDateChange(i)}
+                    className={`px-5 py-2 text-sm font-bold rounded-lg border transition ${
+                      selectedDateIdx === i
+                        ? "bg-[#3251BC] text-white border-[#3251BC]"
+                        : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Venue tabs */}
               <div className="flex items-center gap-0 mb-4 justify-center">
                 {venues.map((v) => (
