@@ -332,12 +332,12 @@ function RecentTab({ data }: { data: HorseDetail }) {
                 ) : null}
               </div>
 
-              {/* Row 2: Race name */}
-              {hasRichData && r.race_name && (
-                <div className="px-2.5 py-1 border-b border-[#f0f0f0]">
-                  <span className="text-[12px] font-bold text-[#333]">{r.race_name}</span>
-                  {r.class_name && (
-                    <span className="text-[10px] text-[#888] ml-1.5">{r.class_name}</span>
+              {/* Row 2: Race name + class badge */}
+              {hasRichData && (r.race_name || r.class_name) && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 border-b border-[#f0f0f0]">
+                  {r.class_name && <ClassBadge name={r.class_name} />}
+                  {r.race_name && (
+                    <span className="text-[12px] font-bold text-[#333] truncate">{r.race_name}</span>
                   )}
                 </div>
               )}
@@ -408,6 +408,31 @@ function RecentTab({ data }: { data: HorseDetail }) {
         })}
       </div>
     </div>
+  );
+}
+
+const CLASS_BADGE_STYLES: Record<string, { bg: string; text: string }> = {
+  "G1": { bg: "#B71C1C", text: "#fff" },
+  "G2": { bg: "#E53935", text: "#fff" },
+  "G3": { bg: "#FF9800", text: "#fff" },
+  "リステッド": { bg: "#7B1FA2", text: "#fff" },
+  "オープン": { bg: "#1565C0", text: "#fff" },
+  "3勝": { bg: "#2E7D32", text: "#fff" },
+  "2勝": { bg: "#388E3C", text: "#fff" },
+  "1勝": { bg: "#66BB6A", text: "#fff" },
+  "未勝利": { bg: "#e0e0e0", text: "#555" },
+  "新馬": { bg: "#e0e0e0", text: "#555" },
+};
+
+function ClassBadge({ name }: { name: string }) {
+  const style = CLASS_BADGE_STYLES[name] || { bg: "#e0e0e0", text: "#555" };
+  return (
+    <span
+      className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
+      style={{ backgroundColor: style.bg, color: style.text }}
+    >
+      {name}
+    </span>
   );
 }
 
