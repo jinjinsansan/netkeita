@@ -1,6 +1,7 @@
 """8-category ranking logic for netkeita."""
 
 import logging
+import math
 from typing import Literal
 
 logger = logging.getLogger(__name__)
@@ -102,6 +103,8 @@ def _generate_odds_based_scores(entries: list[dict], odds_data: dict) -> list[di
             "jockey": jockey_name,
             "post": entry.get("post", 0),
             "odds": odds_f,
+            "win_prob": round(_calc_win_probability(odds_f), 1),
+            "place_prob": 0,
             "scores": {
                 "total": round(max(0, total_score), 2),
                 "speed": round(max(0, speed_score), 2),
@@ -113,6 +116,17 @@ def _generate_odds_based_scores(entries: list[dict], odds_data: dict) -> list[di
                 "ev": round(max(0, ev_score), 2),
             },
         })
+
+    raw_place = [_calc_place_probability(h["odds"]) for h in horses]
+    num_h = len(horses)
+    target_sum = 200.0 if num_h <= 7 else 300.0
+    place_sum = sum(raw_place)
+    if place_sum > 0:
+        norm_place = [min(p * target_sum / place_sum, 85.0) for p in raw_place]
+    else:
+        norm_place = raw_place
+    for i, h in enumerate(horses):
+        h["place_prob"] = round(norm_place[i], 1)
 
     return horses
 
@@ -160,13 +174,16 @@ def calculate_matrix(
         ev_score = _calc_ev(pred, odds_data, num)
 
         odds = odds_data.get(num, odds_data.get(str(num), 0))
+        odds_f = float(odds) if odds else 0
 
         horses.append({
             "horse_number": num,
             "horse_name": name,
             "jockey": jockey_name,
             "post": entry.get("post", 0),
-            "odds": float(odds) if odds else 0,
+            "odds": odds_f,
+            "win_prob": round(_calc_win_probability(odds_f), 1),
+            "place_prob": 0,  # normalized below
             "scores": {
                 "total": total_score,
                 "speed": speed_score,
@@ -178,6 +195,18 @@ def calculate_matrix(
                 "ev": ev_score,
             },
         })
+
+    # Normalize place probabilities
+    raw_place = [_calc_place_probability(h["odds"]) for h in horses]
+    num_horses = len(horses)
+    target_sum = 200.0 if num_horses <= 7 else 300.0
+    place_sum = sum(raw_place)
+    if place_sum > 0:
+        norm_place = [min(p * target_sum / place_sum, 85.0) for p in raw_place]
+    else:
+        norm_place = raw_place
+    for i, h in enumerate(horses):
+        h["place_prob"] = round(norm_place[i], 1)
 
     for key in RANK_KEYS:
         assign_grades(horses, key)
@@ -313,3 +342,32 @@ def _calc_ev(pred: dict, odds_data: dict, horse_number: int) -> float:
         return (win_prob / implied_prob) * 10 if implied_prob > 0 else 0
     except (ValueError, TypeError, ZeroDivisionError):
         return 0
+
+
+def _calc_win_probability(odds: float) -> float:
+    if odds <= 0:
+        return 0.0
+    return 100.0 / (odds + 1.0)
+
+
+def _calc_place_probability(odds: float) -> float:
+    if odds <= 0:
+        return 0.0
+    win_prob = _calc_win_probability(odds)
+    if odds < 2.5:
+        multiplier = 2.8 - odds * 0.1
+    elif odds < 3.5:
+        ratio = (odds - 2.5) / 1.0
+        mult_a = 2.8 - odds * 0.1
+        mult_b = 2.3 + math.log10(odds) * 0.2
+        multiplier = mult_a * (1 - ratio) + mult_b * ratio
+    elif odds < 9.0:
+        multiplier = 2.3 + math.log10(odds) * 0.2
+    elif odds < 11.0:
+        ratio = (odds - 9.0) / 2.0
+        mult_b = 2.3 + math.log10(odds) * 0.2
+        mult_c = 1.8 + 1.0 / odds * 5.0
+        multiplier = mult_b * (1 - ratio) + mult_c * ratio
+    else:
+        multiplier = 1.8 + 1.0 / odds * 5.0
+    return min(win_prob * multiplier, 85.0)

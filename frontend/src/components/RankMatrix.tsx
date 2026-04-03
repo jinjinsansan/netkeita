@@ -10,7 +10,7 @@ interface Props {
   horses: HorseRank[];
 }
 
-type SortMode = RankKey | "odds" | "number";
+type SortMode = RankKey | "odds" | "number" | "win_prob" | "place_prob";
 
 export default function RankMatrix({ horses }: Props) {
   const [sortKey, setSortKey] = useState<SortMode>("total");
@@ -33,6 +33,16 @@ export default function RankMatrix({ horses }: Props) {
       const aO = a.odds ?? 999;
       const bO = b.odds ?? 999;
       return sortAsc ? aO - bO : bO - aO;
+    }
+    if (sortKey === "win_prob") {
+      const aW = a.win_prob ?? 0;
+      const bW = b.win_prob ?? 0;
+      return sortAsc ? bW - aW : aW - bW;
+    }
+    if (sortKey === "place_prob") {
+      const aP = a.place_prob ?? 0;
+      const bP = b.place_prob ?? 0;
+      return sortAsc ? bP - aP : aP - bP;
     }
     if (sortKey === "number") {
       return sortAsc ? a.horse_number - b.horse_number : b.horse_number - a.horse_number;
@@ -76,6 +86,8 @@ export default function RankMatrix({ horses }: Props) {
             <th className="w-14">騎手</th>
             <SortHeader col="odds" label="オッズ" className="w-12" />
             <th className="w-8">人気</th>
+            <SortHeader col="win_prob" label="勝率" className="w-12" />
+            <SortHeader col="place_prob" label="複勝" className="w-12" />
             {RANK_COLUMNS.map((col) => (
               <SortHeader key={col.key} col={col.key} label={col.label} className="w-[34px]" />
             ))}
@@ -101,6 +113,12 @@ export default function RankMatrix({ horses }: Props) {
                 <span className={`${popularity[horse.horse_number] <= 3 ? "text-[#E53935]" : "text-[#555]"}`}>
                   {popularity[horse.horse_number] || "-"}
                 </span>
+              </td>
+              <td className="text-center text-[11px] font-mono text-[#333]">
+                {horse.win_prob ? `${horse.win_prob}%` : "-"}
+              </td>
+              <td className="text-center text-[11px] font-mono text-[#333]">
+                {horse.place_prob ? `${horse.place_prob}%` : "-"}
               </td>
               {RANK_COLUMNS.map((col) => (
                 <td key={col.key} className="text-center">
