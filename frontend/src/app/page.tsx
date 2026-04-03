@@ -69,7 +69,7 @@ interface DateData {
 }
 
 export default function LandingPage() {
-  const { authenticated, user } = useAuth();
+  const { loading: authLoading, authenticated, user } = useAuth();
   const [allDates, setAllDates] = useState<DateData[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const [selectedVenue, setSelectedVenue] = useState("");
@@ -147,8 +147,8 @@ export default function LandingPage() {
           </p>
 
           {/* CTA */}
-          <div className="flex flex-col items-center gap-3 mb-10">
-            {authenticated ? (
+          <div className="flex flex-col items-center gap-3 mb-10 min-h-[72px]">
+            {authLoading ? null : authenticated ? (
               <>
                 <a
                   href="#races"
@@ -297,7 +297,7 @@ export default function LandingPage() {
                 </table>
               </div>
 
-              {!authenticated && (
+              {!authLoading && !authenticated && (
                 <div className="mt-4 text-center">
                   <p className="text-sm text-[#666] mb-3">
                     レースをタップするとランク指数が確認できます（要ログイン）
@@ -394,7 +394,9 @@ export default function LandingPage() {
       {/* ── Final CTA ────────────────────────────────── */}
       <section className="bg-gradient-to-b from-[#f0f7f0] to-[#e8f5e9] py-14 md:py-18">
         <div className="max-w-[960px] mx-auto px-5 text-center">
-          {authenticated ? (
+          {authLoading ? (
+            <div className="min-h-[120px]" />
+          ) : authenticated ? (
             <>
               <h2 className="text-xl md:text-2xl font-black text-[#111] mb-3">
                 レース一覧から<br className="md:hidden" />ランク指数を確認しよう
