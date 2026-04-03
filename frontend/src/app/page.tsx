@@ -230,15 +230,15 @@ export default function LandingPage() {
               </div>
 
               {/* Race number tiles */}
-              <div className="flex flex-wrap gap-2 mb-5 justify-center">
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-5 max-w-[540px] mx-auto">
                 {currentRaces.map((race) => (
                   <Link
                     key={race.race_id}
                     href={`/race/${encodeURIComponent(race.race_id)}`}
-                    className="flex flex-col items-center justify-center w-[80px] h-[58px] border border-[#c6c9d3] rounded-lg bg-white hover:bg-[#f0f7f0] hover:border-[#1f7a1f] transition text-center shadow-sm"
+                    className="flex flex-col items-center justify-center h-[58px] border border-[#c6c9d3] rounded-lg bg-white hover:bg-[#f0f7f0] hover:border-[#1f7a1f] transition text-center shadow-sm"
                   >
                     <span className="text-base font-bold text-[#1f7a1f]">{race.race_number}R</span>
-                    <span className="text-[11px] text-[#888] truncate max-w-[74px] leading-tight">
+                    <span className="text-[10px] text-[#888] truncate w-full px-1 leading-tight">
                       {race.race_name}
                     </span>
                   </Link>
