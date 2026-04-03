@@ -98,6 +98,7 @@ def get_race_entries(date_str: str, race_id: str) -> dict | None:
                 })
             return {
                 "race_id": race_id,
+                "race_id_netkeiba": r.get("race_id_netkeiba", ""),
                 "race_name": r.get("race_name", ""),
                 "venue": r.get("venue", ""),
                 "distance": r.get("distance", ""),

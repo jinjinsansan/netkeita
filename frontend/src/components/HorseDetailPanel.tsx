@@ -242,37 +242,174 @@ function StableTab({ data }: { data: HorseDetail }) {
   );
 }
 
+function formatTime(raw?: string): string {
+  if (!raw) return "";
+  const s = raw.replace(/[^\d]/g, "");
+  if (s.length === 4) return `${s[0]}:${s[1]}${s[2]}.${s[3]}`;
+  if (s.length === 3) return `0:${s[0]}${s[1]}.${s[2]}`;
+  return raw;
+}
+
+function formatAgari(raw?: string): string {
+  if (!raw) return "";
+  const s = raw.replace(/[^\d]/g, "");
+  if (s.length === 3) return `${s[0]}${s[1]}.${s[2]}`;
+  return raw;
+}
+
+function formatDate(raw?: string): string {
+  if (!raw) return "";
+  const d = raw.replace(/\//g, "");
+  if (d.length >= 6) return `${d.slice(2, 4)}/${d.slice(4, 6)}`;
+  if (d.length >= 4) return `${d.slice(0, 2)}/${d.slice(2, 4)}`;
+  return raw;
+}
+
+function CourseStatsSection({ stats }: { stats?: Record<string, { record: string; win_rate: string; place_rate: string }> }) {
+  if (!stats || Object.keys(stats).length === 0) return null;
+
+  return (
+    <div className="mb-4 border border-[#d0d0d0] rounded-lg overflow-hidden">
+      <div className="bg-[#f0f7f0] px-3 py-1.5">
+        <span className="text-[11px] font-bold text-[#333]">コース適性</span>
+      </div>
+      <table className="w-full text-[11px]">
+        <thead>
+          <tr className="border-b border-[#e8e8e8] text-[#888]">
+            <th className="text-left font-normal py-1.5 px-2.5"></th>
+            <th className="text-center font-normal py-1.5 px-1">成績</th>
+            <th className="text-center font-normal py-1.5 px-1">勝率</th>
+            <th className="text-center font-normal py-1.5 px-1">複勝率</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(stats).map(([label, s]) => {
+            const placeNum = parseInt(s.place_rate) || 0;
+            const placeColor = placeNum >= 40 ? "#E53935" : placeNum >= 25 ? "#1565C0" : "#333";
+            return (
+              <tr key={label} className="border-b border-[#f0f0f0] last:border-0">
+                <td className="py-1.5 px-2.5 font-bold text-[#444]">{label}</td>
+                <td className="py-1.5 px-1 text-center text-[#555]">{s.record}</td>
+                <td className="py-1.5 px-1 text-center font-bold text-[#333]">{s.win_rate}</td>
+                <td className="py-1.5 px-1 text-center font-bold" style={{ color: placeColor }}>{s.place_rate}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function RecentTab({ data }: { data: HorseDetail }) {
   const runs = data.recent_runs;
   if (!runs || runs.length === 0) {
     return <EmptyState icon="🏁" title="直近走データがありません" sub="新馬戦や長期休養明けの馬が該当します" />;
   }
+
+  const hasRichData = runs.some(r => r.race_name || r.time || r.agari);
+
   return (
-    <div className="space-y-2">
-      {runs.map((r, i) => {
-        const finishColor =
-          r.finish === 1 ? "#FFD700" : r.finish <= 3 ? "#E53935" : r.finish <= 5 ? "#1E88E5" : "#999";
-        return (
-          <div key={i} className="flex items-center gap-3 py-2.5 border-b border-[#eee] last:border-0">
-            <span
-              className="text-xl font-black w-8 text-center shrink-0"
-              style={{ color: finishColor }}
-            >
-              {r.finish}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 text-[13px]">
-                <span className="font-bold text-[#222]">{r.venue}</span>
-                <span className="text-[#666]">{r.distance}</span>
+    <div>
+      <CourseStatsSection stats={data.course_stats} />
+
+      <div className="space-y-0">
+        {runs.map((r, i) => {
+          const finishColor =
+            r.finish === 1 ? "#DAA520" : r.finish <= 3 ? "#E53935" : r.finish <= 5 ? "#1E88E5" : "#999";
+          const finishBg =
+            r.finish === 1 ? "#FFF8E1" : r.finish <= 3 ? "#FFEBEE" : r.finish <= 5 ? "#E3F2FD" : "transparent";
+
+          return (
+            <div key={i} className="border border-[#e8e8e8] rounded-lg mb-2.5 overflow-hidden">
+              {/* Row 1: Race info header */}
+              <div className="flex items-center gap-2 px-2.5 py-1.5 bg-[#f8f8f8] border-b border-[#eee]">
+                <span className="text-[11px] text-[#888]">{formatDate(r.date)}</span>
+                <span className="text-[11px] font-bold text-[#444]">{r.venue}</span>
+                <span className="text-[11px] text-[#666]">{r.distance}</span>
+                {r.track_condition && (
+                  <span className="text-[10px] px-1.5 py-0 rounded bg-[#eee] text-[#666]">{r.track_condition}</span>
+                )}
+                {r.headcount ? (
+                  <span className="text-[10px] text-[#aaa]">{r.headcount}頭</span>
+                ) : null}
               </div>
-              <div className="flex items-center gap-2 text-[11px] text-[#888] mt-0.5">
-                <span>{r.date}</span>
-                <span>{r.jockey?.trim()}</span>
+
+              {/* Row 2: Race name */}
+              {hasRichData && r.race_name && (
+                <div className="px-2.5 py-1 border-b border-[#f0f0f0]">
+                  <span className="text-[12px] font-bold text-[#333]">{r.race_name}</span>
+                  {r.class_name && (
+                    <span className="text-[10px] text-[#888] ml-1.5">{r.class_name}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Row 3: Main stats */}
+              <div className="flex items-center px-2.5 py-2">
+                {/* Finish */}
+                <div
+                  className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0 mr-3"
+                  style={{ backgroundColor: finishBg }}
+                >
+                  <span className="text-xl font-black" style={{ color: finishColor }}>
+                    {r.finish}
+                  </span>
+                </div>
+
+                {/* Details grid */}
+                <div className="flex-1 min-w-0">
+                  {hasRichData ? (
+                    <div className="grid grid-cols-3 gap-x-3 gap-y-0.5">
+                      {/* Time */}
+                      <div>
+                        <div className="text-[9px] text-[#aaa]">タイム</div>
+                        <div className="text-[12px] font-bold text-[#333] font-mono">{formatTime(r.time) || "-"}</div>
+                      </div>
+                      {/* Agari */}
+                      <div>
+                        <div className="text-[9px] text-[#aaa]">上り</div>
+                        <div className="text-[12px] font-bold text-[#333] font-mono">{formatAgari(r.agari) || "-"}</div>
+                      </div>
+                      {/* Popularity */}
+                      <div>
+                        <div className="text-[9px] text-[#aaa]">人気</div>
+                        <div className="text-[12px] font-bold text-[#333]">{r.popularity ? `${r.popularity}番` : "-"}</div>
+                      </div>
+                      {/* Jockey */}
+                      <div>
+                        <div className="text-[9px] text-[#aaa]">騎手</div>
+                        <div className="text-[11px] text-[#555] truncate">{r.jockey?.trim() || "-"}</div>
+                      </div>
+                      {/* Weight */}
+                      <div>
+                        <div className="text-[9px] text-[#aaa]">馬体重</div>
+                        <div className="text-[11px] text-[#555]">{r.weight || "-"}</div>
+                      </div>
+                      {/* Corner */}
+                      <div>
+                        <div className="text-[9px] text-[#aaa]">通過</div>
+                        <div className="text-[11px] text-[#555] font-mono">{r.corner || "-"}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2 text-[13px]">
+                        <span className="font-bold text-[#222]">{r.venue}</span>
+                        <span className="text-[#666]">{r.distance}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-[#888] mt-0.5">
+                        <span>{r.date}</span>
+                        <span>{r.jockey?.trim()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

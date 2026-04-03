@@ -134,7 +134,21 @@ export interface HorseDetail {
     finish: number;
     jockey: string;
     odds: number;
+    race_name?: string;
+    class_name?: string;
+    time?: string;
+    agari?: string;
+    popularity?: number;
+    corner?: string;
+    weight?: string;
+    track_condition?: string;
+    headcount?: number;
   }[];
+  course_stats?: Record<string, {
+    record: string;
+    win_rate: string;
+    place_rate: string;
+  }>;
   bloodline: {
     sire?: string;
     broodmare_sire?: string;

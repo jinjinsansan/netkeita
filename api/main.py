@@ -21,6 +21,7 @@ from services.data_fetcher import (
 )
 from services.ranking import calculate_matrix
 from services.rewriter import rewrite_comment
+from services.course_stats_scraper import get_course_stats_for_horse
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -300,12 +301,22 @@ def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
     recent_runs = get_horse_recent_runs(race_data, horse_number)
     bloodline = get_horse_bloodline(race_data, horse_number)
 
+    # Course stats from netkeiba (Redis cache only - populated by prefetch)
+    course_stats = {}
+    race_id_nk = race_data.get("race_id_netkeiba", "")
+    if race_id_nk:
+        try:
+            course_stats = get_course_stats_for_horse(race_id_nk, horse_number)
+        except Exception:
+            pass
+
     result = {
         "horse_number": horse_number,
         "horse_name": entry["horse_name"],
         "stable_comment": horse_stable,
         "recent_runs": recent_runs,
         "bloodline": bloodline,
+        "course_stats": course_stats,
     }
 
     _horse_detail_cache[cache_key] = (time.time(), result)
