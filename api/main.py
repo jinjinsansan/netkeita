@@ -37,8 +37,35 @@ app = FastAPI(title="netkeita API", version="0.3.0")
 _matrix_cache: dict[str, tuple[float, dict]] = {}
 MATRIX_CACHE_TTL = 60  # seconds
 
-# In-memory session store (token -> user_info)
-_sessions: dict[str, dict] = {}
+# File-based session store (shared across workers)
+import json as _json
+import os as _os
+
+_SESSION_DIR = "/tmp/nk_sessions"
+_os.makedirs(_SESSION_DIR, exist_ok=True)
+
+
+def _session_path(token: str) -> str:
+    return _os.path.join(_SESSION_DIR, f"{token}.json")
+
+
+def _save_session(token: str, data: dict):
+    try:
+        with open(_session_path(token), "w") as f:
+            _json.dump(data, f)
+    except Exception:
+        logger.exception("Failed to save session")
+
+
+def _load_session(token: str) -> dict | None:
+    path = _session_path(token)
+    if not _os.path.exists(path):
+        return None
+    try:
+        with open(path, "r") as f:
+            return _json.load(f)
+    except Exception:
+        return None
 
 
 class LineCallbackRequest(BaseModel):
@@ -98,11 +125,11 @@ async def line_callback(req: LineCallbackRequest):
         picture_url = profile.get("pictureUrl", "")
 
         session_token = secrets.token_urlsafe(32)
-        _sessions[session_token] = {
+        _save_session(session_token, {
             "line_user_id": line_user_id,
             "display_name": display_name,
             "picture_url": picture_url,
-        }
+        })
 
         logger.info(f"LINE login: {display_name} ({line_user_id})")
 
@@ -120,9 +147,11 @@ async def line_callback(req: LineCallbackRequest):
 def get_me(authorization: str = Header(default="")):
     """Get current user info from session token."""
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else ""
-    if not token or token not in _sessions:
+    if not token:
         return {"authenticated": False}
-    user = _sessions[token]
+    user = _load_session(token)
+    if not user:
+        return {"authenticated": False}
     return {
         "authenticated": True,
         "user": {
