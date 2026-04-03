@@ -223,7 +223,7 @@ function StableTab({ data }: { data: HorseDetail }) {
 
       {/* Trainer */}
       {sc.trainer && (
-        <p className="text-xs text-[#666]">{sc.trainer}</p>
+        <p className="text-xs text-[#666]">{sc.trainer.replace(/師$/, "厩舎")}</p>
       )}
 
       {/* Comment */}
