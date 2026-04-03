@@ -54,13 +54,15 @@ body {
 @layer base {
   .nk-table {
     width: 100%;
-    border-collapse: collapse;
-    border: 1px solid var(--border);
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 13px;
   }
   .nk-table th {
     background: #ddd;
-    border: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
     padding: 4px 3px;
     font-weight: 700;
     text-align: center;
@@ -68,24 +70,23 @@ body {
     font-size: 11px;
     color: #222;
   }
+  .nk-table th:first-child {
+    border-left: 1px solid var(--border);
+  }
   .nk-table td {
-    border: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
     padding: 4px 3px;
     vertical-align: middle;
+  }
+  .nk-table td:first-child {
+    border-left: 1px solid #ddd;
   }
   .nk-table tbody tr:hover td {
     background: #f0f7f0;
   }
 }
-@layer components {
-  .nk-frozen {
-    position: sticky;
-    z-index: 10;
-  }
-  .nk-frozen-last {
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  }
-}
+
 @layer base {
   @media (min-width: 640px) {
     .nk-table th {
