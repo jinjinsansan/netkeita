@@ -180,16 +180,38 @@ function ScoresTab({ scores, ranks }: { scores: HorseRank["scores"]; ranks: Hors
   );
 }
 
+const MARK_LABELS: Record<string, { label: string; color: string }> = {
+  "◎": { label: "本命", color: "#E53935" },
+  "○": { label: "対抗", color: "#1565C0" },
+  "▲": { label: "単穴", color: "#F57C00" },
+  "△": { label: "連下", color: "#43A047" },
+  "×": { label: "注意", color: "#9E9E9E" },
+  "☆": { label: "注目", color: "#AB47BC" },
+};
+
 function StableTab({ data }: { data: HorseDetail }) {
   const sc = data.stable_comment;
   if (!sc || (!sc.mark && !sc.comment && !sc.status)) {
     return <EmptyState icon="📋" title="関係者情報はまだ公開されていません" sub="レース前日〜当日朝に更新されることが多いです" />;
   }
+
+  const markInfo = sc.mark ? MARK_LABELS[sc.mark] : null;
+
   return (
     <div className="space-y-3">
+      {/* Mark + horse name */}
       <div className="flex items-center gap-2.5">
         {sc.mark && (
-          <span className="text-2xl font-black text-[#1f7a1f] leading-none">{sc.mark}</span>
+          <div className="flex flex-col items-center shrink-0">
+            <span className="text-3xl font-black leading-none" style={{ color: markInfo?.color || "#333" }}>
+              {sc.mark}
+            </span>
+            {markInfo && (
+              <span className="text-[9px] font-bold mt-0.5" style={{ color: markInfo.color }}>
+                {markInfo.label}
+              </span>
+            )}
+          </div>
         )}
         <div>
           <span className="font-bold text-sm text-[#222]">{data.horse_name}</span>
@@ -200,12 +222,22 @@ function StableTab({ data }: { data: HorseDetail }) {
           )}
         </div>
       </div>
+
+      {/* Trainer */}
       {sc.trainer && (
         <p className="text-xs text-[#666]">{sc.trainer}</p>
       )}
-      {sc.comment && (
+
+      {/* Comment */}
+      {sc.comment ? (
         <div className="bg-[#f8faf8] border border-[#d0d0d0] rounded-lg p-3">
           <p className="text-[13px] text-[#333] leading-relaxed">{sc.comment}</p>
+        </div>
+      ) : sc.mark && (
+        <div className="bg-[#f8f8f8] border border-dashed border-[#d0d0d0] rounded-lg p-3">
+          <p className="text-[11px] text-[#999] leading-relaxed">
+            記者印のみの情報です。詳細コメントは重賞・特別レースで公開されます。
+          </p>
         </div>
       )}
     </div>
