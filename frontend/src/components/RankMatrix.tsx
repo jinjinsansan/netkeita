@@ -28,6 +28,23 @@ export default function RankMatrix({ horses }: Props) {
     return map;
   }, [horses]);
 
+  // Top-5 rank coloring for win_prob / place_prob
+  const RANK_COLORS = ["#FFD700", "#E53935", "#1E88E5", "#43A047", "#9E9E9E"];
+  const winRank = useMemo(() => {
+    const sorted = horses.filter((h) => h.win_prob && h.win_prob > 0)
+      .sort((a, b) => (b.win_prob ?? 0) - (a.win_prob ?? 0));
+    const map: Record<number, string> = {};
+    sorted.slice(0, 5).forEach((h, i) => { map[h.horse_number] = RANK_COLORS[i]; });
+    return map;
+  }, [horses]);
+  const placeRank = useMemo(() => {
+    const sorted = horses.filter((h) => h.place_prob && h.place_prob > 0)
+      .sort((a, b) => (b.place_prob ?? 0) - (a.place_prob ?? 0));
+    const map: Record<number, string> = {};
+    sorted.slice(0, 5).forEach((h, i) => { map[h.horse_number] = RANK_COLORS[i]; });
+    return map;
+  }, [horses]);
+
   const sorted = [...horses].sort((a, b) => {
     if (sortKey === "odds") {
       const aO = a.odds ?? 999;
@@ -114,10 +131,12 @@ export default function RankMatrix({ horses }: Props) {
                   {popularity[horse.horse_number] || "-"}
                 </span>
               </td>
-              <td className="text-center text-[11px] font-mono text-[#333]">
+              <td className="text-center text-[11px] font-mono font-bold"
+                style={{ color: winRank[horse.horse_number] || "#999" }}>
                 {horse.win_prob ? `${horse.win_prob}%` : "-"}
               </td>
-              <td className="text-center text-[11px] font-mono text-[#333]">
+              <td className="text-center text-[11px] font-mono font-bold"
+                style={{ color: placeRank[horse.horse_number] || "#999" }}>
                 {horse.place_prob ? `${horse.place_prob}%` : "-"}
               </td>
               {RANK_COLUMNS.map((col) => (
