@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import random
 import secrets
 import sys
 import time
@@ -325,6 +326,175 @@ def api_dates():
     """Get list of available race dates (newest first)."""
     dates = get_available_dates()
     return {"dates": dates}
+
+
+# ── Minna-no-Yosou (みんなの予想) voting system ──────────────────────
+# Uses Redis db=3 for vote storage, separate from sessions (db=2).
+
+_redis_votes = _redis.Redis(host="127.0.0.1", port=6379, db=3, decode_responses=True)
+_VOTE_KEY_PREFIX = "nk:votes"
+_DUMMY_TTL = 86400 * 3  # dummy flag expires in 3 days
+
+
+def _get_user_from_token(authorization: str) -> dict | None:
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else ""
+    if not token:
+        return None
+    return _load_session(token)
+
+
+def _ensure_dummy_votes(race_id: str):
+    """Generate dummy votes for a race if not already done."""
+    flag_key = f"{_VOTE_KEY_PREFIX}:dummy:{race_id}"
+    if _redis_votes.exists(flag_key):
+        return
+
+    # Get matrix data to weight votes by AI score
+    cached = _matrix_cache.get(race_id)
+    if not cached:
+        return
+
+    horses = cached[1].get("horses", [])
+    if not horses:
+        return
+
+    # Build weight distribution based on total score
+    scored = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
+    n = len(scored)
+    weights = []
+    for i, h in enumerate(scored):
+        if i < n * 0.25:
+            w = random.uniform(3.0, 5.0)  # top 25%: high weight
+        elif i < n * 0.60:
+            w = random.uniform(1.5, 3.0)  # mid 35%
+        else:
+            w = random.uniform(0.3, 1.5)  # bottom 40%
+        weights.append((h["horse_number"], w))
+
+    total_w = sum(w for _, w in weights)
+    probs = [(num, w / total_w) for num, w in weights]
+
+    total_votes = random.randint(30, 80)
+    count_key = f"{_VOTE_KEY_PREFIX}:count:{race_id}"
+
+    for _ in range(total_votes):
+        r = random.random()
+        cumulative = 0.0
+        chosen = probs[0][0]
+        for num, p in probs:
+            cumulative += p
+            if r <= cumulative:
+                chosen = num
+                break
+        _redis_votes.hincrby(count_key, str(chosen), 1)
+
+    _redis_votes.setex(flag_key, _DUMMY_TTL, "1")
+    _redis_votes.expire(count_key, _DUMMY_TTL)
+    logger.info(f"Generated {total_votes} dummy votes for {race_id}")
+
+
+class VoteRequest(BaseModel):
+    horse_number: int
+
+
+@app.post("/api/votes/{race_id}")
+def api_vote(race_id: str, req: VoteRequest, authorization: str = Header(default="")):
+    """Submit or change a vote for a race. Requires authentication."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+
+    user_id = user.get("line_user_id", "")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="ユーザー情報が不正です")
+
+    # Check horse_number validity from matrix cache
+    cached = _matrix_cache.get(race_id)
+    if cached:
+        valid_numbers = {h["horse_number"] for h in cached[1].get("horses", [])}
+        if req.horse_number not in valid_numbers:
+            raise HTTPException(status_code=400, detail="不正な馬番です")
+
+    vote_key = f"{_VOTE_KEY_PREFIX}:{race_id}"
+    count_key = f"{_VOTE_KEY_PREFIX}:count:{race_id}"
+
+    # Check if user already voted (for count adjustment)
+    prev = _redis_votes.hget(vote_key, user_id)
+    if prev:
+        _redis_votes.hincrby(count_key, prev, -1)
+
+    # Save vote and update count
+    _redis_votes.hset(vote_key, user_id, str(req.horse_number))
+    _redis_votes.hincrby(count_key, str(req.horse_number), 1)
+    _redis_votes.expire(vote_key, _DUMMY_TTL)
+    _redis_votes.expire(count_key, _DUMMY_TTL)
+
+    return {"success": True, "horse_number": req.horse_number}
+
+
+@app.get("/api/votes/{race_id}/results")
+def api_vote_results(race_id: str, authorization: str = Header(default="")):
+    """Get vote results for a race."""
+    _ensure_dummy_votes(race_id)
+
+    count_key = f"{_VOTE_KEY_PREFIX}:count:{race_id}"
+    raw_counts = _redis_votes.hgetall(count_key)
+
+    counts: dict[int, int] = {}
+    for k, v in raw_counts.items():
+        cnt = int(v)
+        if cnt > 0:
+            counts[int(k)] = cnt
+
+    total = sum(counts.values())
+
+    # Build results with horse info from matrix cache
+    cached = _matrix_cache.get(race_id)
+    horses_info = {}
+    if cached:
+        for h in cached[1].get("horses", []):
+            horses_info[h["horse_number"]] = {
+                "horse_name": h["horse_name"],
+                "post": h.get("post", 0),
+                "jockey": h.get("jockey", ""),
+            }
+
+    results = []
+    for num, cnt in sorted(counts.items(), key=lambda x: x[1], reverse=True):
+        info = horses_info.get(num, {})
+        results.append({
+            "horse_number": num,
+            "horse_name": info.get("horse_name", f"馬番{num}"),
+            "post": info.get("post", 0),
+            "jockey": info.get("jockey", ""),
+            "votes": cnt,
+            "rate": round(cnt / total * 100, 1) if total > 0 else 0,
+        })
+
+    # Check if current user has voted
+    my_vote = None
+    user = _get_user_from_token(authorization)
+    if user:
+        vote_key = f"{_VOTE_KEY_PREFIX}:{race_id}"
+        v = _redis_votes.hget(vote_key, user.get("line_user_id", ""))
+        if v:
+            my_vote = int(v)
+
+    return {
+        "race_id": race_id,
+        "total_votes": total,
+        "results": results,
+        "my_vote": my_vote,
+    }
+
+
+@app.get("/api/votes/my-history")
+def api_my_vote_history(authorization: str = Header(default="")):
+    """Get current user's vote history. (Phase 3 - placeholder)"""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    return {"history": [], "total_races": 0, "hit_rate": 0, "roi": 0}
 
 
 @app.get("/health")

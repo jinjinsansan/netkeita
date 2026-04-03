@@ -6,8 +6,11 @@ import { fetchMatrix } from "@/lib/api";
 import type { RaceMatrix } from "@/lib/types";
 import RankMatrix from "@/components/RankMatrix";
 import InternetPredictionDrawer from "@/components/InternetPredictionDrawer";
+import MinnaVoteDrawer from "@/components/MinnaVoteDrawer";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
+
+const ENABLE_MINNA = process.env.NEXT_PUBLIC_ENABLE_MINNA === "true";
 
 export default function RacePage() {
   return (
@@ -79,7 +82,7 @@ function RaceContent() {
             onClick={() => setShowInetPred(true)}
             className="text-[10px] font-bold text-[#163016] bg-[#4ade80] hover:bg-[#6ee7a0] px-2.5 py-1 rounded transition shrink-0"
           >
-            ネット予想
+            {ENABLE_MINNA ? "みんなの予想" : "ネット予想"}
           </button>
         </div>
         <div className="px-3 py-2 text-[11px] text-[#444] font-medium flex flex-wrap gap-x-3">
@@ -118,13 +121,19 @@ function RaceContent() {
         ※ 各項目は出走馬全頭の相対順位でランク付け。ヘッダーをタップでソート切替。
       </p>
 
-      {/* Internet Prediction Drawer */}
-      {showInetPred && matrix.race_name && (
+      {/* Prediction / Vote Drawer */}
+      {showInetPred && (ENABLE_MINNA ? (
+        <MinnaVoteDrawer
+          raceId={raceId}
+          horses={matrix.horses}
+          onClose={() => setShowInetPred(false)}
+        />
+      ) : matrix.race_name && (
         <InternetPredictionDrawer
           raceName={matrix.race_name}
           onClose={() => setShowInetPred(false)}
         />
-      )}
+      ))}
     </div>
   );
 }

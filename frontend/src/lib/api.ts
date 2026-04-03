@@ -172,6 +172,67 @@ export async function fetchHorseDetail(raceId: string, horseNumber: number): Pro
   }
 }
 
+// --- Minna-no-Yosou (みんなの予想) ---
+
+export interface VoteResult {
+  horse_number: number;
+  horse_name: string;
+  post: number;
+  jockey: string;
+  votes: number;
+  rate: number;
+}
+
+export interface VoteResults {
+  race_id: string;
+  total_votes: number;
+  results: VoteResult[];
+  my_vote: number | null;
+}
+
+export async function fetchVoteResults(raceId: string): Promise<VoteResults | null> {
+  if (!API_URL) return null;
+  try {
+    const headers: Record<string, string> = {};
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(
+      `${API_URL}/api/votes/${encodeURIComponent(raceId)}/results`,
+      { cache: "no-store", headers }
+    );
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function submitVote(
+  raceId: string,
+  horseNumber: number
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const token = getToken();
+    if (!token) return { success: false, error: "ログインが必要です" };
+    const res = await fetch(`${API_URL}/api/votes/${encodeURIComponent(raceId)}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ horse_number: horseNumber }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { success: false, error: data.detail || "投票に失敗しました" };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
 export async function fetchMatrix(raceId: string): Promise<RaceMatrix | null> {
   if (!API_URL) return null;
 
