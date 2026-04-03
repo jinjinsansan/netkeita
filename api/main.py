@@ -19,6 +19,7 @@ from services.data_fetcher import (
     async_get_full_scores, async_get_analysis,
 )
 from services.ranking import calculate_matrix
+from services.rewriter import rewrite_comment
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -258,6 +259,10 @@ def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
 
     stable = get_stable_comments(date_str, venue, race_number_int)
     horse_stable = stable.get(horse_number, stable.get(str(horse_number), {}))
+
+    # Rewrite comment to avoid copyright issues
+    if horse_stable and horse_stable.get("comment"):
+        horse_stable = rewrite_comment(horse_number, horse_stable)
 
     recent_runs = get_horse_recent_runs(race_data, horse_number)
     bloodline = get_horse_bloodline(race_data, horse_number)
