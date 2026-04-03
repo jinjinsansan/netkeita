@@ -183,11 +183,11 @@ function ScoresTab({ scores, ranks }: { scores: HorseRank["scores"]; ranks: Hors
 }
 
 const MARK_LABELS: Record<string, { label: string; color: string }> = {
-  "◎": { label: "本命", color: "#E53935" },
-  "○": { label: "対抗", color: "#1565C0" },
-  "▲": { label: "単穴", color: "#F57C00" },
-  "△": { label: "連下", color: "#43A047" },
-  "×": { label: "注意", color: "#9E9E9E" },
+  "◎": { label: "絶好調", color: "#E53935" },
+  "○": { label: "好調", color: "#1565C0" },
+  "▲": { label: "普通", color: "#F57C00" },
+  "△": { label: "やや不安", color: "#9E9E9E" },
+  "×": { label: "不調", color: "#777" },
   "☆": { label: "注目", color: "#AB47BC" },
 };
 
@@ -201,19 +201,15 @@ function StableTab({ data }: { data: HorseDetail }) {
 
   return (
     <div className="space-y-3">
-      {/* Mark + horse name */}
+      {/* Condition label + horse name */}
       <div className="flex items-center gap-2.5">
-        {sc.mark && (
-          <div className="flex flex-col items-center shrink-0">
-            <span className="text-3xl font-black leading-none" style={{ color: markInfo?.color || "#333" }}>
-              {sc.mark}
-            </span>
-            {markInfo && (
-              <span className="text-[9px] font-bold mt-0.5" style={{ color: markInfo.color }}>
-                {markInfo.label}
-              </span>
-            )}
-          </div>
+        {sc.mark && markInfo && (
+          <span
+            className="inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full shrink-0"
+            style={{ backgroundColor: markInfo.color + "18", color: markInfo.color, border: `1px solid ${markInfo.color}40` }}
+          >
+            {markInfo.label}
+          </span>
         )}
         <div>
           <span className="font-bold text-sm text-[#222]">{data.horse_name}</span>
@@ -238,7 +234,7 @@ function StableTab({ data }: { data: HorseDetail }) {
       ) : sc.mark && (
         <div className="bg-[#f8f8f8] border border-dashed border-[#d0d0d0] rounded-lg p-3">
           <p className="text-[11px] text-[#999] leading-relaxed">
-            記者印のみの情報です。詳細コメントは重賞・特別レースで公開されます。
+            記者による状態評価のみの情報です。詳細コメントは重賞・特別レースで公開されます。
           </p>
         </div>
       )}
