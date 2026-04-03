@@ -242,9 +242,19 @@ def _build_full_predictions(full_scores_raw: dict, race_data: dict) -> dict:
     return scores
 
 
+# Cache for horse-detail (key: "race_id:horse_number" -> (timestamp, response))
+_horse_detail_cache: dict[str, tuple[float, dict]] = {}
+HORSE_DETAIL_CACHE_TTL = 300  # 5 minutes
+
+
 @app.get("/api/horse-detail/{race_id}/{horse_number}")
 def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
     """Get detailed info for a single horse: stable comments, recent runs, bloodline."""
+    cache_key = f"{race_id}:{horse_number}"
+    cached = _horse_detail_cache.get(cache_key)
+    if cached and (time.time() - cached[0]) < HORSE_DETAIL_CACHE_TTL:
+        return cached[1]
+
     date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
     race_data = get_race_entries(date_str, race_id)
     if not race_data:
@@ -260,20 +270,23 @@ def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
     stable = get_stable_comments(date_str, venue, race_number_int)
     horse_stable = stable.get(horse_number, stable.get(str(horse_number), {}))
 
-    # Rewrite comment to avoid copyright issues
+    # Rewrite comment in background (non-blocking)
     if horse_stable and horse_stable.get("comment"):
         horse_stable = rewrite_comment(horse_number, horse_stable)
 
     recent_runs = get_horse_recent_runs(race_data, horse_number)
     bloodline = get_horse_bloodline(race_data, horse_number)
 
-    return {
+    result = {
         "horse_number": horse_number,
         "horse_name": entry["horse_name"],
         "stable_comment": horse_stable,
         "recent_runs": recent_runs,
         "bloodline": bloodline,
     }
+
+    _horse_detail_cache[cache_key] = (time.time(), result)
+    return result
 
 
 @app.get("/api/internet-predictions/{race_name}")
