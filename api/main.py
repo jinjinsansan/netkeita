@@ -349,26 +349,39 @@ def _ensure_dummy_votes(race_id: str):
     if _redis_votes.exists(flag_key):
         return
 
-    # Get matrix data to weight votes by AI score
+    # Try in-memory cache first, then fetch race entries directly
+    horses = []
     cached = _matrix_cache.get(race_id)
-    if not cached:
-        return
+    if cached:
+        horses = cached[1].get("horses", [])
 
-    horses = cached[1].get("horses", [])
+    if not horses:
+        # Fallback: get entries from race data and assign uniform weights
+        date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
+        race_data = get_race_entries(date_str, race_id)
+        if race_data and race_data.get("entries"):
+            horses = [{"horse_number": e["horse_number"], "scores": {"total": 0}} for e in race_data["entries"]]
+
     if not horses:
         return
 
-    # Build weight distribution based on total score
-    scored = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
+    # Build weight distribution based on total score (or uniform if no scores)
+    has_scores = any(h["scores"]["total"] > 0 for h in horses)
+    if has_scores:
+        scored = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
+    else:
+        scored = horses
+        random.shuffle(scored)
+
     n = len(scored)
     weights = []
     for i, h in enumerate(scored):
         if i < n * 0.25:
-            w = random.uniform(3.0, 5.0)  # top 25%: high weight
+            w = random.uniform(3.0, 5.0)
         elif i < n * 0.60:
-            w = random.uniform(1.5, 3.0)  # mid 35%
+            w = random.uniform(1.5, 3.0)
         else:
-            w = random.uniform(0.3, 1.5)  # bottom 40%
+            w = random.uniform(0.3, 1.5)
         weights.append((h["horse_number"], w))
 
     total_w = sum(w for _, w in weights)
@@ -448,7 +461,7 @@ def api_vote_results(race_id: str, authorization: str = Header(default="")):
 
     total = sum(counts.values())
 
-    # Build results with horse info from matrix cache
+    # Build results with horse info from matrix cache or race entries
     cached = _matrix_cache.get(race_id)
     horses_info = {}
     if cached:
@@ -458,6 +471,16 @@ def api_vote_results(race_id: str, authorization: str = Header(default="")):
                 "post": h.get("post", 0),
                 "jockey": h.get("jockey", ""),
             }
+    if not horses_info:
+        date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
+        race_data = get_race_entries(date_str, race_id)
+        if race_data:
+            for e in race_data.get("entries", []):
+                horses_info[e["horse_number"]] = {
+                    "horse_name": e["horse_name"],
+                    "post": e.get("post", 0),
+                    "jockey": e.get("jockey", ""),
+                }
 
     results = []
     for num, cnt in sorted(counts.items(), key=lambda x: x[1], reverse=True):

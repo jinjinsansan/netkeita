@@ -10,7 +10,7 @@ import MinnaVoteDrawer from "@/components/MinnaVoteDrawer";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
 
-const ENABLE_MINNA = process.env.NEXT_PUBLIC_ENABLE_MINNA === "true";
+const ENABLE_MINNA = true;
 
 export default function RacePage() {
   return (
