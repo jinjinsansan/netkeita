@@ -233,6 +233,45 @@ export async function submitVote(
   }
 }
 
+export interface VoteHistoryEntry {
+  race_id: string;
+  date: string;
+  venue: string;
+  race_number: string;
+  race_name: string;
+  horse_number: number;
+  horse_name: string;
+  odds: number;
+  result: "pending" | "hit" | "miss";
+  payout: number;
+}
+
+export interface VoteHistory {
+  history: VoteHistoryEntry[];
+  total_races: number;
+  hits: number;
+  hit_rate: number;
+  roi: number;
+  total_bet: number;
+  total_return: number;
+}
+
+export async function fetchMyVoteHistory(): Promise<VoteHistory | null> {
+  if (!API_URL) return null;
+  try {
+    const token = getToken();
+    if (!token) return null;
+    const res = await fetch(`${API_URL}/api/votes/my-history`, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchMatrix(raceId: string): Promise<RaceMatrix | null> {
   if (!API_URL) return null;
 

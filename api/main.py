@@ -442,6 +442,11 @@ def api_vote(race_id: str, req: VoteRequest, authorization: str = Header(default
     _redis_votes.expire(vote_key, _DUMMY_TTL)
     _redis_votes.expire(count_key, _DUMMY_TTL)
 
+    # Track user's vote history (sorted set: race_id -> horse_number)
+    history_key = f"{_VOTE_KEY_PREFIX}:history:{user_id}"
+    _redis_votes.hset(history_key, race_id, str(req.horse_number))
+    _redis_votes.expire(history_key, _DUMMY_TTL)
+
     return {"success": True, "horse_number": req.horse_number}
 
 
@@ -513,11 +518,79 @@ def api_vote_results(race_id: str, authorization: str = Header(default="")):
 
 @app.get("/api/votes/my-history")
 def api_my_vote_history(authorization: str = Header(default="")):
-    """Get current user's vote history. (Phase 3 - placeholder)"""
+    """Get current user's vote history with ROI calculation."""
     user = _get_user_from_token(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="ログインが必要です")
-    return {"history": [], "total_races": 0, "hit_rate": 0, "roi": 0}
+
+    user_id = user.get("line_user_id", "")
+    history_key = f"{_VOTE_KEY_PREFIX}:history:{user_id}"
+    raw = _redis_votes.hgetall(history_key)
+    if not raw:
+        return {"history": [], "total_races": 0, "hits": 0, "hit_rate": 0, "roi": 0}
+
+    history = []
+    total_bet = 0
+    total_return = 0
+    hits = 0
+
+    for race_id, horse_number_str in raw.items():
+        horse_number = int(horse_number_str)
+        date_str = race_id.split("-")[0] if "-" in race_id else ""
+        venue = race_id.split("-")[1] if "-" in race_id else ""
+        race_num_str = race_id.split("-")[2] if race_id.count("-") >= 2 else ""
+
+        # Get race info
+        race_data = get_race_entries(date_str, race_id) if date_str else None
+        race_name = race_data.get("race_name", "") if race_data else ""
+        entry = None
+        if race_data:
+            entry = next((e for e in race_data.get("entries", []) if e["horse_number"] == horse_number), None)
+
+        horse_name = entry["horse_name"] if entry else f"馬番{horse_number}"
+
+        # Get odds for the horse
+        odds = 0.0
+        if entry:
+            odds = entry.get("odds", 0.0) or 0.0
+
+        # Check race result (1st place finish)
+        # Result is not yet available for future races
+        result_status = "pending"  # pending, hit, miss
+        payout = 0
+
+        # For now, all current races are "pending" (results not yet available)
+        # In the future, integrate race results API
+        total_bet += 100
+
+        history.append({
+            "race_id": race_id,
+            "date": f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:8]}" if len(date_str) == 8 else date_str,
+            "venue": venue,
+            "race_number": race_num_str,
+            "race_name": race_name,
+            "horse_number": horse_number,
+            "horse_name": horse_name,
+            "odds": odds,
+            "result": result_status,
+            "payout": payout,
+        })
+
+    # Sort by date descending
+    history.sort(key=lambda x: x["date"], reverse=True)
+
+    hit_rate = round(hits / len(history) * 100, 1) if history else 0
+    roi = round(total_return / total_bet * 100, 1) if total_bet > 0 else 0
+
+    return {
+        "history": history,
+        "total_races": len(history),
+        "hits": hits,
+        "hit_rate": hit_rate,
+        "roi": roi,
+        "total_bet": total_bet,
+        "total_return": total_return,
+    }
 
 
 @app.get("/health")
