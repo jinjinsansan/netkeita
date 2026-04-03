@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import PORT
-from services.data_fetcher import get_races, get_race_entries, get_today_str, get_predictions, get_analysis
+from services.data_fetcher import get_races, get_race_entries, get_today_str, get_predictions, get_analysis, get_odds_from_prefetch, get_available_dates
 from services.ranking import calculate_matrix
 
 logging.basicConfig(
@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="netkeita API", version="0.1.0")
+app = FastAPI(title="netkeita API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,7 +38,7 @@ def api_races(date: str = ""):
 @app.get("/api/race/{race_id}/entries")
 def api_entries(race_id: str, date: str = ""):
     """Get race entries (出馬表)."""
-    date_str = date or race_id.split("-")[0] if "-" in race_id else get_today_str()
+    date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
     entries = get_race_entries(date_str, race_id)
     if not entries:
         raise HTTPException(status_code=404, detail="Race not found")
@@ -53,6 +53,8 @@ def api_matrix(race_id: str, date: str = ""):
     if not race_data or not race_data.get("entries"):
         raise HTTPException(status_code=404, detail="Race not found")
 
+    logger.info(f"Building matrix for {race_id} ({len(race_data['entries'])} horses)")
+
     # Fetch all data from backend
     pred_raw = get_predictions(race_data)
     flow_data = get_analysis("/api/v2/analysis/race-flow", race_data)
@@ -61,11 +63,10 @@ def api_matrix(race_id: str, date: str = ""):
     recent_data = get_analysis("/api/v2/analysis/recent-runs", race_data)
 
     # Build per-horse prediction scores from the raw newspaper response
-    # TODO: replace with full-scores endpoint when available
     predictions = _build_prediction_scores(pred_raw, race_data)
 
-    # Odds (from prefetch for now)
-    odds_data = {}  # TODO: fetch realtime odds
+    # Odds from prefetch data
+    odds_data = get_odds_from_prefetch(date_str, race_id)
 
     horses = calculate_matrix(
         entries=race_data["entries"],
@@ -76,6 +77,8 @@ def api_matrix(race_id: str, date: str = ""):
         recent_data=recent_data,
         odds_data=odds_data,
     )
+
+    logger.info(f"Matrix built: {len(horses)} horses, sample scores: {horses[0]['scores'] if horses else 'none'}")
 
     return {
         "race_id": race_id,
@@ -121,6 +124,13 @@ def _build_prediction_scores(pred_raw: dict, race_data: dict) -> dict:
                 scores[horse_num][score_key] = max(0, (total - rank_idx) * 10)
 
     return scores
+
+
+@app.get("/api/dates")
+def api_dates():
+    """Get list of available race dates (newest first)."""
+    dates = get_available_dates()
+    return {"dates": dates}
 
 
 @app.get("/health")

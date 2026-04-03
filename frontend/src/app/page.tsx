@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import RankBadge from "@/components/RankBadge";
 import type { Grade, RaceSummary } from "@/lib/types";
-import { MOCK_RACES } from "@/lib/mock";
+import { fetchDates, fetchRaces } from "@/lib/api";
 
 const LINE_ADD_URL = "#"; // TODO: LINE Login URL
 
@@ -58,13 +58,41 @@ function formatDate(d: string): string {
   return `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]})`;
 }
 
-export default function LandingPage() {
-  /* Build venue list from real data */
-  const venues = [...MOCK_RACES].sort((a, b) => venueSort(a.venue, b.venue));
-  const dates = [...new Set(MOCK_RACES.map((r) => r.date))];
-  const dateLabel = dates.length > 0 ? formatDate(dates[0]) : "";
+interface VenueGroup {
+  venue: string;
+  races: RaceSummary[];
+}
 
-  const [selectedVenue, setSelectedVenue] = useState(venues[0]?.venue || "");
+export default function LandingPage() {
+  const [venues, setVenues] = useState<VenueGroup[]>([]);
+  const [selectedVenue, setSelectedVenue] = useState("");
+  const [dateLabel, setDateLabel] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const dates = await fetchDates();
+        const latestDate = dates.length > 0 ? dates[0] : "";
+        if (!latestDate) {
+          setLoading(false);
+          return;
+        }
+        const result = await fetchRaces(latestDate);
+        const sorted = result.venues.sort((a, b) => venueSort(a.venue, b.venue));
+        setVenues(sorted);
+        setDateLabel(formatDate(latestDate));
+        if (sorted.length > 0) {
+          setSelectedVenue(sorted[0].venue);
+        }
+      } catch (e) {
+        console.error("Failed to fetch races:", e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   const currentRaces = venues.find((v) => v.venue === selectedVenue)?.races || [];
 
   return (
@@ -130,87 +158,97 @@ export default function LandingPage() {
         <div className="max-w-[960px] mx-auto px-4">
           <div className="text-center mb-5">
             <h2 className="text-xl md:text-2xl font-black text-[#222] mb-1">
-              🏇 先週のJRAレース
+              🏇 最新のJRAレース
             </h2>
-            <p className="text-sm text-[#888]">{dateLabel} 開催 — レースをタップしてランク指数をチェック</p>
+            {loading ? (
+              <p className="text-sm text-[#888]">読み込み中...</p>
+            ) : venues.length > 0 ? (
+              <p className="text-sm text-[#888]">{dateLabel} 開催 — レースをタップしてランク指数をチェック</p>
+            ) : (
+              <p className="text-sm text-[#888]">現在表示できるレースデータがありません</p>
+            )}
           </div>
 
-          {/* Venue tabs */}
-          <div className="flex items-center gap-0 mb-4 justify-center">
-            {venues.map((v) => (
-              <button
-                key={v.venue}
-                onClick={() => setSelectedVenue(v.venue)}
-                className={`px-5 py-2 text-sm font-bold border transition ${
-                  selectedVenue === v.venue
-                    ? "bg-[#3251BC] text-white border-[#3251BC]"
-                    : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
-                }`}
-              >
-                {v.venue}
-              </button>
-            ))}
-          </div>
-
-          {/* Race number tiles */}
-          <div className="flex flex-wrap gap-2 mb-5 justify-center">
-            {currentRaces.map((race) => (
-              <Link
-                key={race.race_id}
-                href={`/race/${encodeURIComponent(race.race_id)}`}
-                className="flex flex-col items-center justify-center w-[80px] h-[58px] border border-[#c6c9d3] rounded-lg bg-white hover:bg-[#f0f4ff] hover:border-[#3251BC] transition text-center shadow-sm"
-              >
-                <span className="text-base font-bold text-[#3251BC]">{race.race_number}R</span>
-                <span className="text-[11px] text-[#888] truncate max-w-[74px] leading-tight">
-                  {race.race_name}
-                </span>
-              </Link>
-            ))}
-          </div>
-
-          {/* Race list table */}
-          <div className="bg-white border border-[#c6c9d3] rounded-lg overflow-hidden">
-            <table className="nk-table">
-              <thead>
-                <tr>
-                  <th className="w-12">R</th>
-                  <th>レース名</th>
-                  <th className="w-24">距離</th>
-                  <th className="w-14">頭数</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentRaces.map((race) => (
-                  <tr key={race.race_id}>
-                    <td className="text-center font-bold text-[#3251BC] text-base">{race.race_number}</td>
-                    <td>
-                      <Link
-                        href={`/race/${encodeURIComponent(race.race_id)}`}
-                        className="text-[#1E88E5] hover:underline font-medium text-sm"
-                      >
-                        {race.race_name}
-                      </Link>
-                    </td>
-                    <td className="text-center text-sm text-[#555]">{race.distance}</td>
-                    <td className="text-center text-sm">{race.headcount}頭</td>
-                  </tr>
+          {venues.length > 0 && (
+            <>
+              {/* Venue tabs */}
+              <div className="flex items-center gap-0 mb-4 justify-center">
+                {venues.map((v) => (
+                  <button
+                    key={v.venue}
+                    onClick={() => setSelectedVenue(v.venue)}
+                    className={`px-5 py-2 text-sm font-bold border transition ${
+                      selectedVenue === v.venue
+                        ? "bg-[#3251BC] text-white border-[#3251BC]"
+                        : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
+                    }`}
+                  >
+                    {v.venue}
+                  </button>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
 
-          <div className="mt-4 text-center">
-            <p className="text-sm text-[#888] mb-3">
-              レースをタップするとランク指数が確認できます（要ログイン）
-            </p>
-            <a
-              href={LINE_ADD_URL}
-              className="inline-flex items-center gap-2 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
-              LINEでログインして全レースを見る
-            </a>
-          </div>
+              {/* Race number tiles */}
+              <div className="flex flex-wrap gap-2 mb-5 justify-center">
+                {currentRaces.map((race) => (
+                  <Link
+                    key={race.race_id}
+                    href={`/race/${encodeURIComponent(race.race_id)}`}
+                    className="flex flex-col items-center justify-center w-[80px] h-[58px] border border-[#c6c9d3] rounded-lg bg-white hover:bg-[#f0f4ff] hover:border-[#3251BC] transition text-center shadow-sm"
+                  >
+                    <span className="text-base font-bold text-[#3251BC]">{race.race_number}R</span>
+                    <span className="text-[11px] text-[#888] truncate max-w-[74px] leading-tight">
+                      {race.race_name}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Race list table */}
+              <div className="bg-white border border-[#c6c9d3] rounded-lg overflow-hidden">
+                <table className="nk-table">
+                  <thead>
+                    <tr>
+                      <th className="w-12">R</th>
+                      <th>レース名</th>
+                      <th className="w-24">距離</th>
+                      <th className="w-14">頭数</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentRaces.map((race) => (
+                      <tr key={race.race_id}>
+                        <td className="text-center font-bold text-[#3251BC] text-base">{race.race_number}</td>
+                        <td>
+                          <Link
+                            href={`/race/${encodeURIComponent(race.race_id)}`}
+                            className="text-[#1E88E5] hover:underline font-medium text-sm"
+                          >
+                            {race.race_name}
+                          </Link>
+                        </td>
+                        <td className="text-center text-sm text-[#555]">{race.distance}</td>
+                        <td className="text-center text-sm">{race.headcount}頭</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 text-center">
+                <p className="text-sm text-[#888] mb-3">
+                  レースをタップするとランク指数が確認できます（要ログイン）
+                </p>
+                <a
+                  href={LINE_ADD_URL}
+                  className="inline-flex items-center gap-2 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+                  LINEでログインして全レースを見る
+                </a>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
