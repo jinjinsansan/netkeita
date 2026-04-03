@@ -9,8 +9,7 @@ import InternetPredictionDrawer from "@/components/InternetPredictionDrawer";
 import MinnaVoteDrawer from "@/components/MinnaVoteDrawer";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
-
-const ENABLE_MINNA = true;
+import { ENABLE_MINNA } from "@/lib/feature-flags";
 
 export default function RacePage() {
   return (

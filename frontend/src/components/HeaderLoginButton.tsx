@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getLineLoginUrl } from "@/lib/api";
+import { ENABLE_MINNA } from "@/lib/feature-flags";
 
 export default function HeaderLoginButton() {
   const { loading, authenticated, user, logout } = useAuth();
@@ -12,12 +13,14 @@ export default function HeaderLoginButton() {
   if (authenticated && user) {
     return (
       <div className="flex items-center gap-2">
-        <Link
-          href="/mypage"
-          className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
-        >
-          マイページ
-        </Link>
+        {ENABLE_MINNA && (
+          <Link
+            href="/mypage"
+            className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
+          >
+            マイページ
+          </Link>
+        )}
         <span className="text-[11px] text-[#a3c9a3] hidden sm:inline truncate max-w-[80px]">
           {user.display_name}
         </span>

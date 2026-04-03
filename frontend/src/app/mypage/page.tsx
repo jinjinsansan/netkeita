@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { fetchMyVoteHistory } from "@/lib/api";
 import type { VoteHistory } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
+import { ENABLE_MINNA } from "@/lib/feature-flags";
 
 export default function MyPage() {
+  if (!ENABLE_MINNA) {
+    redirect("/");
+  }
   return (
     <AuthGuard>
       <MyPageContent />
