@@ -134,9 +134,9 @@ export default function LandingPage() {
             <span className="text-[#1f7a1f]">8つの指数</span>で<br className="md:hidden" />
             可視化する
           </h1>
-          <p className="text-[15px] md:text-lg text-[#444] max-w-lg mx-auto mb-10 leading-relaxed">
+          <p className="text-[14px] sm:text-[15px] md:text-lg text-[#444] max-w-lg mx-auto mb-8 md:mb-10 leading-relaxed">
             総合・スピード・展開・騎手・血統・近走・馬場・期待値。<br className="hidden md:block" />
-            独自のAI分析が生成するランク指数で、<br className="md:hidden" />全馬を一目で比較。
+            独自のAI分析が生成するランク指数で、全馬を一目で比較。
           </p>
 
           {/* CTA */}
@@ -201,7 +201,7 @@ export default function LandingPage() {
                   <button
                     key={d.date}
                     onClick={() => handleDateChange(i)}
-                    className={`px-5 py-2 text-sm font-bold rounded-lg border transition ${
+                    className={`px-4 sm:px-5 py-2 text-sm font-bold rounded-lg border transition ${
                       selectedDateIdx === i
                         ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
                         : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
@@ -213,12 +213,12 @@ export default function LandingPage() {
               </div>
 
               {/* Venue tabs */}
-              <div className="flex items-center gap-0 mb-4 justify-center">
+              <div className="flex items-center gap-0 mb-4 justify-center flex-wrap">
                 {venues.map((v) => (
                   <button
                     key={v.venue}
                     onClick={() => setSelectedVenue(v.venue)}
-                    className={`px-5 py-2 text-sm font-bold border transition ${
+                    className={`px-4 sm:px-5 py-2 text-sm font-bold border transition ${
                       selectedVenue === v.venue
                         ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
                         : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
@@ -246,7 +246,7 @@ export default function LandingPage() {
               </div>
 
               {/* Race list table */}
-              <div className="bg-white border border-[#c6c9d3] rounded-lg overflow-hidden shadow-sm">
+              <div className="bg-white border border-[#c6c9d3] rounded-lg overflow-x-auto shadow-sm">
                 <table className="nk-table">
                   <thead>
                     <tr>

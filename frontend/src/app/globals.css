@@ -60,17 +60,26 @@ body {
 .nk-table th {
   background: #ddd;
   border: 1px solid var(--border);
-  padding: 6px 6px;
+  padding: 4px 3px;
   font-weight: 700;
   text-align: center;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 11px;
   color: #222;
 }
 .nk-table td {
   border: 1px solid #ddd;
-  padding: 6px 6px;
+  padding: 4px 3px;
   vertical-align: middle;
+}
+@media (min-width: 640px) {
+  .nk-table th {
+    padding: 6px 6px;
+    font-size: 12px;
+  }
+  .nk-table td {
+    padding: 6px 6px;
+  }
 }
 .nk-table tbody tr:hover {
   background: #f0f7f0;

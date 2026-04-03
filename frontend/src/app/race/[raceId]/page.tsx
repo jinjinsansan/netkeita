@@ -27,7 +27,7 @@ export default function RacePage() {
 
   if (loading) {
     return (
-      <div className="max-w-[960px] mx-auto px-3 py-10 text-center text-[#888] text-xs">
+      <div className="max-w-[960px] mx-auto px-4 py-10 text-center text-[#888] text-sm">
         読み込み中...
       </div>
     );
@@ -35,9 +35,9 @@ export default function RacePage() {
 
   if (!matrix) {
     return (
-      <div className="max-w-[960px] mx-auto px-3 py-10 text-center">
-        <p className="text-[#888] mb-3 text-xs">レースデータが見つかりません</p>
-        <Link href="/" className="text-[#1E88E5] text-xs hover:underline">
+      <div className="max-w-[960px] mx-auto px-4 py-10 text-center">
+        <p className="text-[#555] mb-3 text-sm">レースデータが見つかりません</p>
+        <Link href="/" className="text-[#1565C0] text-sm hover:underline font-bold">
           &larr; レース一覧に戻る
         </Link>
       </div>
@@ -45,7 +45,7 @@ export default function RacePage() {
   }
 
   return (
-    <div className="max-w-[960px] mx-auto px-3 py-4">
+    <div className="max-w-[960px] mx-auto px-4 py-4">
       {/* Breadcrumb */}
       <div className="text-[11px] text-[#666] mb-2 font-medium">
         <Link href="/" className="text-[#1565C0] hover:underline font-bold">
@@ -132,8 +132,8 @@ export default function RacePage() {
       )}
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#666] border-t border-[#d0d0d0] pt-2">
-        <span className="font-bold text-[#333] mr-1">ランク:</span>
+      <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2 text-[10px] text-[#666] border-t border-[#d0d0d0] pt-2">
+        <span className="font-bold text-[#333] mr-0.5 sm:mr-1">ランク:</span>
         {[
           { grade: "S", label: "1位", bg: "#FFD700", text: "#333" },
           { grade: "A", label: "上位25%", bg: "#E53935", text: "#fff" },
