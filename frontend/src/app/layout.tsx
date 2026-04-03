@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   title: "netkeita - JRA全レース ランク指数 | 8項目AIデータで可視化",
   description:
     "JRA全レースの出走馬を8項目のランク指数（S〜D）で可視化。総合・スピード・展開・騎手・血統・近走・馬場・期待値を4つのAIエンジンで分析。完全無料。",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
     title: "netkeita - JRA全レース ランク指数",
     description: "8項目のAIランク指数で全馬を一目比較。完全無料のJRA競馬データサイト。",
