@@ -42,6 +42,32 @@ export async function fetchRaces(date: string): Promise<{
   }
 }
 
+export interface InternetPrediction {
+  race_name: string;
+  youtube?: {
+    source_count: string;
+    horses: { rank: number; mark: string; name: string; support_rate: number }[];
+  };
+  keiba_site?: {
+    source_count: string;
+    horses: { rank: number; mark: string; name: string; support_rate: number }[];
+  };
+  highlights?: string[];
+}
+
+export async function fetchInternetPredictions(raceName: string): Promise<InternetPrediction | null> {
+  if (!API_URL) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/internet-predictions/${encodeURIComponent(raceName)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchMatrix(raceId: string): Promise<RaceMatrix | null> {
   if (!API_URL) return null;
 

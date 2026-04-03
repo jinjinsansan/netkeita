@@ -6,7 +6,7 @@ import sys
 from fastapi import FastAPI, HTTPException
 
 from config import PORT
-from services.data_fetcher import get_races, get_race_entries, get_today_str, get_full_scores, get_analysis, get_odds_from_prefetch, get_available_dates
+from services.data_fetcher import get_races, get_race_entries, get_today_str, get_full_scores, get_analysis, get_odds_from_prefetch, get_available_dates, get_internet_predictions
 from services.ranking import calculate_matrix
 
 logging.basicConfig(
@@ -117,6 +117,15 @@ def _build_full_predictions(full_scores_raw: dict, race_data: dict) -> dict:
             }
 
     return scores
+
+
+@app.get("/api/internet-predictions/{race_name}")
+def api_internet_predictions(race_name: str):
+    """Get internet predictions (YouTube + keiba site) for a graded race."""
+    data = get_internet_predictions(race_name)
+    if not data:
+        raise HTTPException(status_code=404, detail="Internet predictions not found")
+    return data
 
 
 @app.get("/api/dates")

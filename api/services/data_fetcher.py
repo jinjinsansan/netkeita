@@ -128,6 +128,34 @@ def get_odds_from_prefetch(date_str: str, race_id: str) -> dict:
     return {}
 
 
+def get_internet_predictions(race_name: str) -> dict | None:
+    """Get internet predictions for a race from prefetch files."""
+    import glob as _glob
+    import re as _re
+    safe_name = _re.sub(r'[^\w]', '_', race_name)
+    pattern = os.path.join(PREFETCH_DIR, f"internet_predictions_{safe_name}_*.json")
+    files = sorted(_glob.glob(pattern), reverse=True)
+
+    if not files:
+        all_files = sorted(_glob.glob(os.path.join(PREFETCH_DIR, "internet_predictions_*.json")), reverse=True)
+        for f in all_files:
+            try:
+                with open(f, 'r', encoding='utf-8') as fh:
+                    data = json.load(fh)
+                if race_name in data.get("race_name", ""):
+                    return data
+            except Exception:
+                continue
+        return None
+
+    try:
+        with open(files[0], 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        logger.exception(f"Failed to load internet predictions: {files[0]}")
+        return None
+
+
 def get_full_scores(race_data: dict) -> dict:
     """Call full-scores API. Returns all horses' engine scores + track_adjustment."""
     payload = _build_payload(race_data)

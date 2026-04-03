@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { fetchMatrix } from "@/lib/api";
+import { fetchMatrix, fetchInternetPredictions } from "@/lib/api";
+import type { InternetPrediction } from "@/lib/api";
 import type { RaceMatrix } from "@/lib/types";
 import RankMatrix from "@/components/RankMatrix";
 import Link from "next/link";
@@ -11,12 +12,16 @@ export default function RacePage() {
   const params = useParams();
   const raceId = decodeURIComponent(params.raceId as string);
   const [matrix, setMatrix] = useState<RaceMatrix | null>(null);
+  const [inetPred, setInetPred] = useState<InternetPrediction | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchMatrix(raceId).then((data) => {
       setMatrix(data);
       setLoading(false);
+      if (data?.race_name) {
+        fetchInternetPredictions(data.race_name).then(setInetPred);
+      }
     });
   }, [raceId]);
 
@@ -70,6 +75,61 @@ export default function RacePage() {
 
       {/* Rank matrix */}
       <RankMatrix horses={matrix.horses} />
+
+      {/* Internet Predictions */}
+      {inetPred && (
+        <div className="mt-4 border border-[#c6c9d3] rounded bg-white">
+          <div className="px-3 py-2 border-b border-[#e0e0e0] bg-[#f5f5f5]">
+            <h2 className="text-sm font-bold text-[#333]">
+              🌐 ネットの予想【{inetPred.race_name}】
+            </h2>
+          </div>
+          <div className="px-3 py-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {inetPred.youtube?.horses && inetPred.youtube.horses.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold text-[#555] mb-2">
+                  📺 YouTube予想（{inetPred.youtube.source_count}件集計）
+                </h3>
+                {inetPred.youtube.horses.map((h) => (
+                  <div key={h.rank} className="flex items-center gap-2 py-1 text-sm border-b border-[#f0f0f0] last:border-0">
+                    <span className="text-base w-5 text-center">{h.mark}</span>
+                    <span className="font-medium flex-1">{h.name}</span>
+                    <span className="text-xs text-[#888]">{h.support_rate}%</span>
+                    <div className="w-16 h-2 bg-[#eee] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#E53935] rounded-full" style={{ width: `${h.support_rate}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {inetPred.keiba_site?.horses && inetPred.keiba_site.horses.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold text-[#555] mb-2">
+                  🏇 大手競馬サイト（{inetPred.keiba_site.source_count}件集計）
+                </h3>
+                {inetPred.keiba_site.horses.map((h) => (
+                  <div key={h.rank} className="flex items-center gap-2 py-1 text-sm border-b border-[#f0f0f0] last:border-0">
+                    <span className="text-base w-5 text-center">{h.mark}</span>
+                    <span className="font-medium flex-1">{h.name}</span>
+                    <span className="text-xs text-[#888]">{h.support_rate}%</span>
+                    <div className="w-16 h-2 bg-[#eee] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#1E88E5] rounded-full" style={{ width: `${h.support_rate}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {inetPred.highlights && inetPred.highlights.length > 0 && (
+            <div className="px-3 py-2 border-t border-[#e0e0e0] bg-[#fafafa]">
+              <h3 className="text-xs font-bold text-[#555] mb-1">📝 注目ポイント</h3>
+              {inetPred.highlights.map((hl, i) => (
+                <p key={i} className="text-xs text-[#666] leading-relaxed">・{hl}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Legend */}
       <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#888] border-t border-[#e0e0e0] pt-2">
