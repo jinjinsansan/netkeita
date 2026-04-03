@@ -74,7 +74,7 @@ export default function RacePage() {
       </div>
 
       {/* Rank matrix */}
-      <RankMatrix horses={matrix.horses} />
+      <RankMatrix horses={matrix.horses} raceId={raceId} />
 
       {/* Internet Predictions */}
       {inetPred && (

@@ -204,6 +204,67 @@ def get_analysis(endpoint: str, race_data: dict) -> dict:
         return {}
 
 
+def get_horse_recent_runs(race_data: dict, horse_number: int) -> list[dict]:
+    """Get recent 5 runs for a single horse via backend API."""
+    entry = next((e for e in race_data.get("entries", []) if e["horse_number"] == horse_number), None)
+    if not entry:
+        return []
+    payload = _build_payload(race_data)
+    payload["horses"] = [entry["horse_name"]]
+    payload["horse_numbers"] = [horse_number]
+    try:
+        resp = _client.post(
+            f"{DLOGIC_API_URL}/api/v2/analysis/recent-runs",
+            json=payload,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        for h in data.get("horses", []):
+            if h.get("horse_number") == horse_number:
+                return h.get("runs", [])
+    except Exception:
+        logger.exception(f"Recent runs API failed for horse #{horse_number}")
+    return []
+
+
+def get_horse_bloodline(race_data: dict, horse_number: int) -> dict:
+    """Get bloodline analysis for a single horse via backend API."""
+    entry = next((e for e in race_data.get("entries", []) if e["horse_number"] == horse_number), None)
+    if not entry:
+        return {}
+    payload = _build_payload(race_data)
+    payload["horses"] = [entry["horse_name"]]
+    payload["horse_numbers"] = [horse_number]
+    try:
+        resp = _client.post(
+            f"{DLOGIC_API_URL}/api/v2/analysis/bloodline-analysis",
+            json=payload,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        for h in data.get("bloodline", []):
+            if h.get("horse_number") == horse_number:
+                return h
+    except Exception:
+        logger.exception(f"Bloodline API failed for horse #{horse_number}")
+    return {}
+
+
+def get_stable_comments(date_str: str, venue: str, race_number: int) -> dict:
+    """Get stable/trainer comments from keibabook via linebot scraper."""
+    import sys
+    sys.path.insert(0, "/opt/dlogic/linebot")
+    try:
+        from scrapers.stable_comment import fetch_comments_for_race
+        result = fetch_comments_for_race(date_str, venue, race_number, is_chihou=False)
+        return result or {}
+    except Exception:
+        logger.exception("Stable comments fetch failed")
+        return {}
+
+
 def _build_payload(race_data: dict) -> dict:
     """Build standard payload for backend API calls."""
     return {

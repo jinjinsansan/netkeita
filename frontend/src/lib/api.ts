@@ -68,6 +68,61 @@ export async function fetchInternetPredictions(raceName: string): Promise<Intern
   }
 }
 
+export interface HorseDetail {
+  horse_number: number;
+  horse_name: string;
+  stable_comment: {
+    horse_name?: string;
+    mark?: string;
+    status?: string;
+    trainer?: string;
+    comment?: string;
+  };
+  recent_runs: {
+    date: string;
+    venue: string;
+    distance: string;
+    finish: number;
+    jockey: string;
+    odds: number;
+  }[];
+  bloodline: {
+    sire?: string;
+    broodmare_sire?: string;
+    sire_performance?: {
+      total_races: number;
+      place_rate: number;
+      by_condition?: { condition: string; races: number; place: number; place_rate: number }[];
+    };
+    broodmare_performance?: {
+      total_races: number;
+      place_rate: number;
+    };
+    sire_course_stats?: {
+      course_key: string;
+      total_runs: number;
+      wins: number;
+      place_count: number;
+      win_rate: number;
+      place_rate: number;
+    };
+  };
+}
+
+export async function fetchHorseDetail(raceId: string, horseNumber: number): Promise<HorseDetail | null> {
+  if (!API_URL) return null;
+  try {
+    const res = await fetch(
+      `${API_URL}/api/horse-detail/${encodeURIComponent(raceId)}/${horseNumber}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchMatrix(raceId: string): Promise<RaceMatrix | null> {
   if (!API_URL) return null;
 

@@ -1,20 +1,23 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import type { HorseRank, RankKey } from "@/lib/types";
 import { RANK_COLUMNS } from "@/lib/types";
 import RankBadge from "./RankBadge";
 import FrameBadge from "./FrameBadge";
+import HorseDetailPanel from "./HorseDetailPanel";
 
 interface Props {
   horses: HorseRank[];
+  raceId?: string;
 }
 
 type SortMode = RankKey | "odds" | "number" | "win_prob" | "place_prob";
 
-export default function RankMatrix({ horses }: Props) {
+export default function RankMatrix({ horses, raceId }: Props) {
   const [sortKey, setSortKey] = useState<SortMode>("total");
   const [sortAsc, setSortAsc] = useState(true);
+  const [expandedHorse, setExpandedHorse] = useState<number | null>(null);
 
   // Calculate popularity (人気) from odds
   const popularity = useMemo(() => {
@@ -126,13 +129,22 @@ export default function RankMatrix({ horses }: Props) {
         </thead>
         <tbody>
           {sorted.map((horse) => (
-            <tr key={horse.horse_number}>
+            <React.Fragment key={horse.horse_number}>
+            <tr>
               <td className="text-center sticky left-0 z-10 bg-white">
                 <FrameBadge post={horse.post} />
               </td>
               <td className="text-center font-bold sticky left-[33px] z-10 bg-white">{horse.horse_number}</td>
-              <td className="text-left font-medium whitespace-nowrap sticky left-[66px] z-10 bg-white">
-                {horse.horse_name}
+              <td
+                className={`text-left font-medium whitespace-nowrap sticky left-[66px] z-10 bg-white ${raceId ? "cursor-pointer hover:text-[#1f7a1f]" : ""}`}
+                onClick={() => raceId && setExpandedHorse(expandedHorse === horse.horse_number ? null : horse.horse_number)}
+              >
+                <span className="inline-flex items-center gap-0.5">
+                  {raceId && (
+                    <span className="text-[9px] text-[#999] mr-0.5">{expandedHorse === horse.horse_number ? "▼" : "▶"}</span>
+                  )}
+                  {horse.horse_name}
+                </span>
               </td>
               <td className="text-center text-[11px] text-[#444] whitespace-nowrap font-medium">
                 {horse.jockey}
@@ -159,6 +171,18 @@ export default function RankMatrix({ horses }: Props) {
                 </td>
               ))}
             </tr>
+            {raceId && expandedHorse === horse.horse_number && (
+              <tr>
+                <td colSpan={14 + RANK_COLUMNS.length} className="p-0">
+                  <HorseDetailPanel
+                    raceId={raceId}
+                    horseNumber={horse.horse_number}
+                    horseName={horse.horse_name}
+                  />
+                </td>
+              </tr>
+            )}
+            </React.Fragment>
           ))}
         </tbody>
       </table>

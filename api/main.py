@@ -6,7 +6,7 @@ import sys
 from fastapi import FastAPI, HTTPException
 
 from config import PORT
-from services.data_fetcher import get_races, get_race_entries, get_today_str, get_full_scores, get_analysis, get_odds_from_prefetch, get_available_dates, get_internet_predictions
+from services.data_fetcher import get_races, get_race_entries, get_today_str, get_full_scores, get_analysis, get_odds_from_prefetch, get_available_dates, get_internet_predictions, get_horse_recent_runs, get_horse_bloodline, get_stable_comments
 from services.ranking import calculate_matrix
 
 logging.basicConfig(
@@ -117,6 +117,36 @@ def _build_full_predictions(full_scores_raw: dict, race_data: dict) -> dict:
             }
 
     return scores
+
+
+@app.get("/api/horse-detail/{race_id}/{horse_number}")
+def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
+    """Get detailed info for a single horse: stable comments, recent runs, bloodline."""
+    date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
+    race_data = get_race_entries(date_str, race_id)
+    if not race_data:
+        raise HTTPException(status_code=404, detail="Race not found")
+
+    entry = next((e for e in race_data.get("entries", []) if e["horse_number"] == horse_number), None)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Horse not found")
+
+    venue = race_data.get("venue", "")
+    race_number_int = race_data.get("race_number", 0)
+
+    stable = get_stable_comments(date_str, venue, race_number_int)
+    horse_stable = stable.get(horse_number, stable.get(str(horse_number), {}))
+
+    recent_runs = get_horse_recent_runs(race_data, horse_number)
+    bloodline = get_horse_bloodline(race_data, horse_number)
+
+    return {
+        "horse_number": horse_number,
+        "horse_name": entry["horse_name"],
+        "stable_comment": horse_stable,
+        "recent_runs": recent_runs,
+        "bloodline": bloodline,
+    }
 
 
 @app.get("/api/internet-predictions/{race_name}")
