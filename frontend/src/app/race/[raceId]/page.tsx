@@ -47,25 +47,25 @@ export default function RacePage() {
   return (
     <div className="max-w-[960px] mx-auto px-3 py-4">
       {/* Breadcrumb */}
-      <div className="text-[11px] text-[#888] mb-2">
-        <Link href="/" className="text-[#1E88E5] hover:underline">
+      <div className="text-[11px] text-[#666] mb-2 font-medium">
+        <Link href="/" className="text-[#1565C0] hover:underline font-bold">
           レース一覧
         </Link>
-        <span className="mx-1">&gt;</span>
+        <span className="mx-1 text-[#999]">&gt;</span>
         <span>
           {matrix.venue} {matrix.race_number}R
         </span>
       </div>
 
-      {/* Race header (netkeiba style) */}
-      <div className="border border-[#c6c9d3] rounded bg-white mb-3">
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-[#e0e0e0] bg-[#f5f5f5]">
-          <span className="bg-[#1f7a1f] text-white text-[11px] font-bold px-2 py-0.5 rounded">
+      {/* Race header */}
+      <div className="border border-[#bbb] rounded bg-white mb-3 shadow-sm">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-[#d0d0d0] bg-[#163016]">
+          <span className="bg-[#4ade80] text-[#163016] text-[11px] font-black px-2.5 py-0.5 rounded">
             {matrix.race_number}R
           </span>
-          <h1 className="text-sm font-bold">{matrix.race_name}</h1>
+          <h1 className="text-sm font-bold text-white">{matrix.race_name}</h1>
         </div>
-        <div className="px-3 py-1.5 text-[11px] text-[#555] flex flex-wrap gap-x-3">
+        <div className="px-3 py-2 text-[11px] text-[#444] font-medium flex flex-wrap gap-x-3">
           <span>{matrix.venue}</span>
           <span>{matrix.distance}</span>
           <span>馬場: {matrix.track_condition || "-"}</span>
@@ -78,24 +78,24 @@ export default function RacePage() {
 
       {/* Internet Predictions */}
       {inetPred && (
-        <div className="mt-4 border border-[#c6c9d3] rounded bg-white">
-          <div className="px-3 py-2 border-b border-[#e0e0e0] bg-[#f5f5f5]">
-            <h2 className="text-sm font-bold text-[#333]">
-              🌐 ネットの予想【{inetPred.race_name}】
+        <div className="mt-4 border border-[#bbb] rounded bg-white shadow-sm">
+          <div className="px-3 py-2.5 border-b border-[#d0d0d0] bg-[#163016]">
+            <h2 className="text-sm font-bold text-white">
+              ネットの予想【{inetPred.race_name}】
             </h2>
           </div>
           <div className="px-3 py-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {inetPred.youtube?.horses && inetPred.youtube.horses.length > 0 && (
               <div>
-                <h3 className="text-xs font-bold text-[#555] mb-2">
-                  📺 YouTube予想（{inetPred.youtube.source_count}件集計）
+                <h3 className="text-xs font-bold text-[#333] mb-2">
+                  YouTube予想（{inetPred.youtube.source_count}件集計）
                 </h3>
                 {inetPred.youtube.horses.map((h) => (
-                  <div key={h.rank} className="flex items-center gap-2 py-1 text-sm border-b border-[#f0f0f0] last:border-0">
-                    <span className="text-base w-5 text-center">{h.mark}</span>
-                    <span className="font-medium flex-1">{h.name}</span>
-                    <span className="text-xs text-[#888]">{h.support_rate}%</span>
-                    <div className="w-16 h-2 bg-[#eee] rounded-full overflow-hidden">
+                  <div key={h.rank} className="flex items-center gap-2 py-1.5 text-sm border-b border-[#e8e8e8] last:border-0">
+                    <span className="text-base w-5 text-center font-bold">{h.mark}</span>
+                    <span className="font-bold flex-1 text-[#222]">{h.name}</span>
+                    <span className="text-xs font-bold text-[#555]">{h.support_rate}%</span>
+                    <div className="w-16 h-2.5 bg-[#e0e0e0] rounded-full overflow-hidden">
                       <div className="h-full bg-[#E53935] rounded-full" style={{ width: `${h.support_rate}%` }} />
                     </div>
                   </div>
@@ -104,16 +104,16 @@ export default function RacePage() {
             )}
             {inetPred.keiba_site?.horses && inetPred.keiba_site.horses.length > 0 && (
               <div>
-                <h3 className="text-xs font-bold text-[#555] mb-2">
-                  🏇 大手競馬サイト（{inetPred.keiba_site.source_count}件集計）
+                <h3 className="text-xs font-bold text-[#333] mb-2">
+                  大手競馬サイト（{inetPred.keiba_site.source_count}件集計）
                 </h3>
                 {inetPred.keiba_site.horses.map((h) => (
-                  <div key={h.rank} className="flex items-center gap-2 py-1 text-sm border-b border-[#f0f0f0] last:border-0">
-                    <span className="text-base w-5 text-center">{h.mark}</span>
-                    <span className="font-medium flex-1">{h.name}</span>
-                    <span className="text-xs text-[#888]">{h.support_rate}%</span>
-                    <div className="w-16 h-2 bg-[#eee] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#1E88E5] rounded-full" style={{ width: `${h.support_rate}%` }} />
+                  <div key={h.rank} className="flex items-center gap-2 py-1.5 text-sm border-b border-[#e8e8e8] last:border-0">
+                    <span className="text-base w-5 text-center font-bold">{h.mark}</span>
+                    <span className="font-bold flex-1 text-[#222]">{h.name}</span>
+                    <span className="text-xs font-bold text-[#555]">{h.support_rate}%</span>
+                    <div className="w-16 h-2.5 bg-[#e0e0e0] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#1565C0] rounded-full" style={{ width: `${h.support_rate}%` }} />
                     </div>
                   </div>
                 ))}
@@ -121,10 +121,10 @@ export default function RacePage() {
             )}
           </div>
           {inetPred.highlights && inetPred.highlights.length > 0 && (
-            <div className="px-3 py-2 border-t border-[#e0e0e0] bg-[#fafafa]">
-              <h3 className="text-xs font-bold text-[#555] mb-1">📝 注目ポイント</h3>
+            <div className="px-3 py-2.5 border-t border-[#d0d0d0] bg-[#f5f5f5]">
+              <h3 className="text-xs font-bold text-[#333] mb-1">注目ポイント</h3>
               {inetPred.highlights.map((hl, i) => (
-                <p key={i} className="text-xs text-[#666] leading-relaxed">・{hl}</p>
+                <p key={i} className="text-xs text-[#555] leading-relaxed">・{hl}</p>
               ))}
             </div>
           )}
@@ -132,8 +132,8 @@ export default function RacePage() {
       )}
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#888] border-t border-[#e0e0e0] pt-2">
-        <span className="font-bold text-[#555] mr-1">ランク:</span>
+      <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#666] border-t border-[#d0d0d0] pt-2">
+        <span className="font-bold text-[#333] mr-1">ランク:</span>
         {[
           { grade: "S", label: "1位", bg: "#FFD700", text: "#333" },
           { grade: "A", label: "上位25%", bg: "#E53935", text: "#fff" },
@@ -152,7 +152,7 @@ export default function RacePage() {
           </span>
         ))}
       </div>
-      <p className="text-[10px] text-[#aaa] mt-1">
+      <p className="text-[10px] text-[#888] mt-1">
         ※ 各項目は出走馬全頭の相対順位でランク付け。ヘッダーをタップでソート切替。
       </p>
     </div>

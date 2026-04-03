@@ -95,7 +95,7 @@ export default function RankMatrix({ horses }: Props) {
   const SortHeader = ({ col, label, className }: { col: SortMode; label: string; className?: string }) => (
     <th
       onClick={() => handleSort(col)}
-      className={`cursor-pointer hover:bg-[#ddd] select-none ${className || ""}`}
+      className={`cursor-pointer hover:bg-[#ccc] select-none ${className || ""}`}
     >
       <span className={sortKey === col ? "text-[#1f7a1f] font-bold" : ""}>
         {label}
@@ -111,9 +111,9 @@ export default function RankMatrix({ horses }: Props) {
       <table className="nk-table">
         <thead>
           <tr>
-            <th className="w-8 sticky left-0 z-10 bg-[#e8e8e8]">枠</th>
-            <SortHeader col="number" label="番" className="w-8 sticky left-[33px] z-10 bg-[#e8e8e8]" />
-            <th className="min-w-[90px] text-left sticky left-[66px] z-10 bg-[#e8e8e8]">馬名</th>
+            <th className="w-8 sticky left-0 z-10 bg-[#ddd]">枠</th>
+            <SortHeader col="number" label="番" className="w-8 sticky left-[33px] z-10 bg-[#ddd]" />
+            <th className="min-w-[90px] text-left sticky left-[66px] z-10 bg-[#ddd]">馬名</th>
             <th className="w-14">騎手</th>
             <SortHeader col="odds" label="オッズ" className="w-12" />
             <th className="w-8">人気</th>
@@ -134,23 +134,23 @@ export default function RankMatrix({ horses }: Props) {
               <td className="text-left font-medium whitespace-nowrap sticky left-[66px] z-10 bg-white">
                 {horse.horse_name}
               </td>
-              <td className="text-center text-[11px] text-[#555] whitespace-nowrap">
+              <td className="text-center text-[11px] text-[#444] whitespace-nowrap font-medium">
                 {horse.jockey}
               </td>
               <td className="text-center text-[12px] font-mono font-bold"
-                style={{ color: oddsRank[horse.horse_number] || "#999" }}>
+                style={{ color: oddsRank[horse.horse_number] || "#666" }}>
                 {horse.odds ? horse.odds.toFixed(1) : "-"}
               </td>
               <td className="text-center text-[12px] font-bold"
-                style={{ color: popRank[horse.horse_number] || "#999" }}>
+                style={{ color: popRank[horse.horse_number] || "#666" }}>
                 {popularity[horse.horse_number] || "-"}
               </td>
               <td className="text-center text-[11px] font-mono font-bold"
-                style={{ color: winRank[horse.horse_number] || "#999" }}>
+                style={{ color: winRank[horse.horse_number] || "#666" }}>
                 {horse.win_prob ? `${horse.win_prob}%` : "-"}
               </td>
               <td className="text-center text-[11px] font-mono font-bold"
-                style={{ color: placeRank[horse.horse_number] || "#999" }}>
+                style={{ color: placeRank[horse.horse_number] || "#666" }}>
                 {horse.place_prob ? `${horse.place_prob}%` : "-"}
               </td>
               {RANK_COLUMNS.map((col) => (
