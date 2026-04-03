@@ -1,18 +1,22 @@
-"""Rewrite stable comments using Claude to avoid copyright issues."""
+"""Rewrite stable comments using Claude to avoid copyright issues.
 
+Uses Redis for cross-worker cache sharing and synchronous rewrite.
+"""
+
+import json
+import hashlib
 import logging
-import threading
 import anthropic
+import redis
+
 from config import ANTHROPIC_API_KEY
 
 logger = logging.getLogger(__name__)
 
 _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+_redis = redis.Redis(host="127.0.0.1", port=6379, db=4, decode_responses=True)
+_CACHE_TTL = 86400  # 24 hours
 
-# In-memory cache: cache_key -> rewritten stable_data
-_rewrite_cache: dict[str, dict] = {}
-# Keys currently being processed (avoid duplicate requests)
-_in_progress: set[str] = set()
 
 def _build_prompt(trainer: str, comment: str, status: str) -> str:
     return (
@@ -31,8 +35,31 @@ def _build_prompt(trainer: str, comment: str, status: str) -> str:
     )
 
 
-def _do_rewrite(cache_key: str, horse_number: int, stable_data: dict):
-    """Background rewrite task."""
+def _cache_key(horse_number: int, comment: str) -> str:
+    h = hashlib.md5(comment.encode()).hexdigest()[:12]
+    return f"nk:rewrite:{horse_number}:{h}"
+
+
+def rewrite_comment(horse_number: int, stable_data: dict) -> dict:
+    """Rewrite comment synchronously. Returns rewritten data or original on failure."""
+    if not stable_data or not stable_data.get("comment"):
+        return stable_data
+
+    if not _client:
+        return stable_data
+
+    key = _cache_key(horse_number, stable_data["comment"])
+
+    # Check Redis cache first
+    try:
+        cached = _redis.get(key)
+        if cached:
+            parsed = json.loads(cached)
+            return {**stable_data, **parsed}
+    except Exception:
+        pass
+
+    # Synchronous rewrite via Claude
     try:
         prompt = _build_prompt(
             trainer=stable_data.get("trainer", ""),
@@ -46,43 +73,24 @@ def _do_rewrite(cache_key: str, horse_number: int, stable_data: dict):
         )
         text = resp.content[0].text.strip()
 
-        import json
         if "{" in text:
             json_str = text[text.index("{"):text.rindex("}") + 1]
             parsed = json.loads(json_str)
             result = {
-                **stable_data,
                 "comment": parsed.get("comment", stable_data["comment"]),
                 "status": parsed.get("status", stable_data.get("status", "")),
             }
         else:
-            result = {**stable_data, "comment": text}
+            result = {"comment": text}
 
-        _rewrite_cache[cache_key] = result
+        # Save to Redis
+        try:
+            _redis.setex(key, _CACHE_TTL, json.dumps(result, ensure_ascii=False))
+        except Exception:
+            pass
+
         logger.info(f"Rewrite done for horse #{horse_number}")
+        return {**stable_data, **result}
     except Exception:
         logger.exception(f"Rewrite failed for horse #{horse_number}")
-    finally:
-        _in_progress.discard(cache_key)
-
-
-def rewrite_comment(horse_number: int, stable_data: dict) -> dict:
-    """Return rewritten comment if cached, otherwise start background rewrite and return original."""
-    if not stable_data or not stable_data.get("comment"):
         return stable_data
-
-    cache_key = f"{horse_number}:{stable_data.get('comment', '')[:50]}"
-    if cache_key in _rewrite_cache:
-        return _rewrite_cache[cache_key]
-
-    if not _client:
-        return stable_data
-
-    # Start background rewrite (non-blocking)
-    if cache_key not in _in_progress:
-        _in_progress.add(cache_key)
-        t = threading.Thread(target=_do_rewrite, args=(cache_key, horse_number, stable_data), daemon=True)
-        t.start()
-
-    # Return original for now; next request will get the rewritten version
-    return stable_data
