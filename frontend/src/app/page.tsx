@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import RankBadge from "@/components/RankBadge";
 import type { Grade, RaceSummary } from "@/lib/types";
-import { fetchDates, fetchRaces } from "@/lib/api";
-
-const LINE_ADD_URL = "#"; // TODO: LINE Login URL
+import { fetchDates, fetchRaces, getLineLoginUrl } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 /* ── Venue tab ordering ─── */
 const VENUE_ORDER = ["中山", "阪神", "中京", "東京", "京都", "小倉", "新潟", "札幌", "函館", "福島"];
@@ -70,10 +69,18 @@ interface DateData {
 }
 
 export default function LandingPage() {
+  const { authenticated, user } = useAuth();
   const [allDates, setAllDates] = useState<DateData[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const [selectedVenue, setSelectedVenue] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const handleLineLogin = async () => {
+    try {
+      const { url } = await getLineLoginUrl();
+      if (url) window.location.href = url;
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     (async () => {
@@ -141,14 +148,28 @@ export default function LandingPage() {
 
           {/* CTA */}
           <div className="flex flex-col items-center gap-3 mb-10">
-            <a
-              href={LINE_ADD_URL}
-              className="flex items-center gap-2.5 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-base px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all w-full max-w-[320px] justify-center"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
-              LINEでログインして見る
-            </a>
-            <span className="text-xs text-[#999]">登録不要 · 30秒で完了</span>
+            {authenticated ? (
+              <>
+                <a
+                  href="#races"
+                  className="flex items-center gap-2.5 bg-[#1f7a1f] hover:bg-[#16611a] text-white font-bold text-base px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all w-full max-w-[320px] justify-center"
+                >
+                  レース一覧を見る
+                </a>
+                <span className="text-xs text-[#999]">{user?.display_name}さん、ようこそ</span>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleLineLogin}
+                  className="flex items-center gap-2.5 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-base px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all w-full max-w-[320px] justify-center"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+                  LINEでログインして見る
+                </button>
+                <span className="text-xs text-[#999]">登録不要 · 30秒で完了</span>
+              </>
+            )}
           </div>
 
           {/* Mini matrix preview */}
@@ -178,7 +199,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Real Race List Section ────────────────────── */}
-      <section className="bg-[#f0f0f0] py-10 md:py-14">
+      <section id="races" className="bg-[#f0f0f0] py-10 md:py-14">
         <div className="max-w-[960px] mx-auto px-4">
           <div className="text-center mb-5">
             <h2 className="text-xl md:text-2xl font-black text-[#111] mb-1">
@@ -276,18 +297,20 @@ export default function LandingPage() {
                 </table>
               </div>
 
-              <div className="mt-4 text-center">
-                <p className="text-sm text-[#666] mb-3">
-                  レースをタップするとランク指数が確認できます（要ログイン）
-                </p>
-                <a
-                  href={LINE_ADD_URL}
-                  className="inline-flex items-center gap-2 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
-                  LINEでログインして全レースを見る
-                </a>
-              </div>
+              {!authenticated && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-[#666] mb-3">
+                    レースをタップするとランク指数が確認できます（要ログイン）
+                  </p>
+                  <button
+                    onClick={handleLineLogin}
+                    className="inline-flex items-center gap-2 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+                    LINEでログインして全レースを見る
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -371,20 +394,39 @@ export default function LandingPage() {
       {/* ── Final CTA ────────────────────────────────── */}
       <section className="bg-gradient-to-b from-[#f0f7f0] to-[#e8f5e9] py-14 md:py-18">
         <div className="max-w-[960px] mx-auto px-5 text-center">
-          <h2 className="text-xl md:text-2xl font-black text-[#111] mb-3">
-            今すぐ、全レースの<br className="md:hidden" />ランク指数を確認しよう
-          </h2>
-          <p className="text-sm md:text-base text-[#444] mb-8">
-            独自AI分析 × 8つの分析項目 × JRA全レース
-          </p>
-          <a
-            href={LINE_ADD_URL}
-            className="inline-flex items-center gap-2.5 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-base px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
-            LINEでログインして始める
-          </a>
-          <p className="text-xs text-[#999] mt-4">完全無料 · 登録不要 · すぐ使える</p>
+          {authenticated ? (
+            <>
+              <h2 className="text-xl md:text-2xl font-black text-[#111] mb-3">
+                レース一覧から<br className="md:hidden" />ランク指数を確認しよう
+              </h2>
+              <p className="text-sm md:text-base text-[#444] mb-8">
+                独自AI分析 × 8つの分析項目 × JRA全レース
+              </p>
+              <a
+                href="#races"
+                className="inline-flex items-center gap-2.5 bg-[#1f7a1f] hover:bg-[#16611a] text-white font-bold text-base px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                レース一覧へ
+              </a>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl md:text-2xl font-black text-[#111] mb-3">
+                今すぐ、全レースの<br className="md:hidden" />ランク指数を確認しよう
+              </h2>
+              <p className="text-sm md:text-base text-[#444] mb-8">
+                独自AI分析 × 8つの分析項目 × JRA全レース
+              </p>
+              <button
+                onClick={handleLineLogin}
+                className="inline-flex items-center gap-2.5 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-base px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+                LINEでログインして始める
+              </button>
+              <p className="text-xs text-[#999] mt-4">完全無料 · 登録不要 · すぐ使える</p>
+            </>
+          )}
         </div>
       </section>
     </div>
