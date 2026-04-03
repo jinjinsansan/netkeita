@@ -1,22 +1,8 @@
 import type { RaceSummary, RaceMatrix } from "./types";
 
-// Production API URL — always use HTTPS domain to avoid mixed content
-// Override with NEXT_PUBLIC_API_URL for local dev only (e.g. http://localhost:5002)
-const PRODUCTION_API_URL = "https://bot.dlogicai.in/nk";
-
-function resolveApiUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!envUrl) return PRODUCTION_API_URL;
-  // Allow localhost/127.0.0.1 for local development
-  if (envUrl.includes("localhost") || envUrl.includes("127.0.0.1")) {
-    return envUrl;
-  }
-  // For any non-localhost URL, always use the production HTTPS endpoint
-  // to prevent mixed content issues on Vercel (HTTPS site → HTTP API)
-  return PRODUCTION_API_URL;
-}
-
-const API_URL = resolveApiUrl();
+// API URL — hardcoded to prevent mixed content (Vercel HTTPS → HTTP IP).
+// For local dev, change this value or use .env.local override below.
+const API_URL = "https://bot.dlogicai.in/nk";
 
 export async function fetchDates(): Promise<string[]> {
   if (!API_URL) return [];
