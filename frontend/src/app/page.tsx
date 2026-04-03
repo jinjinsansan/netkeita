@@ -43,12 +43,12 @@ const RANK_COLS = [
 ];
 
 const FEATURES = [
-  { icon: "📊", title: "8項目のランク指数", desc: "総合・スピード・展開・騎手・血統・近走・馬場・期待値をS〜Dで一目把握。" },
-  { icon: "🏇", title: "JRA全レース対応", desc: "毎週の土日JRA全レースを網羅。出走全馬のランクを確認できます。" },
-  { icon: "🤖", title: "独自の複合AI分析", desc: "複数の独立したAIが異なる角度から分析し、多角的な指数を生成。" },
-  { icon: "📱", title: "モバイルファースト", desc: "スマホで直感的に操作。横スクロールで8項目を一覧比較。" },
-  { icon: "🎯", title: "期待値（EV）表示", desc: "AI予測勝率とオッズから算出。回収率を意識した馬券戦略をサポート。" },
-  { icon: "🆓", title: "完全無料", desc: "LINEログインだけですべての機能が使えます。課金要素なし。" },
+  { title: "8項目のランク指数", desc: "総合・スピード・展開・騎手・血統・近走・馬場・期待値をS〜Dで一目把握。" },
+  { title: "JRA全レース対応", desc: "毎週の土日JRA全レースを網羅。出走全馬のランクを確認できます。" },
+  { title: "独自の複合AI分析", desc: "複数の独立したAIが異なる角度から分析し、多角的な指数を生成。" },
+  { title: "モバイルファースト", desc: "スマホで直感的に操作。横スクロールで8項目を一覧比較。" },
+  { title: "期待値（EV）表示", desc: "AI予測勝率とオッズから算出。回収率を意識した馬券戦略をサポート。" },
+  { title: "完全無料", desc: "LINEログインだけですべての機能が使えます。課金要素なし。" },
 ];
 
 /* ── Format date ─── */
@@ -129,12 +129,12 @@ export default function LandingPage() {
             完全無料 · LINEログインですぐ使える
           </div>
 
-          <h1 className="text-[28px] md:text-[42px] font-black text-[#222] leading-[1.3] mb-5">
+          <h1 className="text-[28px] md:text-[42px] font-black text-[#111] leading-[1.3] mb-5">
             JRA全レースを<br className="md:hidden" />
             <span className="text-[#1f7a1f]">8つの指数</span>で<br className="md:hidden" />
             可視化する
           </h1>
-          <p className="text-[15px] md:text-lg text-[#666] max-w-lg mx-auto mb-10 leading-relaxed">
+          <p className="text-[15px] md:text-lg text-[#444] max-w-lg mx-auto mb-10 leading-relaxed">
             総合・スピード・展開・騎手・血統・近走・馬場・期待値。<br className="hidden md:block" />
             独自のAI分析が生成するランク指数で、<br className="md:hidden" />全馬を一目で比較。
           </p>
@@ -152,7 +152,7 @@ export default function LandingPage() {
           </div>
 
           {/* Mini matrix preview */}
-          <div className="max-w-[500px] mx-auto overflow-x-auto border border-[#c6c9d3] rounded bg-white shadow-sm">
+          <div className="max-w-[500px] mx-auto overflow-x-auto border border-[#bbb] rounded bg-white shadow-md">
             <table className="nk-table">
               <thead>
                 <tr>
@@ -178,11 +178,11 @@ export default function LandingPage() {
       </section>
 
       {/* ── Real Race List Section ────────────────────── */}
-      <section className="bg-[#f5f5f5] py-10 md:py-14">
+      <section className="bg-[#f0f0f0] py-10 md:py-14">
         <div className="max-w-[960px] mx-auto px-4">
           <div className="text-center mb-5">
-            <h2 className="text-xl md:text-2xl font-black text-[#222] mb-1">
-              🏇 今週のJRAレース
+            <h2 className="text-xl md:text-2xl font-black text-[#111] mb-1">
+              今週のJRAレース
             </h2>
             {loading ? (
               <p className="text-sm text-[#888]">読み込み中...</p>
@@ -246,7 +246,7 @@ export default function LandingPage() {
               </div>
 
               {/* Race list table */}
-              <div className="bg-white border border-[#c6c9d3] rounded-lg overflow-hidden">
+              <div className="bg-white border border-[#c6c9d3] rounded-lg overflow-hidden shadow-sm">
                 <table className="nk-table">
                   <thead>
                     <tr>
@@ -263,7 +263,7 @@ export default function LandingPage() {
                         <td>
                           <Link
                             href={`/race/${encodeURIComponent(race.race_id)}`}
-                            className="text-[#1E88E5] hover:underline font-medium text-sm"
+                            className="text-[#1565C0] hover:underline font-bold text-sm"
                           >
                             {race.race_name}
                           </Link>
@@ -277,7 +277,7 @@ export default function LandingPage() {
               </div>
 
               <div className="mt-4 text-center">
-                <p className="text-sm text-[#888] mb-3">
+                <p className="text-sm text-[#666] mb-3">
                   レースをタップするとランク指数が確認できます（要ログイン）
                 </p>
                 <a
@@ -297,17 +297,16 @@ export default function LandingPage() {
       <section id="features" className="py-12 md:py-16">
         <div className="max-w-[960px] mx-auto px-5">
           <div className="text-center mb-8">
-            <h2 className="text-xl md:text-2xl font-black text-[#222] mb-2">
+            <h2 className="text-xl md:text-2xl font-black text-[#111] mb-2">
               netkeita の<span className="text-[#1f7a1f]">特長</span>
             </h2>
-            <p className="text-sm md:text-base text-[#888]">予想サイトではなく「データ閲覧サイト」</p>
+            <p className="text-sm md:text-base text-[#666]">予想サイトではなく「データ閲覧サイト」</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f) => (
-              <div key={f.title} className="border border-[#e0e0e0] rounded-lg p-5 bg-white hover:border-[#1f7a1f] hover:shadow-sm transition">
-                <div className="text-3xl mb-3">{f.icon}</div>
-                <h3 className="text-base font-bold text-[#333] mb-1.5">{f.title}</h3>
-                <p className="text-sm text-[#888] leading-relaxed">{f.desc}</p>
+              <div key={f.title} className="border-l-4 border-l-[#1f7a1f] border border-[#d0d0d0] rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition">
+                <h3 className="text-base font-bold text-[#111] mb-1.5">{f.title}</h3>
+                <p className="text-sm text-[#555] leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -318,10 +317,10 @@ export default function LandingPage() {
       <section className="bg-[#f8faf8] py-12 md:py-16">
         <div className="max-w-[960px] mx-auto px-5">
           <div className="text-center mb-8">
-            <h2 className="text-xl md:text-2xl font-black text-[#222] mb-2">
+            <h2 className="text-xl md:text-2xl font-black text-[#111] mb-2">
               <span className="text-[#1f7a1f]">8項目</span>のランク指数
             </h2>
-            <p className="text-sm md:text-base text-[#888]">各項目を出走馬全頭の相対順位でS〜Dにランク付け</p>
+            <p className="text-sm md:text-base text-[#666]">各項目を出走馬全頭の相対順位でS〜Dにランク付け</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -334,11 +333,11 @@ export default function LandingPage() {
               { label: "馬場", grade: "B" as Grade, engine: "馬場補正", desc: "馬場適性の補正係数" },
               { label: "期待値", grade: "S" as Grade, engine: "EV算出", desc: "予測勝率÷オッズ" },
             ].map((item) => (
-              <div key={item.label} className="border border-[#e0e0e0] rounded-lg p-4 bg-white text-center">
+              <div key={item.label} className="border border-[#d0d0d0] rounded-lg p-4 bg-white text-center shadow-sm">
                 <RankBadge grade={item.grade} />
-                <h3 className="text-base font-bold text-[#333] mt-2 mb-1">{item.label}</h3>
-                <p className="text-xs text-[#1f7a1f] font-medium mb-1">{item.engine}</p>
-                <p className="text-xs text-[#888]">{item.desc}</p>
+                <h3 className="text-base font-bold text-[#111] mt-2 mb-1">{item.label}</h3>
+                <p className="text-xs text-[#1f7a1f] font-bold mb-1">{item.engine}</p>
+                <p className="text-xs text-[#555]">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -349,7 +348,7 @@ export default function LandingPage() {
       <section id="howto" className="py-12 md:py-16">
         <div className="max-w-[960px] mx-auto px-5">
           <div className="text-center mb-8">
-            <h2 className="text-xl md:text-2xl font-black text-[#222]">
+            <h2 className="text-xl md:text-2xl font-black text-[#111]">
               使い方は<span className="text-[#1f7a1f]">3ステップ</span>
             </h2>
           </div>
@@ -359,10 +358,10 @@ export default function LandingPage() {
               { step: "02", title: "レースを選ぶ", desc: "日付・競馬場・R番号で今週のレースをかんたん選択。" },
               { step: "03", title: "ランク指数を見る", desc: "8項目のランクマトリクスで全馬を一覧比較。" },
             ].map((s) => (
-              <div key={s.step} className="text-center border border-[#e0e0e0] rounded-lg p-6 bg-white">
-                <div className="w-12 h-12 bg-[#1f7a1f] text-white rounded-full flex items-center justify-center text-base font-black mx-auto mb-4">{s.step}</div>
-                <h3 className="text-base font-bold text-[#333] mb-2">{s.title}</h3>
-                <p className="text-sm text-[#888] leading-relaxed">{s.desc}</p>
+              <div key={s.step} className="text-center border border-[#d0d0d0] rounded-lg p-6 bg-white shadow-sm">
+                <div className="w-12 h-12 bg-[#163016] text-white rounded-full flex items-center justify-center text-base font-black mx-auto mb-4">{s.step}</div>
+                <h3 className="text-base font-bold text-[#111] mb-2">{s.title}</h3>
+                <p className="text-sm text-[#555] leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -372,10 +371,10 @@ export default function LandingPage() {
       {/* ── Final CTA ────────────────────────────────── */}
       <section className="bg-gradient-to-b from-[#f0f7f0] to-[#e8f5e9] py-14 md:py-18">
         <div className="max-w-[960px] mx-auto px-5 text-center">
-          <h2 className="text-xl md:text-2xl font-black text-[#222] mb-3">
+          <h2 className="text-xl md:text-2xl font-black text-[#111] mb-3">
             今すぐ、全レースの<br className="md:hidden" />ランク指数を確認しよう
           </h2>
-          <p className="text-sm md:text-base text-[#666] mb-8">
+          <p className="text-sm md:text-base text-[#444] mb-8">
             独自AI分析 × 8つの分析項目 × JRA全レース
           </p>
           <a

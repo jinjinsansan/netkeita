@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
+import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "netkeita - JRA全レース ランク指数 | 8項目AIデータで可視化",
@@ -14,18 +21,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-white text-[#333]">
-        <header className="border-b border-[#c6c9d3] bg-white sticky top-0 z-50">
-          <div className="max-w-[960px] mx-auto px-4 h-12 flex items-center justify-between">
-            <a href="/" className="text-lg font-bold text-[#333] tracking-tight">
-              net<span className="text-[#1f7a1f]">keita</span>
+    <html lang="ja" className={`h-full antialiased ${notoSansJP.className}`}>
+      <body className="min-h-full flex flex-col bg-white text-[#222]">
+        <header className="bg-[#163016] sticky top-0 z-50 shadow-md">
+          <div className="max-w-[960px] mx-auto px-4 h-14 flex items-center justify-between">
+            <a href="/" className="text-xl font-black text-white tracking-tight">
+              net<span className="text-[#4ade80]">keita</span>
             </a>
             <nav className="flex items-center gap-4 text-sm">
-              <a href="#features" className="text-[#888] hover:text-[#333] hidden sm:inline">
+              <a href="#features" className="text-[#a3c9a3] hover:text-white hidden sm:inline font-medium transition">
                 特長
               </a>
-              <a href="#howto" className="text-[#888] hover:text-[#333] hidden sm:inline">
+              <a href="#howto" className="text-[#a3c9a3] hover:text-white hidden sm:inline font-medium transition">
                 使い方
               </a>
               <a
@@ -41,12 +48,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-[#c6c9d3] bg-[#f5f5f5] mt-0">
-          <div className="max-w-[960px] mx-auto px-4 py-5 text-center">
-            <p className="text-xs text-[#888] mb-1">
-              net<span className="text-[#1f7a1f] font-bold">keita</span> — JRA全レース ランク指数
+        <footer className="bg-[#163016] mt-0">
+          <div className="max-w-[960px] mx-auto px-4 py-6 text-center">
+            <p className="text-xs text-[#a3c9a3] mb-1">
+              net<span className="text-[#4ade80] font-bold">keita</span> — JRA全レース ランク指数
             </p>
-            <p className="text-[11px] text-[#aaa]">
+            <p className="text-[11px] text-[#6b8f6b]">
               &copy; 2026 netkeita. 競馬の未来を、データで。
             </p>
           </div>
