@@ -267,7 +267,7 @@ def _build_full_predictions(full_scores_raw: dict, race_data: dict) -> dict:
 
 # Cache for horse-detail (key: "race_id:horse_number" -> (timestamp, response))
 _horse_detail_cache: dict[str, tuple[float, dict]] = {}
-HORSE_DETAIL_CACHE_TTL = 300  # 5 minutes
+HORSE_DETAIL_CACHE_TTL = 60  # 1 minute (short to pick up rewrite results quickly)
 
 
 @app.get("/api/horse-detail/{race_id}/{horse_number}")
