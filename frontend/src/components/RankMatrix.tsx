@@ -28,8 +28,22 @@ export default function RankMatrix({ horses }: Props) {
     return map;
   }, [horses]);
 
-  // Top-5 rank coloring for win_prob / place_prob
+  // Top-5 rank coloring
   const RANK_COLORS = ["#FFD700", "#E53935", "#1E88E5", "#43A047", "#9E9E9E"];
+  const oddsRank = useMemo(() => {
+    const sorted = horses.filter((h) => h.odds && h.odds > 0)
+      .sort((a, b) => (a.odds ?? 999) - (b.odds ?? 999));
+    const map: Record<number, string> = {};
+    sorted.slice(0, 5).forEach((h, i) => { map[h.horse_number] = RANK_COLORS[i]; });
+    return map;
+  }, [horses]);
+  const popRank = useMemo(() => {
+    const map: Record<number, string> = {};
+    Object.entries(popularity).forEach(([num, rank]) => {
+      if (rank <= 5) map[Number(num)] = RANK_COLORS[rank - 1];
+    });
+    return map;
+  }, [popularity]);
   const winRank = useMemo(() => {
     const sorted = horses.filter((h) => h.win_prob && h.win_prob > 0)
       .sort((a, b) => (b.win_prob ?? 0) - (a.win_prob ?? 0));
@@ -123,13 +137,13 @@ export default function RankMatrix({ horses }: Props) {
               <td className="text-center text-[11px] text-[#555] whitespace-nowrap">
                 {horse.jockey}
               </td>
-              <td className="text-center text-[12px] font-mono text-[#333]">
+              <td className="text-center text-[12px] font-mono font-bold"
+                style={{ color: oddsRank[horse.horse_number] || "#999" }}>
                 {horse.odds ? horse.odds.toFixed(1) : "-"}
               </td>
-              <td className="text-center text-[12px] font-bold">
-                <span className={`${popularity[horse.horse_number] <= 3 ? "text-[#E53935]" : "text-[#555]"}`}>
-                  {popularity[horse.horse_number] || "-"}
-                </span>
+              <td className="text-center text-[12px] font-bold"
+                style={{ color: popRank[horse.horse_number] || "#999" }}>
+                {popularity[horse.horse_number] || "-"}
               </td>
               <td className="text-center text-[11px] font-mono font-bold"
                 style={{ color: winRank[horse.horse_number] || "#999" }}>
