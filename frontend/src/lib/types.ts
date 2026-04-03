@@ -5,6 +5,7 @@ export interface HorseRank {
   horse_name: string;
   jockey: string;
   post: number; // frame number (1-8)
+  odds?: number;
   scores: {
     total: number;
     speed: number;

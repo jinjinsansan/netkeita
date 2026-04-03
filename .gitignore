@@ -7,3 +7,7 @@ node_modules/
 out/
 .vercel/
 *.tsbuildinfo
+venv/
+api/venv/
+api/data/
+*.egg-info/

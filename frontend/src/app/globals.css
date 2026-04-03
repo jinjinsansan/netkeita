@@ -76,6 +76,13 @@ body {
 .nk-table tbody tr:hover {
   background: #f0f4ff;
 }
+.nk-table tbody tr:hover td.sticky {
+  background: #f0f4ff;
+}
+/* Sticky column shadow hint */
+.nk-table th.sticky, .nk-table td.sticky {
+  background: inherit;
+}
 
 /* Waku colors as left border */
 .waku-1 { border-left: 4px solid var(--waku-1) !important; }

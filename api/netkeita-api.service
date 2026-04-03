@@ -1,0 +1,15 @@
+[Unit]
+Description=netkeita API Server (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/dlogic/netkeita-api
+Environment=PATH=/opt/dlogic/netkeita-api/venv/bin:/usr/bin:/bin
+ExecStart=/opt/dlogic/netkeita-api/venv/bin/uvicorn main:app --host 127.0.0.1 --port 5002 --workers 2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

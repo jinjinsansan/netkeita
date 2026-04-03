@@ -73,6 +73,7 @@ export default function RacePage() {
 
       {/* Legend */}
       <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#888] border-t border-[#e0e0e0] pt-2">
+        <span className="font-bold text-[#555] mr-1">ランク:</span>
         {[
           { grade: "S", label: "1位", bg: "#FFD700", text: "#333" },
           { grade: "A", label: "上位25%", bg: "#E53935", text: "#fff" },
@@ -91,6 +92,9 @@ export default function RacePage() {
           </span>
         ))}
       </div>
+      <p className="text-[10px] text-[#aaa] mt-1">
+        ※ 各項目は出走馬全頭の相対順位でランク付け。ヘッダーをタップでソート切替。
+      </p>
     </div>
   );
 }
