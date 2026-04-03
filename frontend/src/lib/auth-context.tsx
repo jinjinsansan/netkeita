@@ -13,6 +13,7 @@ interface AuthState {
   authenticated: boolean;
   user: User | null;
   logout: () => void;
+  refresh: () => void;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthState>({
   authenticated: false,
   user: null,
   logout: () => {},
+  refresh: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -27,12 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
+  const checkAuth = useCallback(() => {
     const token = getToken();
     if (!token) {
+      setAuthenticated(false);
+      setUser(null);
       setLoading(false);
       return;
     }
+    setLoading(true);
     getMe()
       .then((res) => {
         if (res.authenticated && res.user) {
@@ -40,11 +45,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(res.user);
         } else {
           clearToken();
+          setAuthenticated(false);
+          setUser(null);
         }
       })
-      .catch(() => clearToken())
+      .catch(() => {
+        clearToken();
+        setAuthenticated(false);
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Listen for token changes from other tabs or /auth/success
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "nk_token") checkAuth();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [checkAuth]);
 
   const logout = useCallback(() => {
     clearToken();
@@ -53,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ loading, authenticated, user, logout }}>
+    <AuthContext.Provider value={{ loading, authenticated, user, logout, refresh: checkAuth }}>
       {children}
     </AuthContext.Provider>
   );

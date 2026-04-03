@@ -4,16 +4,19 @@ import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { setToken } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { refresh } = useAuth();
   const token = searchParams.get("token");
   const name = searchParams.get("name");
 
   useEffect(() => {
     if (token) {
       setToken(token);
+      refresh();
       const pendingPath = localStorage.getItem("nk_redirect");
       if (pendingPath) {
         localStorage.removeItem("nk_redirect");
@@ -22,7 +25,7 @@ function SuccessContent() {
         router.replace("/");
       }
     }
-  }, [token, router]);
+  }, [token, router, refresh]);
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
