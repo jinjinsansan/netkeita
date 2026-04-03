@@ -175,6 +175,7 @@ export default function RankMatrix({ horses, raceId, jockeyData }: Props) {
             horseNumber={expandedHorse}
             horseName={h.horse_name}
             jockeyName={h.jockey}
+            post={h.post}
             scores={h.scores}
             ranks={h.ranks}
             jockeyData={jockeyData}

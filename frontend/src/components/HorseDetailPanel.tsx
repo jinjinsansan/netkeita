@@ -21,6 +21,7 @@ export default function HorseDetailPanel({
   horseNumber,
   horseName,
   jockeyName,
+  post,
   scores,
   ranks,
   jockeyData,
@@ -30,6 +31,7 @@ export default function HorseDetailPanel({
   horseNumber: number;
   horseName: string;
   jockeyName?: string;
+  post?: number;
   scores: HorseRank["scores"];
   ranks: HorseRank["ranks"];
   jockeyData?: JockeyData;
@@ -110,7 +112,7 @@ export default function HorseDetailPanel({
           {tab === "scores" ? (
             <ScoresTab scores={scores} ranks={ranks} />
           ) : tab === "jockey" ? (
-            <JockeyTab jockeyName={jockeyName} jockeyData={jockeyData} />
+            <JockeyTab jockeyName={jockeyName} jockeyData={jockeyData} post={post} />
           ) : loading ? (
             <div className="py-10 text-center text-xs text-[#888] animate-pulse">読み込み中...</div>
           ) : !data ? (
@@ -289,7 +291,7 @@ function EmptyState({ icon, title, sub }: { icon: string; title: string; sub?: s
   );
 }
 
-function JockeyTab({ jockeyName, jockeyData }: { jockeyName?: string; jockeyData?: JockeyData }) {
+function JockeyTab({ jockeyName, jockeyData, post }: { jockeyName?: string; jockeyData?: JockeyData; post?: number }) {
   if (!jockeyName) {
     return <EmptyState icon="🏇" title="騎手情報がありません" sub="出馬表確定後に更新されます" />;
   }
@@ -307,11 +309,10 @@ function JockeyTab({ jockeyName, jockeyData }: { jockeyName?: string; jockeyData
         </div>
         <div>
           <div className="text-base font-bold text-[#222]">{jockeyName}</div>
-          {postStats ? (
-            <div className="text-[11px] text-[#888]">{postStats.horse} に騎乗</div>
-          ) : (
-            <div className="text-[11px] text-[#888]">騎乗予定</div>
-          )}
+          <div className="text-[11px] text-[#888]">
+            {postStats?.horse || ""} に騎乗
+            {post ? <span className="ml-1.5 text-[#666] font-bold">{post}枠</span> : ""}
+          </div>
         </div>
       </div>
 
@@ -329,6 +330,7 @@ function JockeyTab({ jockeyName, jockeyData }: { jockeyName?: string; jockeyData
             <div className="border border-[#d0d0d0] rounded-lg overflow-hidden">
               <div className="bg-[#f0f7f0] px-3 py-2">
                 <span className="text-xs font-bold text-[#333]">枠別複勝率</span>
+                {post && <span className="text-[10px] text-[#888] ml-2">（{post}枠 → {postStats.post_zone}）</span>}
               </div>
               <div className="px-3 py-3">
                 <div className="flex items-center justify-between mb-2">
