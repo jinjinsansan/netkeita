@@ -4,7 +4,6 @@ import logging
 import sys
 
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 
 from config import PORT
 from services.data_fetcher import get_races, get_race_entries, get_today_str, get_predictions, get_analysis, get_odds_from_prefetch, get_available_dates
@@ -17,14 +16,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="netkeita API", version="0.2.0")
+app = FastAPI(title="netkeita API", version="0.2.1")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # TODO: restrict to Vercel domain
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
+# CORS is handled by Nginx reverse proxy — do NOT add CORSMiddleware here
+# to avoid duplicate Access-Control-Allow-Origin headers.
 
 
 @app.get("/api/races")
