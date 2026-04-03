@@ -37,34 +37,27 @@ app = FastAPI(title="netkeita API", version="0.3.0")
 _matrix_cache: dict[str, tuple[float, dict]] = {}
 MATRIX_CACHE_TTL = 60  # seconds
 
-# File-based session store (shared across workers)
+# Redis session store (shared across workers, auto-expiry)
 import json as _json
-import os as _os
+import redis as _redis
 
-_SESSION_DIR = "/tmp/nk_sessions"
-_os.makedirs(_SESSION_DIR, exist_ok=True)
-
-
-def _session_path(token: str) -> str:
-    return _os.path.join(_SESSION_DIR, f"{token}.json")
+_redis_client = _redis.Redis(host="127.0.0.1", port=6379, db=2, decode_responses=True)
+_SESSION_TTL = 86400  # 24 hours
 
 
 def _save_session(token: str, data: dict):
     try:
-        with open(_session_path(token), "w") as f:
-            _json.dump(data, f)
+        _redis_client.setex(f"nk:session:{token}", _SESSION_TTL, _json.dumps(data))
     except Exception:
-        logger.exception("Failed to save session")
+        logger.exception("Failed to save session to Redis")
 
 
 def _load_session(token: str) -> dict | None:
-    path = _session_path(token)
-    if not _os.path.exists(path):
-        return None
     try:
-        with open(path, "r") as f:
-            return _json.load(f)
+        raw = _redis_client.get(f"nk:session:{token}")
+        return _json.loads(raw) if raw else None
     except Exception:
+        logger.exception("Failed to load session from Redis")
         return None
 
 
