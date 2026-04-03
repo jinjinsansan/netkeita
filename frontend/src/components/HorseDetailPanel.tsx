@@ -459,8 +459,8 @@ function JockeyTab({ jockeyName, jockeyData, post }: { jockeyName?: string; jock
           {postStats && (
             <div className="border border-[#d0d0d0] rounded-lg overflow-hidden">
               <div className="bg-[#f0f7f0] px-3 py-2">
-                <span className="text-xs font-bold text-[#333]">枠別複勝率</span>
-                {post && <span className="text-[10px] text-[#888] ml-2">（{post}枠 → {postStats.post_zone}）</span>}
+                <span className="text-xs font-bold text-[#333]">馬番別複勝率</span>
+                {post && <span className="text-[10px] text-[#888] ml-2">（{postStats.horse_number}番 → {postStats.post_zone}）</span>}
               </div>
               <div className="px-3 py-3">
                 <div className="flex items-center justify-between mb-2">
