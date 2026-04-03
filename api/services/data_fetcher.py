@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 JST = timezone(timedelta(hours=9))
 _client = httpx.Client(timeout=30)
+_async_client = httpx.AsyncClient(timeout=30)
 
 
 def get_today_str() -> str:
@@ -169,6 +170,34 @@ def get_full_scores(race_data: dict) -> dict:
         return resp.json()
     except Exception:
         logger.exception("Full-scores API call failed")
+        return {}
+
+
+async def async_get_full_scores(race_data: dict) -> dict:
+    payload = _build_payload(race_data)
+    try:
+        resp = await _async_client.post(
+            f"{DLOGIC_API_URL}/api/v2/predictions/full-scores",
+            json=payload, timeout=60,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        logger.exception("Full-scores API call failed (async)")
+        return {}
+
+
+async def async_get_analysis(endpoint: str, race_data: dict) -> dict:
+    payload = _build_payload(race_data)
+    try:
+        resp = await _async_client.post(
+            f"{DLOGIC_API_URL}{endpoint}",
+            json=payload, timeout=60,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        logger.exception(f"Analysis API call failed (async): {endpoint}")
         return {}
 
 

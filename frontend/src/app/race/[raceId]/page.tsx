@@ -16,13 +16,18 @@ export default function RacePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     fetchMatrix(raceId).then((data) => {
+      if (cancelled) return;
       setMatrix(data);
       setLoading(false);
       if (data?.race_name) {
-        fetchInternetPredictions(data.race_name).then(setInetPred);
+        fetchInternetPredictions(data.race_name).then((p) => {
+          if (!cancelled) setInetPred(p);
+        });
       }
     });
+    return () => { cancelled = true; };
   }, [raceId]);
 
   if (loading) {

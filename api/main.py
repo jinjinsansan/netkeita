@@ -1,12 +1,19 @@
 """netkeita API server — FastAPI backend for JRA race ranking data."""
 
+import asyncio
 import logging
 import sys
+import time
 
 from fastapi import FastAPI, HTTPException
 
 from config import PORT
-from services.data_fetcher import get_races, get_race_entries, get_today_str, get_full_scores, get_analysis, get_odds_from_prefetch, get_available_dates, get_internet_predictions, get_horse_recent_runs, get_horse_bloodline, get_stable_comments
+from services.data_fetcher import (
+    get_races, get_race_entries, get_today_str, get_full_scores, get_analysis,
+    get_odds_from_prefetch, get_available_dates, get_internet_predictions,
+    get_horse_recent_runs, get_horse_bloodline, get_stable_comments,
+    async_get_full_scores, async_get_analysis,
+)
 from services.ranking import calculate_matrix
 
 logging.basicConfig(
@@ -16,10 +23,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="netkeita API", version="0.2.1")
+app = FastAPI(title="netkeita API", version="0.3.0")
 
 # CORS is handled by Nginx reverse proxy — do NOT add CORSMiddleware here
 # to avoid duplicate Access-Control-Allow-Origin headers.
+
+# In-memory cache for matrix responses (race_id -> (timestamp, response))
+_matrix_cache: dict[str, tuple[float, dict]] = {}
+MATRIX_CACHE_TTL = 60  # seconds
 
 
 @app.get("/api/races")
@@ -41,8 +52,14 @@ def api_entries(race_id: str, date: str = ""):
 
 
 @app.get("/api/race/{race_id}/matrix")
-def api_matrix(race_id: str, date: str = ""):
+async def api_matrix(race_id: str, date: str = ""):
     """Get 8-category rank matrix for all horses in a race."""
+    # Check cache first
+    cached = _matrix_cache.get(race_id)
+    if cached and (time.time() - cached[0]) < MATRIX_CACHE_TTL:
+        logger.info(f"Cache hit for {race_id}")
+        return cached[1]
+
     date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
     race_data = get_race_entries(date_str, race_id)
     if not race_data or not race_data.get("entries"):
@@ -50,17 +67,16 @@ def api_matrix(race_id: str, date: str = ""):
 
     logger.info(f"Building matrix for {race_id} ({len(race_data['entries'])} horses)")
 
-    # Fetch full-scores (all engines + track_adjustment) from backend
-    full_scores_raw = get_full_scores(race_data)
+    # Fetch all backend APIs in parallel
+    full_scores_raw, flow_data, jockey_data, bloodline_data, recent_data = await asyncio.gather(
+        async_get_full_scores(race_data),
+        async_get_analysis("/api/v2/analysis/race-flow", race_data),
+        async_get_analysis("/api/v2/analysis/jockey-analysis", race_data),
+        async_get_analysis("/api/v2/analysis/bloodline-analysis", race_data),
+        async_get_analysis("/api/v2/analysis/recent-runs", race_data),
+    )
+
     predictions = _build_full_predictions(full_scores_raw, race_data)
-
-    # Fetch analysis data from backend
-    flow_data = get_analysis("/api/v2/analysis/race-flow", race_data)
-    jockey_data = get_analysis("/api/v2/analysis/jockey-analysis", race_data)
-    bloodline_data = get_analysis("/api/v2/analysis/bloodline-analysis", race_data)
-    recent_data = get_analysis("/api/v2/analysis/recent-runs", race_data)
-
-    # Odds from prefetch data
     odds_data = get_odds_from_prefetch(date_str, race_id)
 
     horses = calculate_matrix(
@@ -75,7 +91,7 @@ def api_matrix(race_id: str, date: str = ""):
 
     logger.info(f"Matrix built: {len(horses)} horses, sample scores: {horses[0]['scores'] if horses else 'none'}")
 
-    return {
+    result = {
         "race_id": race_id,
         "race_name": race_data.get("race_name", ""),
         "venue": race_data.get("venue", ""),
@@ -84,6 +100,10 @@ def api_matrix(race_id: str, date: str = ""):
         "track_condition": race_data.get("track_condition", ""),
         "horses": horses,
     }
+
+    # Store in cache
+    _matrix_cache[race_id] = (time.time(), result)
+    return result
 
 
 def _build_full_predictions(full_scores_raw: dict, race_data: dict) -> dict:
