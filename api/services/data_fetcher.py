@@ -20,8 +20,9 @@ def get_today_str() -> str:
     return datetime.now(JST).strftime("%Y%m%d")
 
 
-def get_available_dates() -> list[str]:
-    """Return list of available prefetch dates (JRA + NAR, newest first)."""
+def _all_prefetch_dates() -> list[str]:
+    """Return all prefetch date strings that have non-empty race data
+    (newest first). Internal use only."""
     if not os.path.isdir(PREFETCH_DIR):
         return []
     dates = []
@@ -33,6 +34,35 @@ def get_available_dates() -> list[str]:
                 if pf and pf.get("races"):
                     dates.append(date_str)
     return sorted(dates, reverse=True)
+
+
+def get_display_dates() -> list[str]:
+    """Return the list of dates that should be shown to end users right now.
+
+    Policy (as of 2026-04):
+      - Only the "current" race day is visible. The site flips at JST 0:00.
+      - "Current" is defined as:
+          1. If today has any races (JRA or NAR) in prefetch -> [today]
+          2. Otherwise, the single most recent prefetch date that has races
+             (gives JRA visitors the previous weekend on weekdays when NAR
+             prefetch for today also happens to be empty).
+
+    Prefetch generation / scraping is unaffected; this is purely a display
+    filter. Older dates remain on disk but are no longer exposed via the API.
+    """
+    today = get_today_str()
+    all_dates = _all_prefetch_dates()
+    if not all_dates:
+        return []
+    if today in all_dates:
+        return [today]
+    # Fallback to the single most recent available date
+    return [all_dates[0]]
+
+
+def get_available_dates() -> list[str]:
+    """Alias kept for backward compatibility. Returns the display dates."""
+    return get_display_dates()
 
 
 def load_prefetch(date_str: str) -> dict | None:

@@ -222,22 +222,31 @@ export default function LandingPage() {
 
           {allDates.length > 0 && (
             <>
-              {/* Date tabs */}
-              <div className="flex items-center gap-2 mb-4 justify-center">
-                {allDates.map((d, i) => (
-                  <button
-                    key={d.date}
-                    onClick={() => handleDateChange(i)}
-                    className={`px-4 sm:px-5 py-2 text-sm font-bold rounded-lg border transition ${
-                      selectedDateIdx === i
-                        ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
-                        : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
+              {/* Date tabs - only show when there are multiple dates */}
+              {allDates.length > 1 && (
+                <div className="flex items-center gap-2 mb-4 justify-center">
+                  {allDates.map((d, i) => (
+                    <button
+                      key={d.date}
+                      onClick={() => handleDateChange(i)}
+                      className={`px-4 sm:px-5 py-2 text-sm font-bold rounded-lg border transition ${
+                        selectedDateIdx === i
+                          ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
+                          : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {allDates.length === 1 && (
+                <div className="text-center mb-4">
+                  <span className="inline-block px-4 py-1.5 text-sm font-bold text-[#1f7a1f] bg-[#e8f5e9] rounded-full">
+                    {allDates[0].label}
+                  </span>
+                </div>
+              )}
 
               {/* Venue tabs — split into JRA and NAR groups */}
               {(() => {

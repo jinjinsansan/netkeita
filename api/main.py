@@ -15,7 +15,8 @@ from pydantic import BaseModel
 from config import PORT, LINE_CHANNEL_ID, LINE_CHANNEL_SECRET, FRONTEND_URL
 from services.data_fetcher import (
     get_races, get_race_entries, get_today_str, get_full_scores, get_analysis,
-    get_odds_from_prefetch, get_available_dates, get_internet_predictions,
+    get_odds_from_prefetch, get_available_dates, get_display_dates,
+    get_internet_predictions,
     get_horse_recent_runs, get_horse_bloodline, get_stable_comments,
     async_get_full_scores, async_get_analysis,
 )
@@ -156,10 +157,27 @@ def get_me(authorization: str = Header(default="")):
     }
 
 
+def _enforce_display_date(date_str: str) -> str:
+    """Ensure the requested date is in the currently-allowed display list.
+
+    Returns the (possibly corrected) date_str if allowed, otherwise raises
+    HTTPException(403). Empty date is resolved to the primary display date.
+    """
+    allowed = get_display_dates()
+    if not allowed:
+        raise HTTPException(status_code=404, detail="No races available")
+    if not date_str:
+        return allowed[0]
+    if date_str not in allowed:
+        raise HTTPException(status_code=403, detail="Date not currently displayed")
+    return date_str
+
+
 @app.get("/api/races")
 def api_races(date: str = ""):
-    """Get JRA race list for a given date."""
-    date_str = date or get_today_str()
+    """Get race list for a given date. Only dates in get_display_dates()
+    are accessible; older dates return 403."""
+    date_str = _enforce_display_date(date)
     races = get_races(date_str)
     return {"date": date_str, "races": races, "count": len(races)}
 
@@ -168,6 +186,7 @@ def api_races(date: str = ""):
 def api_entries(race_id: str, date: str = ""):
     """Get race entries (出馬表)."""
     date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
+    date_str = _enforce_display_date(date_str)
     entries = get_race_entries(date_str, race_id)
     if not entries:
         raise HTTPException(status_code=404, detail="Race not found")
@@ -177,13 +196,15 @@ def api_entries(race_id: str, date: str = ""):
 @app.get("/api/race/{race_id}/matrix")
 async def api_matrix(race_id: str, date: str = ""):
     """Get 8-category rank matrix for all horses in a race."""
+    date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
+    date_str = _enforce_display_date(date_str)
+
     # Check cache first
     cached = _matrix_cache.get(race_id)
     if cached and (time.time() - cached[0]) < MATRIX_CACHE_TTL:
         logger.info(f"Cache hit for {race_id}")
         return cached[1]
 
-    date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
     race_data = get_race_entries(date_str, race_id)
     if not race_data or not race_data.get("entries"):
         raise HTTPException(status_code=404, detail="Race not found")
@@ -276,12 +297,14 @@ HORSE_DETAIL_CACHE_TTL = 60  # 1 minute (short to pick up rewrite results quickl
 @app.get("/api/horse-detail/{race_id}/{horse_number}")
 def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
     """Get detailed info for a single horse: stable comments, recent runs, bloodline."""
+    date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
+    date_str = _enforce_display_date(date_str)
+
     cache_key = f"{race_id}:{horse_number}"
     cached = _horse_detail_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < HORSE_DETAIL_CACHE_TTL:
         return cached[1]
 
-    date_str = date or (race_id.split("-")[0] if "-" in race_id else get_today_str())
     race_data = get_race_entries(date_str, race_id)
     if not race_data:
         raise HTTPException(status_code=404, detail="Race not found")
