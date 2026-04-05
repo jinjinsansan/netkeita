@@ -33,6 +33,7 @@ export default function MinnaVoteDrawer({
   const [selected, setSelected] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [voted, setVoted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadResults = useCallback(() => {
     fetchVoteResults(raceId).then((d) => {
@@ -61,10 +62,13 @@ export default function MinnaVoteDrawer({
   const handleVote = async () => {
     if (!selected || submitting) return;
     setSubmitting(true);
+    setError(null);
     const res = await submitVote(raceId, selected);
     if (res.success) {
       setVoted(true);
       loadResults();
+    } else {
+      setError(res.error || "投票に失敗しました");
     }
     setSubmitting(false);
   };
@@ -126,45 +130,71 @@ export default function MinnaVoteDrawer({
               <p className="text-xs text-[#666] mb-3">
                 本命だと思う馬を1頭選んでください
               </p>
-              <div className="space-y-1.5">
-                {sortedHorses.map((h) => (
-                  <button
-                    key={h.horse_number}
-                    onClick={() => setSelected(h.horse_number)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition text-left ${
-                      selected === h.horse_number
-                        ? "border-[#1f7a1f] bg-[#f0f7f0] ring-1 ring-[#1f7a1f]"
-                        : "border-[#d0d0d0] bg-white hover:bg-[#fafafa]"
-                    }`}
-                  >
-                    <span
-                      className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold shrink-0 ${
-                        WAKU_BG[h.post] || ""
+              <div
+                className="space-y-1.5"
+                role="radiogroup"
+                aria-label="投票する馬を選択"
+              >
+                {sortedHorses.map((h) => {
+                  const isSelected = selected === h.horse_number;
+                  return (
+                    <button
+                      key={h.horse_number}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${h.horse_number}番 ${h.horse_name} ${h.jockey}`}
+                      onClick={() => {
+                        setSelected(h.horse_number);
+                        setError(null);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition text-left ${
+                        isSelected
+                          ? "border-[#1f7a1f] bg-[#f0f7f0] ring-1 ring-[#1f7a1f]"
+                          : "border-[#d0d0d0] bg-white hover:bg-[#fafafa]"
                       }`}
                     >
-                      {h.post}
-                    </span>
-                    <span className="text-sm font-bold text-[#333] shrink-0 w-5 text-center">
-                      {h.horse_number}
-                    </span>
-                    <span className="text-sm font-medium text-[#222] truncate flex-1">
-                      {h.horse_name}
-                    </span>
-                    <span className="text-[10px] text-[#999] shrink-0">
-                      {h.jockey}
-                    </span>
-                    {selected === h.horse_number && (
-                      <span className="text-[#1f7a1f] text-sm font-bold shrink-0">
-                        ✓
+                      <span
+                        className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold shrink-0 ${
+                          WAKU_BG[h.post] || ""
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {h.post}
                       </span>
-                    )}
-                  </button>
-                ))}
+                      <span className="text-sm font-bold text-[#333] shrink-0 w-5 text-center">
+                        {h.horse_number}
+                      </span>
+                      <span className="text-sm font-medium text-[#222] truncate flex-1">
+                        {h.horse_name}
+                      </span>
+                      <span className="text-[10px] text-[#999] shrink-0">
+                        {h.jockey}
+                      </span>
+                      {isSelected && (
+                        <span className="text-[#1f7a1f] text-sm font-bold shrink-0" aria-hidden="true">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+
+              {error && (
+                <div
+                  className="mt-3 rounded-lg bg-[#fdecea] border border-[#f5c6cb] px-3 py-2 text-[11px] text-[#a33]"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {error}
+                </div>
+              )}
 
               <button
                 onClick={handleVote}
                 disabled={!selected || submitting}
+                aria-label="選択した馬に投票"
                 className={`w-full mt-4 py-3 rounded-xl font-bold text-sm transition ${
                   selected && !submitting
                     ? "bg-[#1f7a1f] text-white hover:bg-[#16611a] shadow-md"

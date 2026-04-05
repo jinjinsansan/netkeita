@@ -3,10 +3,12 @@
 import asyncio
 import logging
 import random
+import re
 import secrets
 import sys
 import time
 import urllib.parse
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import FastAPI, Header, HTTPException
@@ -23,6 +25,19 @@ from services.data_fetcher import (
 from services.ranking import calculate_matrix
 from services.rewriter import rewrite_comment
 from services.course_stats_scraper import get_course_stats_for_horse
+from services.race_results import get_cached_result as get_cached_race_result
+
+JST = timezone(timedelta(hours=9))
+
+# race_id format: YYYYMMDD-<venue>-<number>.  Venue may contain Japanese
+# characters. This regex is deliberately lenient but rejects obviously
+# malformed input that could be used for Redis key injection.
+_RACE_ID_RE = re.compile(r"^\d{8}-[^:\s/\\]{1,20}-\d{1,2}$")
+
+
+def _assert_valid_race_id(race_id: str) -> None:
+    if not race_id or not _RACE_ID_RE.match(race_id):
+        raise HTTPException(status_code=400, detail="不正なレースIDです")
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -375,7 +390,9 @@ def api_dates():
 
 _redis_votes = _redis.Redis(host="127.0.0.1", port=6379, db=3, decode_responses=True)
 _VOTE_KEY_PREFIX = "nk:votes"
-_DUMMY_TTL = 86400 * 3  # dummy flag expires in 3 days
+_VOTE_COUNT_TTL = 86400 * 90      # count + per-race vote hash retained 90 days
+_VOTE_HISTORY_TTL = 86400 * 90    # user vote history retained for 90 days
+_DUMMY_FLAG_TTL = 86400 * 90      # dummy flag: once generated, never regen
 
 
 def _get_user_from_token(authorization: str) -> dict | None:
@@ -385,67 +402,119 @@ def _get_user_from_token(authorization: str) -> dict | None:
     return _load_session(token)
 
 
-def _ensure_dummy_votes(race_id: str):
-    """Generate dummy votes for a race if not already done."""
-    flag_key = f"{_VOTE_KEY_PREFIX}:dummy:{race_id}"
-    if _redis_votes.exists(flag_key):
-        return
+def _get_valid_horse_numbers(race_id: str) -> tuple[set[int], dict | None]:
+    """Resolve the set of valid horse numbers for a race.
 
-    # Try in-memory cache first, then fetch race entries directly
-    horses = []
+    Looks at the matrix cache first, falls back to prefetch on cache miss so
+    vote validation is never skipped (closes the TOCTOU hole where a cold
+    cache allowed arbitrary horse numbers to be stored in Redis).
+    """
     cached = _matrix_cache.get(race_id)
     if cached:
-        horses = cached[1].get("horses", [])
+        nums = {h["horse_number"] for h in cached[1].get("horses", [])}
+        if nums:
+            return nums, None
 
-    if not horses:
-        # Fallback: get entries from race data and assign uniform weights
-        date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
-        race_data = get_race_entries(date_str, race_id)
-        if race_data and race_data.get("entries"):
-            horses = [{"horse_number": e["horse_number"], "scores": {"total": 0}} for e in race_data["entries"]]
+    date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
+    race_data = get_race_entries(date_str, race_id)
+    if race_data and race_data.get("entries"):
+        return ({e["horse_number"] for e in race_data["entries"]}, race_data)
 
-    if not horses:
+    return set(), None
+
+
+def _parse_start_datetime(date_str: str, start_time: str) -> datetime | None:
+    """Combine YYYYMMDD + 'HH:MM' into a JST datetime."""
+    if not date_str or not start_time or len(date_str) != 8:
+        return None
+    m = re.match(r"^(\d{1,2}):(\d{2})", start_time)
+    if not m:
+        return None
+    try:
+        hh, mm = int(m.group(1)), int(m.group(2))
+        return datetime(
+            int(date_str[:4]), int(date_str[4:6]), int(date_str[6:8]),
+            hh, mm, tzinfo=JST,
+        )
+    except (ValueError, TypeError):
+        return None
+
+
+def _ensure_dummy_votes(race_id: str):
+    """Generate dummy votes for a race exactly once, atomically."""
+    flag_key = f"{_VOTE_KEY_PREFIX}:dummy:{race_id}"
+    # Atomic "set if not exists" prevents multi-worker double generation.
+    acquired = _redis_votes.set(flag_key, "1", nx=True, ex=_DUMMY_FLAG_TTL)
+    if not acquired:
         return
 
-    # Build weight distribution based on total score (or uniform if no scores)
-    has_scores = any(h["scores"]["total"] > 0 for h in horses)
-    if has_scores:
-        scored = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
-    else:
-        scored = horses
-        random.shuffle(scored)
+    try:
+        # Resolve horses from cache → prefetch
+        horses = []
+        cached = _matrix_cache.get(race_id)
+        if cached:
+            horses = cached[1].get("horses", [])
+        if not horses:
+            date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
+            race_data = get_race_entries(date_str, race_id)
+            if race_data and race_data.get("entries"):
+                horses = [
+                    {"horse_number": e["horse_number"], "scores": {"total": 0}}
+                    for e in race_data["entries"]
+                ]
+        if not horses:
+            # Couldn't find the race — release the flag so a later request retries.
+            _redis_votes.delete(flag_key)
+            return
 
-    n = len(scored)
-    weights = []
-    for i, h in enumerate(scored):
-        if i < n * 0.25:
-            w = random.uniform(3.0, 5.0)
-        elif i < n * 0.60:
-            w = random.uniform(1.5, 3.0)
+        has_scores = any(h["scores"]["total"] > 0 for h in horses)
+        if has_scores:
+            scored = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
         else:
-            w = random.uniform(0.3, 1.5)
-        weights.append((h["horse_number"], w))
+            scored = list(horses)
+            random.shuffle(scored)
 
-    total_w = sum(w for _, w in weights)
-    probs = [(num, w / total_w) for num, w in weights]
+        n = len(scored)
+        weights = []
+        for i, h in enumerate(scored):
+            if i < n * 0.25:
+                w = random.uniform(3.0, 5.0)
+            elif i < n * 0.60:
+                w = random.uniform(1.5, 3.0)
+            else:
+                w = random.uniform(0.3, 1.5)
+            weights.append((h["horse_number"], w))
 
-    total_votes = random.randint(30, 80)
-    count_key = f"{_VOTE_KEY_PREFIX}:count:{race_id}"
+        total_w = sum(w for _, w in weights) or 1.0
+        probs = [(num, w / total_w) for num, w in weights]
 
-    for _ in range(total_votes):
-        r = random.random()
-        cumulative = 0.0
-        chosen = probs[0][0]
-        for num, p in probs:
-            cumulative += p
-            if r <= cumulative:
-                chosen = num
-                break
-        _redis_votes.hincrby(count_key, str(chosen), 1)
+        total_votes = random.randint(30, 80)
+        count_key = f"{_VOTE_KEY_PREFIX}:count:{race_id}"
 
-    _redis_votes.setex(flag_key, _DUMMY_TTL, "1")
-    _redis_votes.expire(count_key, _DUMMY_TTL)
-    logger.info(f"Generated {total_votes} dummy votes for {race_id}")
+        # Batch writes into a single pipeline — ~1 network roundtrip instead
+        # of 30-80 individual hincrby calls.
+        pipe = _redis_votes.pipeline(transaction=False)
+        for _ in range(total_votes):
+            r = random.random()
+            cumulative = 0.0
+            chosen = probs[0][0]
+            for num, p in probs:
+                cumulative += p
+                if r <= cumulative:
+                    chosen = num
+                    break
+            pipe.hincrby(count_key, str(chosen), 1)
+        pipe.expire(count_key, _VOTE_COUNT_TTL)
+        pipe.execute()
+
+        logger.info(f"Generated {total_votes} dummy votes for {race_id}")
+    except Exception:
+        logger.exception(f"_ensure_dummy_votes failed: {race_id}")
+        # Release the flag so a subsequent call can retry
+        try:
+            _redis_votes.delete(flag_key)
+        except Exception:
+            pass
 
 
 class VoteRequest(BaseModel):
@@ -454,7 +523,18 @@ class VoteRequest(BaseModel):
 
 @app.post("/api/votes/{race_id}")
 def api_vote(race_id: str, req: VoteRequest, authorization: str = Header(default="")):
-    """Submit or change a vote for a race. Requires authentication."""
+    """Submit or change a vote for a race. Requires authentication.
+
+    Guarantees:
+      * race_id format is validated (rejects Redis key injection)
+      * horse_number is validated against the real entries list (even when
+        the in-memory matrix cache is cold)
+      * votes are refused after the race has started (JST)
+      * the odds at the moment of voting are snapshotted so the mypage ROI
+        display reflects the price the user actually bet at
+    """
+    _assert_valid_race_id(race_id)
+
     user = _get_user_from_token(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="ログインが必要です")
@@ -463,38 +543,65 @@ def api_vote(race_id: str, req: VoteRequest, authorization: str = Header(default
     if not user_id:
         raise HTTPException(status_code=401, detail="ユーザー情報が不正です")
 
-    # Check horse_number validity from matrix cache
-    cached = _matrix_cache.get(race_id)
-    if cached:
-        valid_numbers = {h["horse_number"] for h in cached[1].get("horses", [])}
-        if req.horse_number not in valid_numbers:
-            raise HTTPException(status_code=400, detail="不正な馬番です")
+    # Validate horse number against the actual race (cache or disk).
+    valid_numbers, race_data = _get_valid_horse_numbers(race_id)
+    if not valid_numbers:
+        raise HTTPException(status_code=404, detail="レースが見つかりません")
+    if req.horse_number not in valid_numbers:
+        raise HTTPException(status_code=400, detail="不正な馬番です")
+
+    # Enforce voting cut-off at race start time.
+    date_str = race_id.split("-")[0] if "-" in race_id else ""
+    if race_data is None:
+        race_data = get_race_entries(date_str, race_id) if date_str else None
+    start_dt = _parse_start_datetime(date_str, (race_data or {}).get("start_time", ""))
+    if start_dt and datetime.now(JST) >= start_dt:
+        raise HTTPException(status_code=403, detail="発走時刻を過ぎたため投票できません")
+
+    # Capture odds snapshot for this user+race (used by ROI history).
+    odds_snapshot = 0.0
+    if race_data:
+        for e in race_data.get("entries", []):
+            if e.get("horse_number") == req.horse_number:
+                try:
+                    odds_snapshot = float(e.get("odds", 0.0) or 0.0)
+                except (ValueError, TypeError):
+                    odds_snapshot = 0.0
+                break
 
     vote_key = f"{_VOTE_KEY_PREFIX}:{race_id}"
     count_key = f"{_VOTE_KEY_PREFIX}:count:{race_id}"
 
-    # Check if user already voted (for count adjustment)
+    # Adjust aggregate count atomically using a pipeline
     prev = _redis_votes.hget(vote_key, user_id)
+    pipe = _redis_votes.pipeline(transaction=True)
     if prev:
-        _redis_votes.hincrby(count_key, prev, -1)
+        pipe.hincrby(count_key, prev, -1)
+    pipe.hset(vote_key, user_id, str(req.horse_number))
+    pipe.hincrby(count_key, str(req.horse_number), 1)
+    pipe.expire(vote_key, _VOTE_COUNT_TTL)
+    pipe.expire(count_key, _VOTE_COUNT_TTL)
 
-    # Save vote and update count
-    _redis_votes.hset(vote_key, user_id, str(req.horse_number))
-    _redis_votes.hincrby(count_key, str(req.horse_number), 1)
-    _redis_votes.expire(vote_key, _DUMMY_TTL)
-    _redis_votes.expire(count_key, _DUMMY_TTL)
-
-    # Track user's vote history (sorted set: race_id -> horse_number)
+    # User history (race_id → horse_number) with odds snapshot.
     history_key = f"{_VOTE_KEY_PREFIX}:history:{user_id}"
-    _redis_votes.hset(history_key, race_id, str(req.horse_number))
-    _redis_votes.expire(history_key, _DUMMY_TTL)
+    odds_snap_key = f"{_VOTE_KEY_PREFIX}:odds:{user_id}"
+    pipe.hset(history_key, race_id, str(req.horse_number))
+    pipe.expire(history_key, _VOTE_HISTORY_TTL)
+    pipe.hset(odds_snap_key, race_id, f"{odds_snapshot:.1f}")
+    pipe.expire(odds_snap_key, _VOTE_HISTORY_TTL)
+    pipe.execute()
 
-    return {"success": True, "horse_number": req.horse_number}
+    return {
+        "success": True,
+        "horse_number": req.horse_number,
+        "odds_at_vote": round(odds_snapshot, 1),
+    }
 
 
 @app.get("/api/votes/{race_id}/results")
 def api_vote_results(race_id: str, authorization: str = Header(default="")):
     """Get vote results for a race."""
+    _assert_valid_race_id(race_id)
     _ensure_dummy_votes(race_id)
 
     count_key = f"{_VOTE_KEY_PREFIX}:count:{race_id}"
@@ -558,71 +665,201 @@ def api_vote_results(race_id: str, authorization: str = Header(default="")):
     }
 
 
+def _parse_race_id(race_id: str) -> tuple[str, str, str]:
+    """Split a race_id into (date, venue, race_number) strings.
+
+    Returns empty strings for components that cannot be parsed. This is
+    robust against legacy ids with unusual venue characters.
+    """
+    if not race_id or "-" not in race_id:
+        return "", "", ""
+    parts = race_id.split("-")
+    date_str = parts[0] if parts and len(parts[0]) == 8 and parts[0].isdigit() else ""
+    venue = parts[1] if len(parts) > 1 else ""
+    race_num = parts[2] if len(parts) > 2 else ""
+    return date_str, venue, race_num
+
+
 @app.get("/api/votes/my-history")
 def api_my_vote_history(authorization: str = Header(default="")):
-    """Get current user's vote history with ROI calculation."""
+    """Return the current user's vote history with automatic ROI tracking.
+
+    Per-vote lookup flow:
+      1. Load the odds snapshot captured when the user voted (falls back to
+         current prefetch odds if the snapshot is missing)
+      2. Look up the cached race result (populated by
+         `scripts/update_race_results.py` cron — this endpoint never scrapes)
+      3. Assign status: hit / miss / cancelled / hit_no_payout / pending
+      4. Accumulate hits, total_return, finalized and cancelled counters
+
+    Hit rate and ROI are computed against *finalised* races only (pending and
+    cancelled are excluded) so unresolved bets don't drag the metrics down.
+    Cancelled races refund the stake so they neither credit nor debit ROI.
+    """
     user = _get_user_from_token(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="ログインが必要です")
 
     user_id = user.get("line_user_id", "")
     history_key = f"{_VOTE_KEY_PREFIX}:history:{user_id}"
+    odds_snap_key = f"{_VOTE_KEY_PREFIX}:odds:{user_id}"
     raw = _redis_votes.hgetall(history_key)
-    if not raw:
-        return {"history": [], "total_races": 0, "hits": 0, "hit_rate": 0, "roi": 0}
 
-    history = []
-    total_bet = 0
+    if not raw:
+        return {
+            "history": [],
+            "total_races": 0,
+            "hits": 0,
+            "hit_rate": 0,
+            "roi": 0,
+            "total_bet": 0,
+            "total_return": 0,
+            "finalized_count": 0,
+            "pending_count": 0,
+            "cancelled_count": 0,
+        }
+
+    # Fetch all odds snapshots in one roundtrip
+    try:
+        odds_snapshots = _redis_votes.hgetall(odds_snap_key) or {}
+    except Exception:
+        odds_snapshots = {}
+
+    # Group race_ids by date so each prefetch file is read only once
+    by_date: dict[str, list[tuple[str, int]]] = {}
+    for race_id, horse_number_str in raw.items():
+        try:
+            hn = int(horse_number_str)
+        except ValueError:
+            continue
+        date_str, _, _ = _parse_race_id(race_id)
+        by_date.setdefault(date_str, []).append((race_id, hn))
+
+    history: list[dict] = []
     total_return = 0
     hits = 0
+    finalized_count = 0
+    pending_count = 0
+    cancelled_count = 0
 
-    for race_id, horse_number_str in raw.items():
-        horse_number = int(horse_number_str)
-        date_str = race_id.split("-")[0] if "-" in race_id else ""
-        venue = race_id.split("-")[1] if "-" in race_id else ""
-        race_num_str = race_id.split("-")[2] if race_id.count("-") >= 2 else ""
+    for date_str, rows in by_date.items():
+        # Cache odds per race in this date using a single prefetch read
+        odds_by_race: dict[str, dict[int, float]] = {}
 
-        # Get race info
-        race_data = get_race_entries(date_str, race_id) if date_str else None
-        race_name = race_data.get("race_name", "") if race_data else ""
-        entry = None
-        if race_data:
-            entry = next((e for e in race_data.get("entries", []) if e["horse_number"] == horse_number), None)
+        for race_id, horse_number in rows:
+            _, venue, race_num_str = _parse_race_id(race_id)
+            race_data = get_race_entries(date_str, race_id) if date_str else None
+            race_name = race_data.get("race_name", "") if race_data else ""
 
-        horse_name = entry["horse_name"] if entry else f"馬番{horse_number}"
+            entry = None
+            if race_data:
+                entry = next(
+                    (e for e in race_data.get("entries", []) if e["horse_number"] == horse_number),
+                    None,
+                )
+            horse_name = entry["horse_name"] if entry else f"馬番{horse_number}"
 
-        # Get odds for the horse
-        odds = 0.0
-        if entry:
-            odds = entry.get("odds", 0.0) or 0.0
+            # Prefer the snapshot taken at vote time
+            odds_val = 0.0
+            snap = odds_snapshots.get(race_id)
+            if snap:
+                try:
+                    odds_val = float(snap)
+                except ValueError:
+                    odds_val = 0.0
+            if odds_val <= 0 and entry:
+                try:
+                    odds_val = float(entry.get("odds", 0.0) or 0.0)
+                except (ValueError, TypeError):
+                    odds_val = 0.0
+            if odds_val <= 0 and race_id not in odds_by_race:
+                # Last-resort fallback: prefetch odds map (covers races where
+                # the entries list was sparse at vote time)
+                try:
+                    odds_by_race[race_id] = get_odds_from_prefetch(date_str, race_id)
+                except Exception:
+                    odds_by_race[race_id] = {}
+            if odds_val <= 0:
+                try:
+                    odds_val = float(odds_by_race.get(race_id, {}).get(horse_number, 0.0))
+                except (ValueError, TypeError):
+                    odds_val = 0.0
 
-        # Check race result (1st place finish)
-        # Result is not yet available for future races
-        result_status = "pending"  # pending, hit, miss
-        payout = 0
+            # Result lookup (Redis only — no network I/O)
+            race_result = get_cached_race_result(race_id)
+            result_status = "pending"
+            payout = 0
 
-        # For now, all current races are "pending" (results not yet available)
-        # In the future, integrate race results API
-        total_bet += 100
+            if race_result:
+                if race_result.get("cancelled"):
+                    result_status = "cancelled"
+                    cancelled_count += 1
+                elif race_result.get("finalized"):
+                    finalized_count += 1
+                    winners = race_result.get("winner_horse_numbers")
+                    if winners is None and "winner_horse_number" in race_result:
+                        # Backward-compat with the earlier single-winner schema
+                        winners = [race_result["winner_horse_number"]]
+                    winners = set(winners or [])
 
-        history.append({
-            "race_id": race_id,
-            "date": f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:8]}" if len(date_str) == 8 else date_str,
-            "venue": venue,
-            "race_number": race_num_str,
-            "race_name": race_name,
-            "horse_number": horse_number,
-            "horse_name": horse_name,
-            "odds": odds,
-            "result": result_status,
-            "payout": payout,
-        })
+                    if horse_number in winners:
+                        payouts = race_result.get("win_payouts") or {}
+                        try:
+                            payout = int(payouts.get(str(horse_number), 0) or 0)
+                        except (ValueError, TypeError):
+                            payout = 0
+                        # Backward compat with old "win_payout" scalar
+                        if payout <= 0 and "win_payout" in race_result:
+                            try:
+                                payout = int(race_result.get("win_payout", 0) or 0)
+                            except (ValueError, TypeError):
+                                payout = 0
+                        if payout > 0:
+                            result_status = "hit"
+                            total_return += payout
+                            hits += 1
+                        else:
+                            # Parsed a hit but couldn't extract payout — still
+                            # count it as a hit for stats purposes; profit
+                            # display is suppressed on the frontend.
+                            result_status = "hit_no_payout"
+                            hits += 1
+                    else:
+                        result_status = "miss"
+                else:
+                    pending_count += 1
+            else:
+                pending_count += 1
 
-    # Sort by date descending
-    history.sort(key=lambda x: x["date"], reverse=True)
+            history.append({
+                "race_id": race_id,
+                "date": (
+                    f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:8]}"
+                    if len(date_str) == 8 else date_str
+                ),
+                "venue": venue,
+                "race_number": race_num_str,
+                "race_name": race_name,
+                "horse_number": horse_number,
+                "horse_name": horse_name,
+                "odds": round(odds_val, 1),
+                "result": result_status,
+                "payout": payout,
+            })
 
-    hit_rate = round(hits / len(history) * 100, 1) if history else 0
-    roi = round(total_return / total_bet * 100, 1) if total_bet > 0 else 0
+    # Sort by date desc, then race number desc (stable ordering)
+    def _sort_key(h: dict) -> tuple[str, int]:
+        try:
+            rn = int(h.get("race_number") or 0)
+        except (ValueError, TypeError):
+            rn = 0
+        return (h.get("date", ""), rn)
+
+    history.sort(key=_sort_key, reverse=True)
+
+    total_bet_finalized = finalized_count * 100
+    hit_rate = round(hits / finalized_count * 100, 1) if finalized_count > 0 else 0
+    roi = round(total_return / total_bet_finalized * 100, 1) if total_bet_finalized > 0 else 0
 
     return {
         "history": history,
@@ -630,8 +867,11 @@ def api_my_vote_history(authorization: str = Header(default="")):
         "hits": hits,
         "hit_rate": hit_rate,
         "roi": roi,
-        "total_bet": total_bet,
+        "total_bet": total_bet_finalized,
         "total_return": total_return,
+        "finalized_count": finalized_count,
+        "pending_count": pending_count,
+        "cancelled_count": cancelled_count,
     }
 
 

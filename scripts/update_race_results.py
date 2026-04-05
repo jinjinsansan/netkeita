@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""Fetch race results from netkeiba and cache them in Redis.
+
+Runs as a cron after JRA/NAR race cards finish (e.g. 17:00, 20:00, 23:30 JST).
+Reads each day's prefetch file, then scrapes the netkeiba result page for
+every race that isn't yet cached. Populates the cache consumed by
+`/api/votes/my-history` so ROI / hit-rate become live.
+
+Features:
+    * Dead-heat aware (multiple winners per race)
+    * Cancelled race detection (marks but does not retry)
+    * Per-run flock to prevent concurrent cron overlap
+    * Negative-cache aware (honours the scraper's retry-later marker)
+
+Usage:
+    python scripts/update_race_results.py              # today (JST)
+    python scripts/update_race_results.py 20260405     # a specific date
+    python scripts/update_race_results.py --days 3     # last 3 days (for catch-up)
+    python scripts/update_race_results.py --days 7 --force   # re-scrape even cached
+"""
+
+import json
+import logging
+import os
+import sys
+import tempfile
+import time
+from datetime import datetime, timedelta, timezone
+
+_API_ROOT = "/opt/dlogic/netkeita-api"
+if os.path.isdir(_API_ROOT) and _API_ROOT not in sys.path:
+    sys.path.insert(0, _API_ROOT)
+else:
+    # Local dev fallback: services live one level up
+    _LOCAL_API = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "api"))
+    if _LOCAL_API not in sys.path:
+        sys.path.insert(0, _LOCAL_API)
+
+from services.race_results import (  # noqa: E402
+    fetch_result_from_netkeiba,
+    get_cached_result,
+    save_result,
+)
+
+JST = timezone(timedelta(hours=9))
+PREFETCH_DIR = os.environ.get(
+    "PREFETCH_DIR", "/opt/dlogic/linebot/data/prefetch"
+)
+_LOCK_PATH = os.environ.get(
+    "UPDATE_RACE_RESULTS_LOCK",
+    os.path.join(tempfile.gettempdir(), "netkeita_update_race_results.lock"),
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("update_race_results")
+
+
+def _today_jst() -> str:
+    return datetime.now(JST).strftime("%Y%m%d")
+
+
+def _format_winners(result: dict) -> str:
+    """Render a human-readable winners/payouts description for logs."""
+    if result.get("cancelled"):
+        return "CANCELLED"
+    winners = result.get("winner_horse_numbers") or []
+    if not winners and "winner_horse_number" in result:
+        winners = [result["winner_horse_number"]]
+    payouts = result.get("win_payouts") or {}
+    parts = []
+    for n in winners:
+        p = payouts.get(str(n), result.get("win_payout", 0))
+        parts.append(f"#{n}={p}円")
+    return ", ".join(parts) or "UNKNOWN"
+
+
+def process_date(date_str: str, force: bool = False) -> None:
+    """Scrape results for every race on `date_str` and cache them."""
+    path = os.path.join(PREFETCH_DIR, f"races_{date_str}.json")
+    if not os.path.exists(path):
+        logger.warning(f"prefetch not found: {path}")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    races = data.get("races", []) if isinstance(data, dict) else []
+    if not races:
+        logger.info(f"date={date_str} no races in prefetch")
+        return
+
+    fetched = 0
+    cancelled = 0
+    skipped = 0
+    not_ready = 0
+    total = 0
+
+    for r in races:
+        race_id = r.get("race_id", "")
+        race_id_nk = r.get("race_id_netkeiba", "")
+        is_local = bool(r.get("is_local"))
+        venue = r.get("venue", "")
+        rno = r.get("race_number", "?")
+
+        if not race_id or not race_id_nk:
+            continue
+        total += 1
+
+        if not force:
+            cached = get_cached_result(race_id)
+            if cached and (cached.get("finalized") or cached.get("cancelled")):
+                skipped += 1
+                continue
+
+        try:
+            # --force bypasses the short-TTL negative cache so operators can
+            # drive manual retries after fixing upstream issues.
+            result = fetch_result_from_netkeiba(
+                race_id_nk,
+                is_local=is_local,
+                skip_negative_cache=force,
+            )
+        except Exception:
+            logger.exception(f"  {venue} {rno}R: scrape error")
+            not_ready += 1
+            time.sleep(0.6)
+            continue
+
+        if result:
+            save_result(race_id, result)
+            if result.get("cancelled"):
+                cancelled += 1
+                logger.info(f"  {venue} {rno}R: CANCELLED")
+            else:
+                fetched += 1
+                logger.info(f"  {venue} {rno}R: {_format_winners(result)}")
+        else:
+            not_ready += 1
+            logger.info(f"  {venue} {rno}R: not finalised yet")
+
+        time.sleep(0.6)  # polite throttle
+
+    logger.info(
+        f"date={date_str} total={total} fetched={fetched} cancelled={cancelled} "
+        f"cached_already={skipped} not_finalised={not_ready}"
+    )
+
+
+def _parse_args(argv: list[str]) -> tuple[list[str], bool]:
+    """Return (dates, force_flag)."""
+    force = False
+    days_n: int | None = None
+    explicit_date: str | None = None
+
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--days":
+            if i + 1 < len(argv):
+                try:
+                    days_n = int(argv[i + 1])
+                except ValueError:
+                    days_n = 3
+                i += 2
+                continue
+        elif a == "--force":
+            force = True
+            i += 1
+            continue
+        elif a.isdigit() and len(a) == 8:
+            explicit_date = a
+            i += 1
+            continue
+        i += 1
+
+    if explicit_date:
+        return [explicit_date], force
+    if days_n and days_n > 0:
+        today = datetime.now(JST).date()
+        return [(today - timedelta(days=k)).strftime("%Y%m%d") for k in range(days_n)], force
+    return [_today_jst()], force
+
+
+def _acquire_lock():
+    """Create an exclusive advisory lock so cron can't stampede itself.
+
+    Uses fcntl on POSIX; falls back to a no-op on platforms without it
+    (e.g. Windows dev boxes) with a best-effort stale-PID file check.
+    Returns the opened file handle (must be kept alive for the run) or
+    None if another instance holds the lock.
+    """
+    lock_file = open(_LOCK_PATH, "a+")
+    try:
+        import fcntl  # type: ignore
+        try:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            lock_file.close()
+            return None
+    except ImportError:
+        # Windows: degrade to PID file
+        try:
+            lock_file.seek(0)
+            existing = lock_file.read().strip()
+            if existing and existing.isdigit():
+                logger.warning(
+                    f"lock file present (pid={existing}); "
+                    "concurrent run not fully prevented on this platform"
+                )
+            lock_file.seek(0)
+            lock_file.truncate()
+            lock_file.write(str(os.getpid()))
+            lock_file.flush()
+        except Exception:
+            pass
+    return lock_file
+
+
+def main() -> None:
+    lock = _acquire_lock()
+    if lock is None:
+        logger.warning("another update_race_results instance is running; exiting")
+        sys.exit(0)
+
+    try:
+        dates, force = _parse_args(sys.argv[1:])
+        logger.info(
+            f"=== update_race_results start dates={dates} force={force} "
+            f"prefetch_dir={PREFETCH_DIR} ==="
+        )
+        for d in dates:
+            process_date(d, force=force)
+        logger.info("=== done ===")
+    finally:
+        try:
+            lock.close()
+        except Exception:
+            pass
+
+
+if __name__ == "__main__":
+    main()

@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import time
 from datetime import datetime, timezone, timedelta
 
 import httpx
@@ -14,6 +15,13 @@ logger = logging.getLogger(__name__)
 JST = timezone(timedelta(hours=9))
 _client = httpx.Client(timeout=30)
 _async_client = httpx.AsyncClient(timeout=30)
+
+# ── Prefetch memoisation ─────────────────────────────────────────────────────
+# Reading the race_YYYYMMDD.json files from disk is cheap but not free, and
+# mypage/ROI handlers issue dozens of lookups per request. Cache each file
+# with a short TTL + mtime check so freshly-scraped odds are still picked up.
+_PREFETCH_MEM_CACHE: dict[str, tuple[float, float, dict | None]] = {}
+_PREFETCH_MEM_TTL = 60  # seconds
 
 
 def get_today_str() -> str:
@@ -66,16 +74,46 @@ def get_available_dates() -> list[str]:
 
 
 def load_prefetch(date_str: str) -> dict | None:
+    """Load the prefetch JSON for a date with an in-process TTL cache.
+
+    The cache entry is invalidated when the on-disk mtime changes, so
+    odds / track_condition cron jobs are reflected immediately.
+    """
     path = os.path.join(PREFETCH_DIR, f"races_{date_str}.json")
     if not os.path.exists(path):
         logger.warning(f"Prefetch not found: {path}")
         return None
+
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        mtime = 0.0
+
+    now = time.time()
+    cached = _PREFETCH_MEM_CACHE.get(date_str)
+    if cached:
+        ts, cached_mtime, data = cached
+        if (now - ts) < _PREFETCH_MEM_TTL and cached_mtime == mtime:
+            return data
+
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except Exception:
         logger.exception(f"Failed to load prefetch: {path}")
+        _PREFETCH_MEM_CACHE[date_str] = (now, mtime, None)
         return None
+
+    _PREFETCH_MEM_CACHE[date_str] = (now, mtime, data)
+    return data
+
+
+def invalidate_prefetch_cache(date_str: str | None = None) -> None:
+    """Drop the in-memory prefetch cache (all dates if `date_str` is None)."""
+    if date_str is None:
+        _PREFETCH_MEM_CACHE.clear()
+    else:
+        _PREFETCH_MEM_CACHE.pop(date_str, None)
 
 
 def get_races(date_str: str) -> list[dict]:
@@ -103,7 +141,12 @@ def get_races(date_str: str) -> list[dict]:
 
 
 def get_race_entries(date_str: str, race_id: str) -> dict | None:
-    """Get entries for a specific race from prefetch."""
+    """Get entries for a specific race from prefetch.
+
+    Each entry dict contains horse_number / horse_name / jockey / post / odds.
+    The top-level dict also exposes start_time so callers can enforce a
+    voting cut-off.
+    """
     pf = load_prefetch(date_str)
     if not pf:
         return None
@@ -115,12 +158,18 @@ def get_race_entries(date_str: str, race_id: str) -> dict | None:
             nums = r.get("horse_numbers", [])
             jockeys = r.get("jockeys", [])
             posts = r.get("posts", [])
+            odds_list = r.get("odds", [])
             for i in range(len(horses)):
+                try:
+                    odds_val = float(odds_list[i]) if i < len(odds_list) and odds_list[i] else 0.0
+                except (TypeError, ValueError):
+                    odds_val = 0.0
                 entries.append({
                     "horse_number": nums[i] if i < len(nums) else i + 1,
                     "horse_name": horses[i],
                     "jockey": jockeys[i] if i < len(jockeys) else "",
                     "post": posts[i] if i < len(posts) else 0,
+                    "odds": odds_val,
                 })
             return {
                 "race_id": race_id,
@@ -131,6 +180,7 @@ def get_race_entries(date_str: str, race_id: str) -> dict | None:
                 "race_number": r.get("race_number", 0),
                 "track_condition": r.get("track_condition", ""),
                 "is_local": r.get("is_local", False),
+                "start_time": r.get("start_time", ""),
                 "entries": entries,
             }
     return None

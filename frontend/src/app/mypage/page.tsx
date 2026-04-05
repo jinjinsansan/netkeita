@@ -1,18 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { fetchMyVoteHistory } from "@/lib/api";
-import type { VoteHistory } from "@/lib/api";
+import type { VoteHistory, VoteResultStatus } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
-import { ENABLE_MINNA } from "@/lib/feature-flags";
 
 export default function MyPage() {
-  if (!ENABLE_MINNA) {
-    redirect("/");
-  }
   return (
     <AuthGuard>
       <MyPageContent />
@@ -20,23 +15,56 @@ export default function MyPage() {
   );
 }
 
-const RESULT_LABEL: Record<string, { text: string; color: string; bg: string }> = {
+const RESULT_LABEL: Record<VoteResultStatus, { text: string; color: string; bg: string }> = {
   hit: { text: "的中", color: "#E53935", bg: "#fce4ec" },
+  hit_no_payout: { text: "的中", color: "#E53935", bg: "#fce4ec" },
   miss: { text: "不的中", color: "#9E9E9E", bg: "#f5f5f5" },
   pending: { text: "結果待ち", color: "#F57C00", bg: "#fff3e0" },
+  cancelled: { text: "中止", color: "#607D8B", bg: "#eceff1" },
 };
+
+// Auto-refresh interval: 60 seconds. Keeps pending races up-to-date after
+// the cron (`scripts/update_race_results.py`) populates their results.
+const REFRESH_INTERVAL_MS = 60_000;
 
 function MyPageContent() {
   const { user } = useAuth();
   const [data, setData] = useState<VoteHistory | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const load = useCallback(async () => {
+    const d = await fetchMyVoteHistory();
+    setData(d);
+    setLastUpdated(new Date());
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    fetchMyVoteHistory().then((d) => {
-      setData(d);
-      setLoading(false);
-    });
-  }, []);
+    load();
+  }, [load]);
+
+  // Periodic refresh so pending rows become finalised without a manual reload.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        load();
+      }
+    }, REFRESH_INTERVAL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        load();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load]);
+
+  const formatTime = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
   return (
     <div className="max-w-[960px] mx-auto px-4 py-6">
@@ -85,7 +113,7 @@ function MyPageContent() {
       ) : (
         <>
           {/* Stats cards */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-3 gap-3 mb-3">
             <div className="bg-white border border-[#d0d0d0] rounded-lg p-4 text-center shadow-sm">
               <div className="text-2xl font-black text-[#1f7a1f]">
                 {data.total_races}
@@ -106,11 +134,29 @@ function MyPageContent() {
             </div>
           </div>
 
+          {/* Breakdown: confirmed vs pending */}
+          <div className="flex items-center justify-center gap-3 text-[10px] text-[#888] mb-3">
+            <span>確定: <b className="text-[#333]">{data.finalized_count}</b>件</span>
+            <span className="text-[#ddd]">|</span>
+            <span>結果待ち: <b className="text-[#F57C00]">{data.pending_count}</b>件</span>
+            {data.cancelled_count > 0 && (
+              <>
+                <span className="text-[#ddd]">|</span>
+                <span>中止: <b className="text-[#607D8B]">{data.cancelled_count}</b>件</span>
+              </>
+            )}
+          </div>
+
           {/* Explanation */}
           <div className="bg-[#f8f8f8] border border-dashed border-[#d0d0d0] rounded-lg p-3 mb-5">
             <p className="text-[11px] text-[#888] leading-relaxed">
               回収率は本命馬の単勝100円購入を想定して計算しています。
-              レース確定後に結果が反映されます。
+              的中率・回収率は結果確定済みのレースのみで集計されます。
+              {lastUpdated && (
+                <span className="block mt-1 text-[10px] text-[#aaa]">
+                  最終更新: {formatTime(lastUpdated)}
+                </span>
+              )}
             </p>
           </div>
 
@@ -123,22 +169,25 @@ function MyPageContent() {
           <div className="space-y-2">
             {data.history.map((h) => {
               const r = RESULT_LABEL[h.result] || RESULT_LABEL.pending;
+              const isHit = h.result === "hit" || h.result === "hit_no_payout";
+              const profit = h.result === "hit" && h.payout > 0 ? h.payout - 100 : null;
               return (
                 <Link
                   key={h.race_id}
                   href={`/race/${encodeURIComponent(h.race_id)}`}
                   className="block bg-white border border-[#d0d0d0] rounded-lg p-3 hover:border-[#1f7a1f] transition shadow-sm"
+                  aria-label={`${h.date} ${h.venue} ${h.race_number}R ${h.horse_name} ${r.text}`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-[#999]">{h.date}</span>
-                      <span className="text-xs font-bold text-[#333]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] text-[#999] shrink-0">{h.date}</span>
+                      <span className="text-xs font-bold text-[#333] shrink-0">
                         {h.venue} {h.race_number}R
                       </span>
-                      <span className="text-[11px] text-[#666]">{h.race_name}</span>
+                      <span className="text-[11px] text-[#666] truncate">{h.race_name}</span>
                     </div>
                     <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded"
+                      className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
                       style={{ color: r.color, backgroundColor: r.bg }}
                     >
                       {r.text}
@@ -159,9 +208,19 @@ function MyPageContent() {
                           {h.odds}倍
                         </span>
                       )}
-                      {h.result === "hit" && (
+                      {profit !== null && (
                         <span className="text-xs font-bold text-[#E53935] ml-2">
-                          +{h.payout - 100}円
+                          +{profit}円
+                        </span>
+                      )}
+                      {isHit && profit === null && (
+                        <span className="text-[10px] font-bold text-[#E53935] ml-2">
+                          (配当情報未取得)
+                        </span>
+                      )}
+                      {h.result === "cancelled" && (
+                        <span className="text-[10px] text-[#607D8B] ml-2">
+                          投票無効・返還
                         </span>
                       )}
                     </div>

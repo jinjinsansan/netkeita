@@ -225,7 +225,7 @@ export async function fetchVoteResults(raceId: string): Promise<VoteResults | nu
 export async function submitVote(
   raceId: string,
   horseNumber: number
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; oddsAtVote?: number }> {
   if (!API_URL) return { success: false, error: "API unavailable" };
   try {
     const token = getToken();
@@ -242,11 +242,19 @@ export async function submitVote(
       const data = await res.json().catch(() => ({}));
       return { success: false, error: data.detail || "投票に失敗しました" };
     }
-    return { success: true };
+    const data = await res.json().catch(() => ({}));
+    return { success: true, oddsAtVote: typeof data.odds_at_vote === "number" ? data.odds_at_vote : undefined };
   } catch {
     return { success: false, error: "通信エラーが発生しました" };
   }
 }
+
+export type VoteResultStatus =
+  | "pending"
+  | "hit"
+  | "miss"
+  | "hit_no_payout"
+  | "cancelled";
 
 export interface VoteHistoryEntry {
   race_id: string;
@@ -257,7 +265,7 @@ export interface VoteHistoryEntry {
   horse_number: number;
   horse_name: string;
   odds: number;
-  result: "pending" | "hit" | "miss";
+  result: VoteResultStatus;
   payout: number;
 }
 
@@ -269,6 +277,9 @@ export interface VoteHistory {
   roi: number;
   total_bet: number;
   total_return: number;
+  finalized_count: number;
+  pending_count: number;
+  cancelled_count: number;
 }
 
 export async function fetchMyVoteHistory(): Promise<VoteHistory | null> {

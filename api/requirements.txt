@@ -2,3 +2,14 @@ fastapi>=0.115.0
 uvicorn>=0.32.0
 httpx>=0.27.0
 python-dotenv>=1.0.0
+# Used by services/rewriter.py
+anthropic>=0.34.0
+# Used by services/supabase_client.py
+supabase>=2.4.0
+# Used by services/course_stats_scraper.py, services/race_results.py
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+# Used by services/data_fetcher.py (Redis cache), services/race_results.py,
+# scripts/update_race_results.py, and vote-count storage in main.py
+redis>=5.0.0

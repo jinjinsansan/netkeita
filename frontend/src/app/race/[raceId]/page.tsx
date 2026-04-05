@@ -5,11 +5,9 @@ import { useParams } from "next/navigation";
 import { fetchMatrix } from "@/lib/api";
 import type { RaceMatrix } from "@/lib/types";
 import RankMatrix from "@/components/RankMatrix";
-import InternetPredictionDrawer from "@/components/InternetPredictionDrawer";
 import MinnaVoteDrawer from "@/components/MinnaVoteDrawer";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
-import { ENABLE_MINNA } from "@/lib/feature-flags";
 
 export default function RacePage() {
   return (
@@ -24,7 +22,7 @@ function RaceContent() {
   const raceId = decodeURIComponent(params.raceId as string);
   const [matrix, setMatrix] = useState<RaceMatrix | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showInetPred, setShowInetPred] = useState(false);
+  const [showVote, setShowVote] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,8 +73,6 @@ function RaceContent() {
         const badgeBg = isLocal ? "bg-[#ba68c8] text-[#4a148c]" : "bg-[#4ade80] text-[#163016]";
         const btnText = isLocal ? "text-[#4a148c]" : "text-[#163016]";
         const btnBg = isLocal ? "bg-[#ba68c8] hover:bg-[#ce93d8]" : "bg-[#4ade80] hover:bg-[#6ee7a0]";
-        // For NAR, internet prediction is JRA-only so hide it. Minna no Yosou works for both.
-        const showPredButton = ENABLE_MINNA || !isLocal;
         return (
           <div className="border border-[#bbb] rounded bg-white mb-3 shadow-sm">
             <div className={`flex items-center justify-between px-3 py-2.5 border-b border-[#d0d0d0] ${headerBg}`}>
@@ -89,14 +85,12 @@ function RaceContent() {
                 )}
                 <h1 className="text-sm font-bold text-white">{matrix.race_name}</h1>
               </div>
-              {showPredButton && (
-                <button
-                  onClick={() => setShowInetPred(true)}
-                  className={`text-[10px] font-bold ${btnText} ${btnBg} px-2.5 py-1 rounded transition shrink-0`}
-                >
-                  {ENABLE_MINNA ? "みんなの予想" : "ネット予想"}
-                </button>
-              )}
+              <button
+                onClick={() => setShowVote(true)}
+                className={`text-[10px] font-bold ${btnText} ${btnBg} px-2.5 py-1 rounded transition shrink-0`}
+              >
+                みんなの予想
+              </button>
             </div>
             <div className="px-3 py-2 text-[11px] text-[#444] font-medium flex flex-wrap gap-x-3">
               <span>{matrix.venue}</span>
@@ -136,19 +130,14 @@ function RaceContent() {
         ※ 各項目は出走馬全頭の相対順位でランク付け。ヘッダーをタップでソート切替。
       </p>
 
-      {/* Prediction / Vote Drawer */}
-      {showInetPred && (ENABLE_MINNA ? (
+      {/* Minna-no-Yosou vote drawer */}
+      {showVote && (
         <MinnaVoteDrawer
           raceId={raceId}
           horses={matrix.horses}
-          onClose={() => setShowInetPred(false)}
+          onClose={() => setShowVote(false)}
         />
-      ) : matrix.race_name && (
-        <InternetPredictionDrawer
-          raceName={matrix.race_name}
-          onClose={() => setShowInetPred(false)}
-        />
-      ))}
+      )}
     </div>
   );
 }
