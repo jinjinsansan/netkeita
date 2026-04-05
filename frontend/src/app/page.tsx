@@ -3,9 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import RankBadge from "@/components/RankBadge";
+import ArticleCard from "@/components/ArticleCard";
 import type { Grade, RaceSummary } from "@/lib/types";
-import { fetchDates, fetchRaces, getLineLoginUrl } from "@/lib/api";
+import type { ArticleSummary } from "@/lib/api";
+import { fetchDates, fetchRaces, fetchArticles, getLineLoginUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+
+// How many latest articles to surface on the top page. 6 fits a 3-column
+// grid on desktop and a 2-column grid on tablets without looking sparse.
+const TOP_LATEST_ARTICLES_LIMIT = 6;
 
 /* ── Venue tab ordering ─── */
 const JRA_VENUE_ORDER = ["中山", "阪神", "中京", "東京", "京都", "小倉", "新潟", "札幌", "函館", "福島"];
@@ -80,6 +86,7 @@ export default function LandingPage() {
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const [selectedVenue, setSelectedVenue] = useState("");
   const [loading, setLoading] = useState(true);
+  const [latestArticles, setLatestArticles] = useState<ArticleSummary[] | null>(null);
 
   const handleLineLogin = async () => {
     try {
@@ -116,6 +123,20 @@ export default function LandingPage() {
         console.error("Failed to fetch races:", e);
       } finally {
         setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Fetch the latest articles in parallel with races. Failures are silent
+  // because the section is hidden entirely when no articles are available.
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await fetchArticles(false);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- data-fetch pattern
+        setLatestArticles(list.slice(0, TOP_LATEST_ARTICLES_LIMIT));
+      } catch {
+        setLatestArticles([]);
       }
     })();
   }, []);
@@ -372,6 +393,37 @@ export default function LandingPage() {
           )}
         </div>
       </section>
+
+      {/* ── Latest Articles Section ─────────────────── */}
+      {/* Hidden entirely until we have at least one published article, so the
+          TOP page stays clean until content lands. */}
+      {latestArticles && latestArticles.length > 0 && (
+        <section id="latest-articles" className="bg-[#fafafa] py-12 md:py-16 border-t border-[#ececec]">
+          <div className="max-w-[960px] mx-auto px-5">
+            <div className="flex items-end justify-between mb-6 md:mb-8">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-[#111]">
+                  最新記事
+                </h2>
+                <p className="mt-1 text-xs md:text-sm text-[#666]">
+                  netkeita 編集部が書き下ろす、競馬予想と分析コラム
+                </p>
+              </div>
+              <Link
+                href="/articles"
+                className="shrink-0 text-xs md:text-sm font-bold text-[#1f7a1f] hover:text-[#16611a] transition"
+              >
+                すべて見る →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {latestArticles.map((a) => (
+                <ArticleCard key={a.slug} article={a} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Features Section ─────────────────────────── */}
       <section id="features" className="py-12 md:py-16">
