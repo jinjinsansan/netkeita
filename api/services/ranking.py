@@ -226,6 +226,11 @@ def calculate_matrix(
         track_mul = max(0.90, min(1.10, float(s.get("track", 1.0))))
         s["total"] = round(total * track_mul, 2)
 
+    # Break ties deterministically by adding a horse-number-based nudge
+    # (<0.01 for display, never enough to shift ranks for genuinely different
+    # scores). This stops S/A/B/C/D assignment from being order-of-insertion.
+    _apply_tiebreaker_nudge(horses)
+
     # Normalize place probabilities
     raw_place = [_calc_place_probability(h["odds"]) for h in horses]
     num_horses = len(horses)
@@ -242,6 +247,33 @@ def calculate_matrix(
         assign_grades(horses, key)
 
     return horses
+
+
+def _apply_tiebreaker_nudge(horses: list[dict]) -> None:
+    """Add a tiny deterministic offset to each score so that horses with the
+    same value get a stable but distinct rank (instead of being broken by
+    insertion order). Magnitude is <0.01, invisible in the 1-decimal UI.
+
+    Uses a pseudo-random permutation seeded by horse_number so the order
+    within a tie looks uncorrelated to post position (unlike pure ascending
+    order which would always advantage low post numbers).
+    """
+    if not horses:
+        return
+    import hashlib
+    keys = ["total", "speed", "flow", "jockey", "bloodline", "recent", "track", "ev"]
+    for h in horses:
+        num = h.get("horse_number", 0) or 0
+        name = h.get("horse_name", "")
+        # Generate per-dimension tiny offsets from a hash of horse+dim
+        for k in keys:
+            digest = hashlib.md5(f"{name}-{num}-{k}".encode()).digest()
+            # 2 bytes -> 0..65535 -> -1..+1 scaled to 0.005 max magnitude
+            offset = ((digest[0] * 256 + digest[1]) / 65535.0 - 0.5) * 0.009
+            try:
+                h["scores"][k] = round(float(h["scores"].get(k, 0)) + offset, 4)
+            except (ValueError, TypeError):
+                pass
 
 
 def _fill_neutral(horses: list[dict], key: str, default: float = 20.0, discount: float = 0.75) -> None:
