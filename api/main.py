@@ -14,7 +14,10 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
-from config import PORT, LINE_CHANNEL_ID, LINE_CHANNEL_SECRET, FRONTEND_URL
+from config import (
+    PORT, LINE_CHANNEL_ID, LINE_CHANNEL_SECRET, FRONTEND_URL,
+    ADMIN_LINE_USER_IDS,
+)
 from services.data_fetcher import (
     get_races, get_race_entries, get_today_str, get_full_scores, get_analysis,
     get_odds_from_prefetch, get_available_dates, get_display_dates,
@@ -26,6 +29,7 @@ from services.ranking import calculate_matrix
 from services.rewriter import rewrite_comment
 from services.course_stats_scraper import get_course_stats_for_horse
 from services.race_results import get_cached_result as get_cached_race_result
+from services import articles as articles_service
 
 JST = timezone(timedelta(hours=9))
 
@@ -154,6 +158,14 @@ async def line_callback(req: LineCallbackRequest):
         return {"success": False, "error": "認証処理中にエラーが発生しました"}
 
 
+def _is_admin_user(user: dict | None) -> bool:
+    """Return True when the given user dict belongs to an admin LINE account."""
+    if not user:
+        return False
+    uid = user.get("line_user_id") or ""
+    return bool(uid) and uid in ADMIN_LINE_USER_IDS
+
+
 @app.get("/api/auth/me")
 def get_me(authorization: str = Header(default="")):
     """Get current user info from session token."""
@@ -168,6 +180,7 @@ def get_me(authorization: str = Header(default="")):
         "user": {
             "display_name": user["display_name"],
             "picture_url": user.get("picture_url", ""),
+            "is_admin": _is_admin_user(user),
         },
     }
 
@@ -873,6 +886,200 @@ def api_my_vote_history(authorization: str = Header(default="")):
         "pending_count": pending_count,
         "cancelled_count": cancelled_count,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Article posting (note-style) — public read, admin-only write
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class ArticleCreateRequest(BaseModel):
+    title: str
+    description: str = ""
+    body: str
+    thumbnail_url: str = ""
+    status: str = "published"  # "published" or "draft"
+    slug: str | None = None    # optional, auto-generated when omitted
+
+
+class ArticleUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    body: str | None = None
+    thumbnail_url: str | None = None
+    status: str | None = None
+    expected_updated_at: str | None = None  # optimistic locking
+
+
+def _require_admin(authorization: str) -> dict:
+    """Resolve the caller's session and require admin privileges."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    if not _is_admin_user(user):
+        raise HTTPException(status_code=403, detail="管理者権限がありません")
+    return user
+
+
+# ── Simple Redis-backed rate limiter ────────────────────────────────────────
+# Prevents a compromised admin session (or a buggy client) from flooding the
+# write endpoints. Limits are deliberately generous for normal editorial use.
+_ADMIN_WRITE_LIMIT = 30      # writes
+_ADMIN_WRITE_WINDOW = 60     # per this many seconds
+
+
+def _rate_limit(bucket: str, user_id: str, limit: int, window: int) -> None:
+    """Raise 429 when the caller exceeds `limit` hits in `window` seconds."""
+    if not user_id:
+        return
+    key = f"nk:rate:{bucket}:{user_id}"
+    try:
+        pipe = _redis_client.pipeline(transaction=False)
+        pipe.incr(key)
+        pipe.expire(key, window)
+        count, _ = pipe.execute()
+    except Exception:
+        logger.exception("rate limiter error")
+        return
+    if count and int(count) > limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"リクエストが多すぎます。{window}秒後に再試行してください",
+        )
+
+
+@app.get("/api/articles")
+def api_list_articles(
+    include_drafts: bool = False,
+    limit: int = 50,
+    offset: int = 0,
+    authorization: str = Header(default=""),
+):
+    """List articles. Public by default; admin sessions may include drafts.
+
+    Response shape:
+        {
+            "articles":    [ArticleSummary, ...],
+            "count":       int,      # items returned in this page
+            "total_count": int,      # total matching articles
+            "has_more":    bool,     # whether more pages exist
+            "offset":      int,
+            "limit":       int,
+        }
+    """
+    # Only admins may request drafts.
+    show_drafts = False
+    if include_drafts:
+        user = _get_user_from_token(authorization)
+        if _is_admin_user(user):
+            show_drafts = True
+
+    page = articles_service.list_articles(
+        include_drafts=show_drafts, limit=limit, offset=offset
+    )
+    return {
+        "articles": page["items"],
+        "count": len(page["items"]),
+        "total_count": page["total_count"],
+        "has_more": page["has_more"],
+        "offset": page["offset"],
+        "limit": page["limit"],
+    }
+
+
+@app.get("/api/articles/{slug}")
+def api_get_article(slug: str, authorization: str = Header(default="")):
+    """Fetch one article.
+
+    Draft articles are only visible to admins. Public responses strip
+    author_id (admin's LINE user id) to prevent account enumeration.
+    """
+    if not articles_service.is_valid_slug(slug):
+        raise HTTPException(status_code=400, detail="不正なスラッグです")
+
+    record = articles_service.get_article_raw(slug)
+    if not record:
+        raise HTTPException(status_code=404, detail="記事が見つかりません")
+
+    user = _get_user_from_token(authorization)
+    is_admin = _is_admin_user(user)
+
+    if record.get("status") != "published" and not is_admin:
+        raise HTTPException(status_code=404, detail="記事が見つかりません")
+
+    return articles_service.admin_view(record) if is_admin else articles_service.public_view(record)
+
+
+@app.post("/api/articles")
+def api_create_article(req: ArticleCreateRequest, authorization: str = Header(default="")):
+    """Create a new article. Admin only."""
+    user = _require_admin(authorization)
+    _rate_limit("article_write", user.get("line_user_id", ""),
+                _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
+    try:
+        record = articles_service.create_article(
+            title=req.title,
+            description=req.description,
+            body=req.body,
+            thumbnail_url=req.thumbnail_url,
+            status=req.status,
+            author=user.get("display_name", ""),
+            author_id=user.get("line_user_id", ""),
+            slug=req.slug,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return articles_service.admin_view(record)
+
+
+@app.put("/api/articles/{slug}")
+def api_update_article(
+    slug: str,
+    req: ArticleUpdateRequest,
+    authorization: str = Header(default=""),
+):
+    """Update an existing article. Admin only.
+
+    Supply `expected_updated_at` (from the previously fetched record) to
+    enable optimistic locking. If another admin updated the article in
+    the meantime, the endpoint returns 409 Conflict so the client can
+    refresh before retrying.
+    """
+    user = _require_admin(authorization)
+    _rate_limit("article_write", user.get("line_user_id", ""),
+                _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
+    if not articles_service.is_valid_slug(slug):
+        raise HTTPException(status_code=400, detail="不正なスラッグです")
+    try:
+        record = articles_service.update_article(
+            slug,
+            title=req.title,
+            description=req.description,
+            body=req.body,
+            thumbnail_url=req.thumbnail_url,
+            status=req.status,
+            expected_updated_at=req.expected_updated_at,
+        )
+    except articles_service.ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if record is None:
+        raise HTTPException(status_code=404, detail="記事が見つかりません")
+    return articles_service.admin_view(record)
+
+
+@app.delete("/api/articles/{slug}")
+def api_delete_article(slug: str, authorization: str = Header(default="")):
+    """Delete an article. Admin only."""
+    user = _require_admin(authorization)
+    _rate_limit("article_write", user.get("line_user_id", ""),
+                _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
+    if not articles_service.is_valid_slug(slug):
+        raise HTTPException(status_code=400, detail="不正なスラッグです")
+    if not articles_service.delete_article(slug):
+        raise HTTPException(status_code=404, detail="記事が見つかりません")
+    return {"success": True, "slug": slug}
 
 
 @app.get("/health")

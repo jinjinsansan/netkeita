@@ -44,7 +44,7 @@ export async function lineCallback(code: string, state: string): Promise<{
 
 export async function getMe(): Promise<{
   authenticated: boolean;
-  user?: { display_name: string; picture_url: string };
+  user?: { display_name: string; picture_url: string; is_admin?: boolean };
 }> {
   const token = getToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -309,5 +309,187 @@ export async function fetchMatrix(raceId: string): Promise<RaceMatrix | null> {
     return res.json();
   } catch {
     return null;
+  }
+}
+
+// --- Article posting (note-style) ---
+
+export interface ArticleSummary {
+  slug: string;
+  title: string;
+  description: string;
+  thumbnail_url: string;
+  author: string;
+  status: "published" | "draft";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Article extends ArticleSummary {
+  body: string;
+  /** Estimated reading time in minutes (backend-computed). */
+  reading_time_minutes?: number;
+  /**
+   * Admin's LINE user id.
+   * Only returned by the backend when the caller is the admin themselves;
+   * public readers never see this field (server-side `public_view`).
+   */
+  author_id?: string;
+}
+
+export interface ArticleInput {
+  title: string;
+  description?: string;
+  body: string;
+  thumbnail_url?: string;
+  status: "published" | "draft";
+  slug?: string;
+  /**
+   * Optimistic-lock sentinel. Send the article's `updated_at` value that
+   * was shown to the editor; the server returns 409 if it has changed.
+   */
+  expected_updated_at?: string;
+}
+
+export interface ArticleListResponse {
+  articles: ArticleSummary[];
+  count: number;
+  total_count: number;
+  has_more: boolean;
+  offset: number;
+  limit: number;
+}
+
+export type ArticleMutationResult =
+  | { success: true; article: Article }
+  | { success: false; error: string; conflict?: boolean };
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** Low-level fetch that also returns the raw list pagination fields. */
+export async function fetchArticlePage(
+  opts: { includeDrafts?: boolean; limit?: number; offset?: number } = {}
+): Promise<ArticleListResponse> {
+  const empty: ArticleListResponse = {
+    articles: [],
+    count: 0,
+    total_count: 0,
+    has_more: false,
+    offset: 0,
+    limit: opts.limit ?? 50,
+  };
+  if (!API_URL) return empty;
+  try {
+    const params = new URLSearchParams();
+    if (opts.includeDrafts) params.set("include_drafts", "true");
+    if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+    if (opts.offset !== undefined) params.set("offset", String(opts.offset));
+    const qs = params.toString();
+    const url = `${API_URL}/api/articles${qs ? `?${qs}` : ""}`;
+    const res = await fetch(url, { cache: "no-store", headers: { ...authHeaders() } });
+    if (!res.ok) return empty;
+    const data = (await res.json()) as Partial<ArticleListResponse>;
+    return {
+      articles: data.articles || [],
+      count: data.count ?? 0,
+      total_count: data.total_count ?? 0,
+      has_more: !!data.has_more,
+      offset: data.offset ?? opts.offset ?? 0,
+      limit: data.limit ?? opts.limit ?? 50,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+/** Back-compat shortcut that returns only the article list. */
+export async function fetchArticles(
+  includeDrafts = false
+): Promise<ArticleSummary[]> {
+  const page = await fetchArticlePage({ includeDrafts });
+  return page.articles;
+}
+
+export async function fetchArticle(slug: string): Promise<Article | null> {
+  if (!API_URL) return null;
+  try {
+    const res = await fetch(
+      `${API_URL}/api/articles/${encodeURIComponent(slug)}`,
+      { cache: "no-store", headers: { ...authHeaders() } }
+    );
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function createArticle(
+  input: ArticleInput
+): Promise<ArticleMutationResult> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(`${API_URL}/api/articles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(input),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data.detail || "作成に失敗しました" };
+    }
+    return { success: true, article: data };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
+export async function updateArticle(
+  slug: string,
+  input: Partial<ArticleInput>
+): Promise<ArticleMutationResult> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(
+      `${API_URL}/api/articles/${encodeURIComponent(slug)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(input),
+      }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data.detail || "更新に失敗しました",
+        conflict: res.status === 409,
+      };
+    }
+    return { success: true, article: data };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
+export async function deleteArticle(
+  slug: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(
+      `${API_URL}/api/articles/${encodeURIComponent(slug)}`,
+      { method: "DELETE", headers: { ...authHeaders() } }
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { success: false, error: data.detail || "削除に失敗しました" };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
   }
 }

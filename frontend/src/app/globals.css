@@ -118,3 +118,86 @@ body {
   .waku-bg-7 { background: #f80; color: #fff; }
   .waku-bg-8 { background: #f6c; color: #fff; }
 }
+
+/* Minimal Markdown prose styling for article detail/editor preview.
+   Keeps the footprint small — no @tailwindcss/typography dependency. */
+@layer base {
+  .prose-nk {
+    color: #222;
+    font-size: 15px;
+    line-height: 1.85;
+    word-wrap: break-word;
+  }
+  .prose-nk h1, .prose-nk h2, .prose-nk h3, .prose-nk h4 {
+    font-weight: 800;
+    color: #1a1a1a;
+    line-height: 1.4;
+    margin-top: 1.6em;
+    margin-bottom: 0.6em;
+  }
+  .prose-nk h1 { font-size: 1.75rem; border-bottom: 2px solid #e5e5e5; padding-bottom: 0.3em; }
+  .prose-nk h2 { font-size: 1.4rem; border-bottom: 1px solid #e5e5e5; padding-bottom: 0.25em; }
+  .prose-nk h3 { font-size: 1.15rem; }
+  .prose-nk h4 { font-size: 1rem; }
+  .prose-nk p { margin: 1em 0; }
+  .prose-nk a {
+    color: #1565C0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .prose-nk a:hover { color: #0d47a1; }
+  .prose-nk strong { font-weight: 700; color: #111; }
+  .prose-nk em { font-style: italic; }
+  .prose-nk ul, .prose-nk ol { margin: 1em 0; padding-left: 1.5em; }
+  .prose-nk ul { list-style: disc; }
+  .prose-nk ol { list-style: decimal; }
+  .prose-nk li { margin: 0.3em 0; }
+  .prose-nk blockquote {
+    margin: 1.2em 0;
+    padding: 0.6em 1em;
+    border-left: 4px solid #1f7a1f;
+    background: #f5faf5;
+    color: #444;
+    font-style: italic;
+  }
+  .prose-nk code {
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono), monospace;
+    font-size: 0.9em;
+    color: #c7254e;
+  }
+  .prose-nk pre {
+    background: #1e1e1e;
+    color: #f8f8f2;
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.2em 0;
+  }
+  .prose-nk pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  .prose-nk img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1em 0;
+  }
+  .prose-nk hr { border: 0; border-top: 1px solid #e5e5e5; margin: 2em 0; }
+  .prose-nk table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2em 0;
+    font-size: 13px;
+  }
+  .prose-nk th, .prose-nk td {
+    border: 1px solid #ddd;
+    padding: 6px 10px;
+    text-align: left;
+  }
+  .prose-nk th { background: #f5f5f5; font-weight: 700; }
+}

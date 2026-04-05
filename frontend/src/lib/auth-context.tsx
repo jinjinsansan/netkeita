@@ -6,6 +6,7 @@ import { getToken, clearToken, getMe } from "./api";
 interface User {
   display_name: string;
   picture_url: string;
+  is_admin?: boolean;
 }
 
 interface AuthState {

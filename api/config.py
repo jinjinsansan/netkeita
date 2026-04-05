@@ -16,3 +16,10 @@ LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://www.netkeita.com")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+# Comma-separated LINE user IDs allowed to create / edit / delete articles.
+# Example .env.local entry:
+#   ADMIN_LINE_USER_IDS=Uxxxxxxxxxxxxxxxxxxx,Uyyyyyyyyyyyyyyyyyyy
+ADMIN_LINE_USER_IDS = [
+    s.strip() for s in os.getenv("ADMIN_LINE_USER_IDS", "").split(",") if s.strip()
+]
