@@ -11,6 +11,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ArticleInput } from "@/lib/api";
 import ConfirmModal from "./ConfirmModal";
+import MarkdownToolbar from "./MarkdownToolbar";
 
 type Mode = "edit" | "preview";
 
@@ -71,6 +72,8 @@ export default function ArticleEditor({
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   const dirtyRef = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const storageKey = `${AUTOSAVE_KEY_PREFIX}:${autosaveKey}`;
 
   // Deferred value for preview — stops the markdown parser from running on
@@ -193,17 +196,48 @@ export default function ArticleEditor({
     [title, body, description, thumbnailUrl, slug, expectedUpdatedAt, onSubmit, storageKey]
   );
 
-  // ── Ctrl+S / ⌘+S saves as draft ────────────────────────────────────────
+  // ── Inline markdown wrappers for keyboard shortcuts ────────────────────
+  const wrapSelection = useCallback(
+    (before: string, after: string, placeholder: string) => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart ?? body.length;
+      const end = ta.selectionEnd ?? body.length;
+      const selected = body.slice(start, end) || placeholder;
+      const inserted = `${before}${selected}${after}`;
+      const next = body.slice(0, start) + inserted + body.slice(end);
+      setBody(next);
+      requestAnimationFrame(() => {
+        ta.focus();
+        const cursor = start + inserted.length;
+        ta.setSelectionRange(cursor, cursor);
+      });
+    },
+    [body]
+  );
+
+  // ── Ctrl+S / ⌘+S saves as draft; Ctrl+B / Ctrl+I format selection ──────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         submit("draft");
+        return;
+      }
+      // Only format shortcuts when the textarea is the active element so we
+      // don't hijack Ctrl+B in other inputs.
+      if (document.activeElement !== textareaRef.current) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        wrapSelection("**", "**", "太字");
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        wrapSelection("*", "*", "斜体");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [submit]);
+  }, [submit, wrapSelection]);
 
   const handleDeleteClick = () => setConfirmDeleteOpen(true);
   const handleConfirmDelete = async () => {
@@ -398,18 +432,37 @@ export default function ArticleEditor({
       <div className="grid md:grid-cols-2 gap-4">
         <div className={`${mode === "edit" ? "block" : "hidden"} md:block`}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] font-bold text-[#444]">本文 (Markdown)</span>
+            <span className="text-[11px] font-bold text-[#444]">本文</span>
             <span className={`text-[10px] ${counterColor(bodyCount, MAX_BODY_LEN)}`}>
               {bodyCount.toLocaleString()} / {MAX_BODY_LEN.toLocaleString()}
             </span>
           </div>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="## 見出し&#10;&#10;本文を Markdown で記述..."
-            rows={24}
-            className="w-full border border-[#d0d0d0] rounded p-3 text-sm font-mono leading-relaxed focus:outline-none focus:border-[#1f7a1f] min-h-[480px]"
-          />
+          <div className="border border-[#d0d0d0] rounded overflow-hidden bg-white">
+            <MarkdownToolbar
+              textareaRef={textareaRef}
+              value={body}
+              onChange={setBody}
+              onError={setLocalError}
+              onUploadingChange={setImageUploading}
+            />
+            <textarea
+              ref={textareaRef}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="ここに本文を書いてください。上のボタンで見出しや画像を簡単に挿入できます。"
+              rows={20}
+              autoCapitalize="sentences"
+              autoCorrect="off"
+              spellCheck={false}
+              className="w-full p-3 text-[15px] md:text-sm leading-relaxed focus:outline-none min-h-[420px] md:min-h-[480px] resize-y"
+            />
+          </div>
+          {imageUploading && (
+            <p className="mt-1 text-[10px] text-[#1f7a1f]">画像をアップロード中...</p>
+          )}
+          <p className="mt-1 text-[10px] text-[#999] leading-relaxed">
+            ショートカット: Ctrl+B 太字 · Ctrl+I 斜体 · Ctrl+S 下書き保存
+          </p>
         </div>
         <div className={`${mode === "preview" ? "block" : "hidden"} md:block`}>
           <div className="text-[11px] font-bold text-[#444] mb-1">プレビュー</div>

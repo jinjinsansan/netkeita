@@ -11,7 +11,7 @@ import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 import httpx
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from config import (
@@ -1080,6 +1080,54 @@ def api_delete_article(slug: str, authorization: str = Header(default="")):
     if not articles_service.delete_article(slug):
         raise HTTPException(status_code=404, detail="記事が見つかりません")
     return {"success": True, "slug": slug}
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Image upload (admin only) — stores images in Supabase Storage and
+# returns a public URL that the markdown editor can insert immediately.
+# ─────────────────────────────────────────────────────────────────────
+
+# Separate, stricter bucket for uploads (10 per minute) — they're much
+# heavier than plain article writes.
+_IMAGE_UPLOAD_LIMIT = 10
+_IMAGE_UPLOAD_WINDOW = 60
+
+
+@app.post("/api/articles/upload-image")
+async def api_upload_article_image(
+    file: UploadFile = File(...),
+    authorization: str = Header(default=""),
+):
+    """Upload a single image for article authoring. Admin only."""
+    user = _require_admin(authorization)
+    _rate_limit(
+        "image_upload", user.get("line_user_id", ""),
+        _IMAGE_UPLOAD_LIMIT, _IMAGE_UPLOAD_WINDOW,
+    )
+
+    # Lazy import so the rest of the API never fails to boot if the
+    # supabase package is missing on a dev machine.
+    try:
+        from services import image_upload  # noqa: WPS433 (local import by design)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("image_upload module import failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"画像アップロード機能が使えません: {exc}",
+        ) from exc
+
+    try:
+        data = await file.read()
+    finally:
+        await file.close()
+
+    try:
+        url = image_upload.upload_image(data, file.content_type or "")
+    except image_upload.ImageUploadError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    logger.info(f"image uploaded: {file.filename} -> {url}")
+    return {"success": True, "url": url}
 
 
 @app.get("/health")

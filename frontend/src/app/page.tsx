@@ -133,7 +133,6 @@ export default function LandingPage() {
     (async () => {
       try {
         const list = await fetchArticles(false);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- data-fetch pattern
         setLatestArticles(list.slice(0, TOP_LATEST_ARTICLES_LIMIT));
       } catch {
         setLatestArticles([]);

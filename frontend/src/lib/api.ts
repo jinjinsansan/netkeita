@@ -475,6 +475,41 @@ export async function updateArticle(
   }
 }
 
+export async function uploadArticleImage(
+  file: File
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  // Simple client-side guard rails so we don't even send obviously bad files.
+  if (file.size > 5 * 1024 * 1024) {
+    return { success: false, error: "ファイルサイズが大きすぎます (最大 5MB)" };
+  }
+  if (!/^image\/(jpeg|jpg|png|webp|gif)$/i.test(file.type)) {
+    return {
+      success: false,
+      error: "画像形式が未対応です (JPEG / PNG / WebP / GIF)",
+    };
+  }
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${API_URL}/api/articles/upload-image`, {
+      method: "POST",
+      headers: { ...authHeaders() },
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data.detail || "画像アップロードに失敗しました",
+      };
+    }
+    return { success: true, url: data.url };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
 export async function deleteArticle(
   slug: string
 ): Promise<{ success: boolean; error?: string }> {
