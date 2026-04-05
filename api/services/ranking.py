@@ -239,9 +239,11 @@ def _build_flow_map(flow_data: dict, entries: list[dict]) -> dict:
 
 def _build_jockey_map(jockey_data: dict, entries: list[dict]) -> dict:
     """Build {jockey_name: fukusho_rate} from jockey-analysis API.
-    API returns: {jockey_course_stats: {jockey_name: {fukusho_rate: N}}}
+    Prefers jockey_course_stats (course-specific), falls back to jockey_post_stats
+    (post-zone based) for NAR where course data may not match.
     """
     result = {}
+    # Primary: course-specific stats (JRA)
     jcs = jockey_data.get("jockey_course_stats", {})
     if isinstance(jcs, dict):
         for jockey_name, stats in jcs.items():
@@ -251,6 +253,22 @@ def _build_jockey_map(jockey_data: dict, entries: list[dict]) -> dict:
                     result[jockey_name] = float(rate)
                 except (ValueError, TypeError):
                     pass
+    # Fallback 1: post-zone stats (NAR where course distances don't match)
+    jps = jockey_data.get("jockey_post_stats", {})
+    if isinstance(jps, dict):
+        for jockey_name, stats in jps.items():
+            if jockey_name in result:
+                continue
+            if isinstance(stats, dict):
+                rate = stats.get("fukusho_rate", 0)
+                try:
+                    rate_val = float(rate)
+                    # Only use if has meaningful race count
+                    if rate_val > 0 and stats.get("race_count", 0) >= 10:
+                        result[jockey_name] = rate_val
+                except (ValueError, TypeError):
+                    pass
+    # Fallback 2: legacy list format
     if not result:
         horses = jockey_data.get("horses", jockey_data.get("jockey_analysis", []))
         if isinstance(horses, list):

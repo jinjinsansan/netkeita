@@ -49,7 +49,7 @@ const RANK_COLS = [
 
 const FEATURES = [
   { title: "8項目のランク指数", desc: "総合・スピード・展開・騎手・血統・近走・馬場・期待値をS〜Dで一目把握。" },
-  { title: "JRA全レース対応", desc: "毎週の土日JRA全レースを網羅。出走全馬のランクを確認できます。" },
+  { title: "JRA・地方競馬対応", desc: "JRA全レースに加え、大井・川崎・高知・佐賀など全国の地方競馬もカバー。" },
   { title: "独自の複合AI分析", desc: "複数の独立したAIが異なる角度から分析し、多角的な指数を生成。" },
   { title: "モバイルファースト", desc: "スマホで直感的に操作。横スクロールで8項目を一覧比較。" },
   { title: "期待値（EV）表示", desc: "AI予測勝率とオッズから算出。回収率を意識した馬券戦略をサポート。" },
@@ -143,7 +143,7 @@ export default function LandingPage() {
           </div>
 
           <h1 className="text-[28px] md:text-[42px] font-black text-[#111] leading-[1.3] mb-5">
-            JRA全レースを<br className="md:hidden" />
+            JRA・地方競馬の<br className="md:hidden" />
             <span className="text-[#1f7a1f]">8つの指数</span>で<br className="md:hidden" />
             可視化する
           </h1>
@@ -450,7 +450,7 @@ export default function LandingPage() {
                 レース一覧から<br className="md:hidden" />ランク指数を確認しよう
               </h2>
               <p className="text-sm md:text-base text-[#444] mb-8">
-                独自AI分析 × 8つの分析項目 × JRA全レース
+                独自AI分析 × 8つの分析項目 × JRA・地方競馬
               </p>
               <a
                 href="#races"
@@ -465,7 +465,7 @@ export default function LandingPage() {
                 今すぐ、全レースの<br className="md:hidden" />ランク指数を確認しよう
               </h2>
               <p className="text-sm md:text-base text-[#444] mb-8">
-                独自AI分析 × 8つの分析項目 × JRA全レース
+                独自AI分析 × 8つの分析項目 × JRA・地方競馬
               </p>
               <button
                 onClick={handleLineLogin}
