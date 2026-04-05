@@ -196,6 +196,16 @@ def calculate_matrix(
             },
         })
 
+    # Fill zero scores with per-race neutral fallback so that horses lacking
+    # source data (new horses, first-time starters) are not unfairly ranked D.
+    # Neutral = 70% of the median of positive values in the same race.
+    _fill_neutral(horses, "speed", default=20.0, discount=0.70)
+    _fill_neutral(horses, "bloodline", default=20.0, discount=0.80)
+    _fill_neutral(horses, "recent", default=50.0, discount=0.85)
+    # total is metalogic_score (already aggregated upstream); only back-fill
+    # if some horses have legit scores but others are zero.
+    _fill_neutral(horses, "total", default=25.0, discount=0.70)
+
     # Normalize place probabilities
     raw_place = [_calc_place_probability(h["odds"]) for h in horses]
     num_horses = len(horses)
@@ -214,18 +224,62 @@ def calculate_matrix(
     return horses
 
 
+def _fill_neutral(horses: list[dict], key: str, default: float = 20.0, discount: float = 0.75) -> None:
+    """Replace zero scores for `key` with a neutral fallback.
+
+    Neutral value is (median of positive values) * discount, or `default` if
+    nothing is positive. The discount reflects "unknown horse" uncertainty so
+    these horses rank below peers with real data, but not dead last at 0.
+    """
+    positives = sorted([h["scores"].get(key, 0) for h in horses if h["scores"].get(key, 0) > 0])
+    if positives:
+        median = positives[len(positives) // 2]
+        neutral = round(median * discount, 2)
+    else:
+        neutral = default
+    for h in horses:
+        if h["scores"].get(key, 0) <= 0:
+            h["scores"][key] = neutral
+
+
+_STYLE_BASE_SCORES = {
+    "逃げ": 70.0,
+    "先行": 68.0,
+    "差し": 65.0,
+    "追込": 62.0,
+}
+
+
 def _build_flow_map(flow_data: dict, entries: list[dict]) -> dict:
     """Build {horse_name: flow_score} from race-flow API.
-    API returns: {flow_scores: {horse_name: score, ...}}
+
+    Strategy:
+      1. If the backend returned top-level `flow_scores` in a usable range
+         (values roughly in the 0-100 scale), use those.
+      2. If values are tiny (< 5) -- NAR "データ不足" case -- synthesize scores
+         from `style_groups` (脚質分類) so horses still get meaningful flow.
+      3. For any horse still missing, fall back to the mean of classified horses.
     """
-    result = {}
-    flow_scores = flow_data.get("flow_scores", {})
-    if isinstance(flow_scores, dict):
-        for name, score in flow_scores.items():
+    result: dict = {}
+    raw = flow_data.get("flow_scores", {}) or {}
+
+    # Detect "NAR data-unavailable" pattern: all values < 5 (API returns 0.4-0.8)
+    numeric_vals = []
+    if isinstance(raw, dict):
+        for v in raw.values():
+            try:
+                numeric_vals.append(float(v))
+            except (ValueError, TypeError):
+                pass
+    usable = bool(numeric_vals) and max(numeric_vals) >= 5.0
+
+    if usable and isinstance(raw, dict):
+        for name, score in raw.items():
             try:
                 result[name] = float(score)
             except (ValueError, TypeError):
                 pass
+
     if not result:
         horses = flow_data.get("horses", flow_data.get("horse_analysis", []))
         if isinstance(horses, list):
@@ -233,51 +287,130 @@ def _build_flow_map(flow_data: dict, entries: list[dict]) -> dict:
                 name = h.get("horse_name", "")
                 score = h.get("flow_score", h.get("position_score", 0))
                 if name:
-                    result[name] = float(score)
+                    try:
+                        fv = float(score)
+                        if fv >= 5.0:
+                            result[name] = fv
+                    except (ValueError, TypeError):
+                        pass
+
+    # Style-based synthesis when backend flow_scores are unusable
+    if not result:
+        style_groups = flow_data.get("style_groups", {}) or flow_data.get("style_summary", {}) or {}
+        if isinstance(style_groups, dict):
+            for style_key, horse_list in style_groups.items():
+                # style_key may be "逃げ" or "逃げ(超積極逃げ)" etc.
+                base = 0.0
+                for k, v in _STYLE_BASE_SCORES.items():
+                    if k in str(style_key):
+                        base = v
+                        break
+                if base and isinstance(horse_list, list):
+                    for hname in horse_list:
+                        if hname not in result:
+                            result[hname] = base
+
+    # Fill unclassified horses with neutral value
+    if entries:
+        classified_values = [v for v in result.values() if v > 0]
+        if classified_values:
+            neutral = round((sum(classified_values) / len(classified_values)) * 0.9, 2)
+        else:
+            neutral = 60.0  # conservative default for total data unavailability
+        for e in entries:
+            name = e.get("horse_name", "")
+            if name and name not in result:
+                result[name] = neutral
     return result
 
 
 def _build_jockey_map(jockey_data: dict, entries: list[dict]) -> dict:
     """Build {jockey_name: fukusho_rate} from jockey-analysis API.
-    Prefers jockey_course_stats (course-specific), falls back to jockey_post_stats
-    (post-zone based) for NAR where course data may not match.
+
+    Priority order for each entry jockey:
+      1. jockey_course_stats (course-specific, JRA) if fukusho_rate > 0
+      2. jockey_post_stats with race_count >= 10 (NAR or JRA low-sample)
+      3. jockey_course_stats even if fukusho_rate == 0 (valid low-perf signal)
+      4. jockey_post_stats with race_count >= 1
+      5. Neutral fallback: median of other jockeys in the same race, or 15.0
     """
-    result = {}
-    # Primary: course-specific stats (JRA)
-    jcs = jockey_data.get("jockey_course_stats", {})
-    if isinstance(jcs, dict):
-        for jockey_name, stats in jcs.items():
-            if isinstance(stats, dict):
-                rate = stats.get("fukusho_rate", stats.get("place_rate", 0))
+    result: dict = {}
+    jcs = jockey_data.get("jockey_course_stats", {}) or {}
+    jps = jockey_data.get("jockey_post_stats", {}) or {}
+
+    def _rate(stats: dict, *keys) -> tuple[float | None, int]:
+        if not isinstance(stats, dict):
+            return (None, 0)
+        for k in keys:
+            if k in stats:
                 try:
-                    result[jockey_name] = float(rate)
+                    return (float(stats[k]), int(stats.get("race_count", stats.get("total_runs", 0)) or 0))
                 except (ValueError, TypeError):
-                    pass
-    # Fallback 1: post-zone stats (NAR where course distances don't match)
-    jps = jockey_data.get("jockey_post_stats", {})
+                    continue
+        return (None, 0)
+
+    # Build a jps lookup by jockey name (jps values contain a single horse row each)
+    jps_by_name: dict = {}
     if isinstance(jps, dict):
-        for jockey_name, stats in jps.items():
-            if jockey_name in result:
-                continue
-            if isinstance(stats, dict):
-                rate = stats.get("fukusho_rate", 0)
-                try:
-                    rate_val = float(rate)
-                    # Only use if has meaningful race count
-                    if rate_val > 0 and stats.get("race_count", 0) >= 10:
-                        result[jockey_name] = rate_val
-                except (ValueError, TypeError):
-                    pass
-    # Fallback 2: legacy list format
+        for k, v in jps.items():
+            if isinstance(v, dict):
+                jps_by_name[k] = v
+
+    entry_jockeys = [e.get("jockey", "") for e in entries] if entries else list(jcs.keys())
+
+    for jname in entry_jockeys:
+        if not jname or jname in result:
+            continue
+
+        jcs_rate, jcs_runs = _rate(jcs.get(jname, {}), "fukusho_rate", "place_rate")
+        jps_rate, jps_runs = _rate(jps_by_name.get(jname, {}), "fukusho_rate", "place_rate")
+
+        # 1. jcs with positive data
+        if jcs_rate is not None and jcs_rate > 0:
+            result[jname] = jcs_rate
+            continue
+        # 2. jps with meaningful sample
+        if jps_rate is not None and jps_rate > 0 and jps_runs >= 10:
+            result[jname] = jps_rate
+            continue
+        # 3. jcs zero-rate as a valid signal (jockey raced on this course but placed poorly)
+        if jcs_rate is not None and jcs_runs >= 3:
+            result[jname] = jcs_rate  # may be 0
+            continue
+        # 4. jps any sample
+        if jps_rate is not None and jps_runs >= 1:
+            result[jname] = jps_rate
+            continue
+        # leave unresolved for neutral fill below
+
+    # Legacy list format (rare)
     if not result:
         horses = jockey_data.get("horses", jockey_data.get("jockey_analysis", []))
         if isinstance(horses, list):
             for h in horses:
-                jname = h.get("jockey", "")
+                j = h.get("jockey", "")
                 stats = h.get("jockey_course_stats", {})
                 rate = stats.get("fukusho_rate", stats.get("place_rate", 0))
-                if jname:
-                    result[jname] = float(rate)
+                if j:
+                    try:
+                        result[j] = float(rate)
+                    except (ValueError, TypeError):
+                        pass
+
+    # Neutral fallback for remaining unresolved entry jockeys
+    if entries:
+        resolved_positive = [v for v in result.values() if v > 0]
+        if resolved_positive:
+            sorted_vals = sorted(resolved_positive)
+            neutral = sorted_vals[len(sorted_vals) // 2]  # median
+        else:
+            neutral = 15.0  # conservative baseline (%)
+        neutral = round(neutral * 0.7, 1)  # mark as "unknown" with discount
+        for e in entries:
+            jn = e.get("jockey", "")
+            if jn and jn not in result:
+                result[jn] = neutral
+
     return result
 
 
