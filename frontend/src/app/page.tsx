@@ -8,9 +8,15 @@ import { fetchDates, fetchRaces, getLineLoginUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 /* ── Venue tab ordering ─── */
-const VENUE_ORDER = ["中山", "阪神", "中京", "東京", "京都", "小倉", "新潟", "札幌", "函館", "福島"];
+const JRA_VENUE_ORDER = ["中山", "阪神", "中京", "東京", "京都", "小倉", "新潟", "札幌", "函館", "福島"];
+const NAR_VENUE_ORDER = ["大井", "川崎", "船橋", "浦和", "園田", "姫路", "名古屋", "笠松", "金沢", "高知", "佐賀", "盛岡", "水沢", "門別", "帯広"];
+const VENUE_ORDER = [...JRA_VENUE_ORDER, ...NAR_VENUE_ORDER];
 function venueSort(a: string, b: string) {
   return (VENUE_ORDER.indexOf(a) === -1 ? 99 : VENUE_ORDER.indexOf(a)) - (VENUE_ORDER.indexOf(b) === -1 ? 99 : VENUE_ORDER.indexOf(b));
+}
+const NAR_VENUE_SET = new Set(NAR_VENUE_ORDER);
+function isNarVenue(venue: string): boolean {
+  return NAR_VENUE_SET.has(venue);
 }
 
 /* ── Demo data for Hero matrix preview ── */
@@ -203,7 +209,7 @@ export default function LandingPage() {
         <div className="max-w-[960px] mx-auto px-4">
           <div className="text-center mb-5">
             <h2 className="text-xl md:text-2xl font-black text-[#111] mb-1">
-              今週のJRAレース
+              今週のレース
             </h2>
             {loading ? (
               <p className="text-sm text-[#888]">読み込み中...</p>
@@ -233,37 +239,73 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              {/* Venue tabs */}
-              <div className="flex items-center gap-0 mb-4 justify-center flex-wrap">
-                {venues.map((v) => (
-                  <button
-                    key={v.venue}
-                    onClick={() => setSelectedVenue(v.venue)}
-                    className={`px-4 sm:px-5 py-2 text-sm font-bold border transition ${
-                      selectedVenue === v.venue
-                        ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
-                        : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
-                    }`}
-                  >
-                    {v.venue}
-                  </button>
-                ))}
-              </div>
+              {/* Venue tabs — split into JRA and NAR groups */}
+              {(() => {
+                const jraVenues = venues.filter((v) => !isNarVenue(v.venue));
+                const narVenues = venues.filter((v) => isNarVenue(v.venue));
+                return (
+                  <div className="mb-4 space-y-2">
+                    {jraVenues.length > 0 && (
+                      <div className="flex items-center gap-0 justify-center flex-wrap">
+                        <span className="text-[11px] font-bold text-[#1f7a1f] mr-2 px-2 py-1 bg-[#e8f5e9] rounded">JRA</span>
+                        {jraVenues.map((v) => (
+                          <button
+                            key={v.venue}
+                            onClick={() => setSelectedVenue(v.venue)}
+                            className={`px-4 sm:px-5 py-2 text-sm font-bold border transition ${
+                              selectedVenue === v.venue
+                                ? "bg-[#1f7a1f] text-white border-[#1f7a1f]"
+                                : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
+                            }`}
+                          >
+                            {v.venue}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {narVenues.length > 0 && (
+                      <div className="flex items-center gap-0 justify-center flex-wrap">
+                        <span className="text-[11px] font-bold text-[#7b1fa2] mr-2 px-2 py-1 bg-[#f3e5f5] rounded">地方</span>
+                        {narVenues.map((v) => (
+                          <button
+                            key={v.venue}
+                            onClick={() => setSelectedVenue(v.venue)}
+                            className={`px-4 sm:px-5 py-2 text-sm font-bold border transition ${
+                              selectedVenue === v.venue
+                                ? "bg-[#7b1fa2] text-white border-[#7b1fa2]"
+                                : "bg-white text-[#333] border-[#c6c9d3] hover:bg-[#f5f5f5]"
+                            }`}
+                          >
+                            {v.venue}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Race number tiles */}
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-5 max-w-[540px] mx-auto">
-                {currentRaces.map((race) => (
-                  <Link
-                    key={race.race_id}
-                    href={`/race/${encodeURIComponent(race.race_id)}`}
-                    className="flex flex-col items-center justify-center h-[58px] border border-[#c6c9d3] rounded-lg bg-white hover:bg-[#f0f7f0] hover:border-[#1f7a1f] transition text-center shadow-sm"
-                  >
-                    <span className="text-base font-bold text-[#1f7a1f]">{race.race_number}R</span>
-                    <span className="text-[10px] text-[#888] truncate w-full px-1 leading-tight">
-                      {race.race_name}
-                    </span>
-                  </Link>
-                ))}
+                {currentRaces.map((race) => {
+                  const nar = race.is_local || isNarVenue(race.venue);
+                  return (
+                    <Link
+                      key={race.race_id}
+                      href={`/race/${encodeURIComponent(race.race_id)}`}
+                      className={`flex flex-col items-center justify-center h-[58px] border rounded-lg bg-white transition text-center shadow-sm ${
+                        nar
+                          ? "border-[#c6c9d3] hover:bg-[#faf5fc] hover:border-[#7b1fa2]"
+                          : "border-[#c6c9d3] hover:bg-[#f0f7f0] hover:border-[#1f7a1f]"
+                      }`}
+                    >
+                      <span className={`text-base font-bold ${nar ? "text-[#7b1fa2]" : "text-[#1f7a1f]"}`}>{race.race_number}R</span>
+                      <span className="text-[10px] text-[#888] truncate w-full px-1 leading-tight">
+                        {race.race_name}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
 
               {/* Race list table */}
@@ -278,21 +320,27 @@ export default function LandingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentRaces.map((race) => (
-                      <tr key={race.race_id}>
-                        <td className="text-center font-bold text-[#1f7a1f] text-base">{race.race_number}</td>
-                        <td>
-                          <Link
-                            href={`/race/${encodeURIComponent(race.race_id)}`}
-                            className="text-[#1565C0] hover:underline font-bold text-sm"
-                          >
-                            {race.race_name}
-                          </Link>
-                        </td>
-                        <td className="text-center text-sm text-[#555]">{race.distance}</td>
-                        <td className="text-center text-sm">{race.headcount}頭</td>
-                      </tr>
-                    ))}
+                    {currentRaces.map((race) => {
+                      const nar = race.is_local || isNarVenue(race.venue);
+                      return (
+                        <tr key={race.race_id}>
+                          <td className={`text-center font-bold text-base ${nar ? "text-[#7b1fa2]" : "text-[#1f7a1f]"}`}>{race.race_number}</td>
+                          <td>
+                            <Link
+                              href={`/race/${encodeURIComponent(race.race_id)}`}
+                              className="text-[#1565C0] hover:underline font-bold text-sm inline-flex items-center gap-1.5"
+                            >
+                              {nar && (
+                                <span className="text-[9px] font-bold text-[#7b1fa2] bg-[#f3e5f5] px-1.5 py-0.5 rounded">地方</span>
+                              )}
+                              {race.race_name}
+                            </Link>
+                          </td>
+                          <td className="text-center text-sm text-[#555]">{race.distance}</td>
+                          <td className="text-center text-sm">{race.headcount}頭</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

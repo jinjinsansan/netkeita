@@ -120,6 +120,7 @@ export async function fetchInternetPredictions(raceName: string): Promise<Intern
 export interface HorseDetail {
   horse_number: number;
   horse_name: string;
+  is_local?: boolean;
   stable_comment: {
     horse_name?: string;
     mark?: string;

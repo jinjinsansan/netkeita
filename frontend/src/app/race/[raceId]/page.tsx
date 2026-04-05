@@ -69,28 +69,44 @@ function RaceContent() {
       </div>
 
       {/* Race header */}
-      <div className="border border-[#bbb] rounded bg-white mb-3 shadow-sm">
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#d0d0d0] bg-[#163016]">
-          <div className="flex items-center gap-2.5">
-            <span className="bg-[#4ade80] text-[#163016] text-[11px] font-black px-2.5 py-0.5 rounded">
-              {matrix.race_number}R
-            </span>
-            <h1 className="text-sm font-bold text-white">{matrix.race_name}</h1>
+      {(() => {
+        const isLocal = matrix.is_local === true;
+        const headerBg = isLocal ? "bg-[#4a148c]" : "bg-[#163016]";
+        const badgeBg = isLocal ? "bg-[#ba68c8] text-[#4a148c]" : "bg-[#4ade80] text-[#163016]";
+        const btnText = isLocal ? "text-[#4a148c]" : "text-[#163016]";
+        const btnBg = isLocal ? "bg-[#ba68c8] hover:bg-[#ce93d8]" : "bg-[#4ade80] hover:bg-[#6ee7a0]";
+        // For NAR, internet prediction is JRA-only so hide it. Minna no Yosou works for both.
+        const showPredButton = ENABLE_MINNA || !isLocal;
+        return (
+          <div className="border border-[#bbb] rounded bg-white mb-3 shadow-sm">
+            <div className={`flex items-center justify-between px-3 py-2.5 border-b border-[#d0d0d0] ${headerBg}`}>
+              <div className="flex items-center gap-2.5">
+                <span className={`${badgeBg} text-[11px] font-black px-2.5 py-0.5 rounded`}>
+                  {matrix.race_number}R
+                </span>
+                {isLocal && (
+                  <span className="bg-white/20 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">地方</span>
+                )}
+                <h1 className="text-sm font-bold text-white">{matrix.race_name}</h1>
+              </div>
+              {showPredButton && (
+                <button
+                  onClick={() => setShowInetPred(true)}
+                  className={`text-[10px] font-bold ${btnText} ${btnBg} px-2.5 py-1 rounded transition shrink-0`}
+                >
+                  {ENABLE_MINNA ? "みんなの予想" : "ネット予想"}
+                </button>
+              )}
+            </div>
+            <div className="px-3 py-2 text-[11px] text-[#444] font-medium flex flex-wrap gap-x-3">
+              <span>{matrix.venue}</span>
+              <span>{matrix.distance}</span>
+              <span>馬場: {matrix.track_condition || "-"}</span>
+              <span>{matrix.horses.length}頭</span>
+            </div>
           </div>
-          <button
-            onClick={() => setShowInetPred(true)}
-            className="text-[10px] font-bold text-[#163016] bg-[#4ade80] hover:bg-[#6ee7a0] px-2.5 py-1 rounded transition shrink-0"
-          >
-            {ENABLE_MINNA ? "みんなの予想" : "ネット予想"}
-          </button>
-        </div>
-        <div className="px-3 py-2 text-[11px] text-[#444] font-medium flex flex-wrap gap-x-3">
-          <span>{matrix.venue}</span>
-          <span>{matrix.distance}</span>
-          <span>馬場: {matrix.track_condition || "-"}</span>
-          <span>{matrix.horses.length}頭</span>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Rank matrix */}
       <RankMatrix horses={matrix.horses} raceId={raceId} jockeyData={matrix.jockey_data} />

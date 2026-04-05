@@ -221,6 +221,7 @@ async def api_matrix(race_id: str, date: str = ""):
         "distance": race_data.get("distance", ""),
         "race_number": race_data.get("race_number", 0),
         "track_condition": race_data.get("track_condition", ""),
+        "is_local": race_data.get("is_local", False),
         "horses": horses,
         "jockey_data": {
             "jockey_post_stats": jockey_data.get("jockey_post_stats", {}),
@@ -290,25 +291,30 @@ def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
 
     venue = race_data.get("venue", "")
     race_number_int = race_data.get("race_number", 0)
+    is_local = race_data.get("is_local", False)
 
-    stable = get_stable_comments(date_str, venue, race_number_int)
-    horse_stable = stable.get(horse_number, stable.get(str(horse_number), {}))
+    # Stable comments and course_stats are JRA-only (scraped from JRA-specific sources)
+    horse_stable: dict = {}
+    course_stats: dict = {}
 
-    # Rewrite comment in background (non-blocking)
-    if horse_stable and horse_stable.get("comment"):
-        horse_stable = rewrite_comment(horse_number, horse_stable)
+    if not is_local:
+        stable = get_stable_comments(date_str, venue, race_number_int)
+        horse_stable = stable.get(horse_number, stable.get(str(horse_number), {}))
+
+        # Rewrite comment in background (non-blocking)
+        if horse_stable and horse_stable.get("comment"):
+            horse_stable = rewrite_comment(horse_number, horse_stable)
+
+        # Course stats from netkeiba (Redis cache only - populated by prefetch)
+        race_id_nk = race_data.get("race_id_netkeiba", "")
+        if race_id_nk:
+            try:
+                course_stats = get_course_stats_for_horse(race_id_nk, horse_number)
+            except Exception:
+                pass
 
     recent_runs = get_horse_recent_runs(race_data, horse_number)
     bloodline = get_horse_bloodline(race_data, horse_number)
-
-    # Course stats from netkeiba (Redis cache only - populated by prefetch)
-    course_stats = {}
-    race_id_nk = race_data.get("race_id_netkeiba", "")
-    if race_id_nk:
-        try:
-            course_stats = get_course_stats_for_horse(race_id_nk, horse_number)
-        except Exception:
-            pass
 
     result = {
         "horse_number": horse_number,
@@ -317,6 +323,7 @@ def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
         "recent_runs": recent_runs,
         "bloodline": bloodline,
         "course_stats": course_stats,
+        "is_local": is_local,
     }
 
     _horse_detail_cache[cache_key] = (time.time(), result)

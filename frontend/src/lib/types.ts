@@ -39,6 +39,7 @@ export interface RaceSummary {
   headcount: number;
   start_time?: string;
   track_condition?: string;
+  is_local?: boolean;
 }
 
 export interface JockeyPostStats {
@@ -70,6 +71,7 @@ export interface RaceMatrix {
   distance: string;
   race_number: number;
   track_condition: string;
+  is_local?: boolean;
   horses: HorseRank[];
   jockey_data?: JockeyData;
 }

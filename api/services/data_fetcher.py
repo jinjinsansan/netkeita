@@ -21,7 +21,7 @@ def get_today_str() -> str:
 
 
 def get_available_dates() -> list[str]:
-    """Return list of available prefetch dates (JRA only, newest first)."""
+    """Return list of available prefetch dates (JRA + NAR, newest first)."""
     if not os.path.isdir(PREFETCH_DIR):
         return []
     dates = []
@@ -29,12 +29,9 @@ def get_available_dates() -> list[str]:
         if fname.startswith("races_") and fname.endswith(".json"):
             date_str = fname.replace("races_", "").replace(".json", "")
             if len(date_str) == 8 and date_str.isdigit():
-                # Only include files that have JRA races
                 pf = load_prefetch(date_str)
-                if pf:
-                    jra_races = [r for r in pf.get("races", []) if not r.get("is_local", False)]
-                    if jra_races:
-                        dates.append(date_str)
+                if pf and pf.get("races"):
+                    dates.append(date_str)
     return sorted(dates, reverse=True)
 
 
@@ -52,17 +49,15 @@ def load_prefetch(date_str: str) -> dict | None:
 
 
 def get_races(date_str: str) -> list[dict]:
-    """Get JRA race list for a date. Returns list of race summaries."""
+    """Get race list (JRA + NAR) for a date. Returns list of race summaries."""
     pf = load_prefetch(date_str)
     if not pf:
         return []
 
     races = pf.get("races", [])
-    # Filter JRA only (not local/NAR)
-    jra_races = [r for r in races if not r.get("is_local", False)]
 
     result = []
-    for r in jra_races:
+    for r in races:
         result.append({
             "race_id": r.get("race_id", ""),
             "race_number": r.get("race_number", 0),
@@ -72,6 +67,7 @@ def get_races(date_str: str) -> list[dict]:
             "headcount": len(r.get("horses", [])),
             "start_time": r.get("start_time", ""),
             "track_condition": r.get("track_condition", ""),
+            "is_local": r.get("is_local", False),
         })
     return result
 
@@ -104,6 +100,7 @@ def get_race_entries(date_str: str, race_id: str) -> dict | None:
                 "distance": r.get("distance", ""),
                 "race_number": r.get("race_number", 0),
                 "track_condition": r.get("track_condition", ""),
+                "is_local": r.get("is_local", False),
                 "entries": entries,
             }
     return None

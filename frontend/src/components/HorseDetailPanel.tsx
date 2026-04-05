@@ -8,10 +8,18 @@ import { RANK_COLUMNS } from "@/lib/types";
 
 type Tab = "scores" | "jockey" | "stable" | "recent" | "bloodline";
 
-const TABS: { key: Tab; label: string }[] = [
+const JRA_TABS: { key: Tab; label: string }[] = [
   { key: "scores", label: "AIスコア" },
   { key: "jockey", label: "騎手" },
   { key: "stable", label: "関係者情報" },
+  { key: "recent", label: "直近5走" },
+  { key: "bloodline", label: "血統" },
+];
+
+// 地方競馬は関係者情報（JRA専用スクレイピング）を除外
+const NAR_TABS: { key: Tab; label: string }[] = [
+  { key: "scores", label: "AIスコア" },
+  { key: "jockey", label: "騎手" },
   { key: "recent", label: "直近5走" },
   { key: "bloodline", label: "血統" },
 ];
@@ -48,6 +56,10 @@ export default function HorseDetailPanel({
     fetchHorseDetail(raceId, horseNumber).then((d) => {
       setData(d);
       setLoading(false);
+      // If NAR race and current tab is the JRA-only "stable", switch to recent
+      if (d?.is_local) {
+        setTab((prev) => (prev === "stable" ? "recent" : prev));
+      }
     });
     requestAnimationFrame(() => setVisible(true));
   }, [raceId, horseNumber]);
@@ -92,7 +104,7 @@ export default function HorseDetailPanel({
 
         {/* Tabs */}
         <div className="flex border-b border-[#d0d0d0] shrink-0">
-          {TABS.map((t) => (
+          {(data?.is_local ? NAR_TABS : JRA_TABS).map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
