@@ -367,8 +367,7 @@ def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
                 pass
 
     recent_runs = get_horse_recent_runs(race_data, horse_number)
-    if not is_local:
-        enrich_recent_runs(recent_runs)
+    enrich_recent_runs(recent_runs)
     bloodline = get_horse_bloodline(race_data, horse_number)
 
     result = {
