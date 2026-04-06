@@ -3,7 +3,7 @@
 import { useAuth } from "@/lib/auth-context";
 import { usePathname } from "next/navigation";
 
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 const BYPASS_PATHS = ["/login", "/auth"];
 
 export default function MaintenanceGuard({ children }: { children: React.ReactNode }) {
