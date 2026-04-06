@@ -356,6 +356,7 @@ export interface ArticleSummary {
   status: "published" | "draft";
   created_at: string;
   updated_at: string;
+  race_id?: string;
 }
 
 export interface Article extends ArticleSummary {
@@ -377,6 +378,7 @@ export interface ArticleInput {
   thumbnail_url?: string;
   status: "published" | "draft";
   slug?: string;
+  race_id?: string;
   /**
    * Optimistic-lock sentinel. Send the article's `updated_at` value that
    * was shown to the editor; the server returns 409 if it has changed.
@@ -435,6 +437,21 @@ export async function fetchArticlePage(
     };
   } catch {
     return empty;
+  }
+}
+
+export async function fetchArticlesByRace(raceId: string): Promise<ArticleSummary[]> {
+  if (!API_URL) return [];
+  try {
+    const res = await fetch(
+      `${API_URL}/api/articles/by-race/${encodeURIComponent(raceId)}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.articles || [];
+  } catch {
+    return [];
   }
 }
 

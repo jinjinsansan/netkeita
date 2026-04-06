@@ -1082,6 +1082,7 @@ class ArticleCreateRequest(BaseModel):
     thumbnail_url: str = ""
     status: str = "published"  # "published" or "draft"
     slug: str | None = None    # optional, auto-generated when omitted
+    race_id: str = ""          # optional, links article to a specific race
 
 
 class ArticleUpdateRequest(BaseModel):
@@ -1090,6 +1091,7 @@ class ArticleUpdateRequest(BaseModel):
     body: str | None = None
     thumbnail_url: str | None = None
     status: str | None = None
+    race_id: str | None = None
     expected_updated_at: str | None = None  # optimistic locking
 
 
@@ -1169,6 +1171,13 @@ def api_list_articles(
     }
 
 
+@app.get("/api/articles/by-race/{race_id:path}")
+def api_get_articles_by_race(race_id: str):
+    """Return published articles linked to a specific race."""
+    articles = articles_service.get_articles_by_race_id(race_id)
+    return {"race_id": race_id, "articles": articles}
+
+
 @app.get("/api/articles/{slug}")
 def api_get_article(slug: str, authorization: str = Header(default="")):
     """Fetch one article.
@@ -1208,6 +1217,7 @@ def api_create_article(req: ArticleCreateRequest, authorization: str = Header(de
             author=user.get("display_name", ""),
             author_id=user.get("line_user_id", ""),
             slug=req.slug,
+            race_id=req.race_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1240,6 +1250,7 @@ def api_update_article(
             body=req.body,
             thumbnail_url=req.thumbnail_url,
             status=req.status,
+            race_id=req.race_id,
             expected_updated_at=req.expected_updated_at,
         )
     except articles_service.ConflictError as e:

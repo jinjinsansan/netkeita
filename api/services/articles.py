@@ -162,12 +162,12 @@ def _estimate_reading_time(body: str) -> int:
 
 _PUBLIC_FIELDS = (
     "slug", "title", "description", "body", "thumbnail_url",
-    "author", "status", "created_at", "updated_at",
+    "author", "status", "created_at", "updated_at", "race_id",
 )
 
 _PUBLIC_SUMMARY_FIELDS = (
     "slug", "title", "description", "thumbnail_url",
-    "author", "status", "created_at", "updated_at",
+    "author", "status", "created_at", "updated_at", "race_id",
 )
 
 
@@ -326,6 +326,7 @@ def create_article(
     author: str,
     author_id: str,
     slug: str | None = None,
+    race_id: str = "",
 ) -> dict:
     """Create a new article. Returns the saved dict.
 
@@ -361,6 +362,7 @@ def create_article(
         candidates = [base] + [f"{base}-{i}" for i in range(2, _SLUG_RETRY_LIMIT + 2)]
 
     now = _now_iso()
+    race_id_clean = _clean_str(race_id, max_len=100)
     record_template = {
         "title": title_clean,
         "description": description_clean,
@@ -369,6 +371,7 @@ def create_article(
         "author": _clean_str(author, max_len=100),
         "author_id": _clean_str(author_id, max_len=100),
         "status": status_clean,
+        "race_id": race_id_clean,
         "created_at": now,
         "updated_at": now,
     }
@@ -417,6 +420,7 @@ def update_article(
     body: str | None = None,
     thumbnail_url: str | None = None,
     status: str | None = None,
+    race_id: str | None = None,
     expected_updated_at: str | None = None,
 ) -> dict | None:
     """Update an existing article in place.
@@ -456,6 +460,8 @@ def update_article(
         )
     if status is not None:
         current["status"] = _validate_status(status)
+    if race_id is not None:
+        current["race_id"] = _clean_str(race_id, max_len=100)
 
     current["updated_at"] = _now_iso()
 
@@ -467,6 +473,34 @@ def update_article(
 
     logger.info(f"article updated: {slug}")
     return current
+
+
+def get_articles_by_race_id(race_id: str) -> list[dict]:
+    """Return published articles linked to a specific race_id."""
+    if not race_id:
+        return []
+    try:
+        slugs = _redis.lrange(_INDEX_KEY, 0, -1) or []
+    except Exception:
+        return []
+    if not slugs:
+        return []
+    try:
+        keys = [_article_key(s) for s in slugs]
+        raws = _redis.mget(keys)
+    except Exception:
+        return []
+    results = []
+    for raw in raws:
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            continue
+        if data.get("status") == "published" and data.get("race_id") == race_id:
+            results.append(public_summary(data))
+    return results
 
 
 def delete_article(slug: str) -> bool:
@@ -494,6 +528,7 @@ __all__ = [
     "generate_slug",
     "get_article",
     "get_article_raw",
+    "get_articles_by_race_id",
     "is_valid_slug",
     "list_articles",
     "public_summary",

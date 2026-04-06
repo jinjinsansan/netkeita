@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { fetchMatrix } from "@/lib/api";
+import { fetchMatrix, fetchArticlesByRace } from "@/lib/api";
+import type { ArticleSummary } from "@/lib/api";
 import type { RaceMatrix } from "@/lib/types";
 import RankMatrix from "@/components/RankMatrix";
 import MinnaVoteDrawer from "@/components/MinnaVoteDrawer";
@@ -23,6 +24,7 @@ function RaceContent() {
   const [matrix, setMatrix] = useState<RaceMatrix | null>(null);
   const [loading, setLoading] = useState(true);
   const [showVote, setShowVote] = useState(false);
+  const [premiumArticles, setPremiumArticles] = useState<ArticleSummary[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +32,10 @@ function RaceContent() {
       if (cancelled) return;
       setMatrix(data);
       setLoading(false);
+    });
+    fetchArticlesByRace(raceId).then((articles) => {
+      if (cancelled) return;
+      setPremiumArticles(articles);
     });
     return () => { cancelled = true; };
   }, [raceId]);
@@ -85,12 +91,22 @@ function RaceContent() {
                 )}
                 <h1 className="text-sm font-bold text-white">{matrix.race_name}</h1>
               </div>
-              <button
-                onClick={() => setShowVote(true)}
-                className={`text-[10px] font-bold ${btnText} ${btnBg} px-2.5 py-1 rounded transition shrink-0`}
-              >
-                みんなの予想
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => setShowVote(true)}
+                  className={`text-[10px] font-bold ${btnText} ${btnBg} px-2.5 py-1 rounded transition`}
+                >
+                  みんなの予想
+                </button>
+                {premiumArticles.length > 0 && (
+                  <Link
+                    href={`/articles/${premiumArticles[0].slug}`}
+                    className="text-[10px] font-bold text-white bg-[#d4a017] hover:bg-[#b8860b] px-2.5 py-1 rounded transition"
+                  >
+                    プレミア予想
+                  </Link>
+                )}
+              </div>
             </div>
             <div className="px-3 py-2 text-[11px] text-[#444] font-medium flex flex-wrap gap-x-3">
               <span>{matrix.venue}</span>

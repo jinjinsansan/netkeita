@@ -10,6 +10,8 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ArticleInput } from "@/lib/api";
+import { fetchRaces } from "@/lib/api";
+import type { RaceSummary } from "@/lib/types";
 import ConfirmModal from "./ConfirmModal";
 import MarkdownToolbar from "./MarkdownToolbar";
 
@@ -65,6 +67,8 @@ export default function ArticleEditor({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [thumbnailUrl, setThumbnailUrl] = useState(initial?.thumbnail_url ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
+  const [raceId, setRaceId] = useState(initial?.race_id ?? "");
+  const [races, setRaces] = useState<RaceSummary[]>([]);
   const [mode, setMode] = useState<Mode>("edit");
   const [localError, setLocalError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -75,6 +79,19 @@ export default function ArticleEditor({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const storageKey = `${AUTOSAVE_KEY_PREFIX}:${autosaveKey}`;
+
+  // Load today's races for the race selector dropdown
+  useEffect(() => {
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+    fetchRaces(dateStr).then((data) => {
+      const all: RaceSummary[] = [];
+      for (const v of data.venues) {
+        all.push(...v.races);
+      }
+      setRaces(all);
+    });
+  }, []);
 
   // Deferred value for preview — stops the markdown parser from running on
   // every keystroke for large documents.
@@ -180,6 +197,7 @@ export default function ArticleEditor({
           thumbnail_url: thumbnailUrl.trim(),
           status,
           slug: slug.trim() || undefined,
+          race_id: raceId || undefined,
           expected_updated_at: expectedUpdatedAt,
         });
         // On successful submit, clear autosave and mark clean
@@ -340,6 +358,29 @@ export default function ArticleEditor({
             maxLength={MAX_TITLE_LEN + 20}
             className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f]"
           />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold text-[#444] mb-1">
+            対象レース (任意)
+          </label>
+          <select
+            value={raceId}
+            onChange={(e) => setRaceId(e.target.value)}
+            className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f] bg-white"
+          >
+            <option value="">レースを選択しない</option>
+            {races.map((r) => (
+              <option key={r.race_id} value={r.race_id}>
+                {r.venue} {r.race_number}R {r.race_name} ({r.distance}, {r.headcount}頭)
+              </option>
+            ))}
+          </select>
+          {raceId && (
+            <p className="text-[10px] text-[#1f7a1f] mt-0.5">
+              この記事はレースページの「プレミア予想」ボタンからもアクセスできます
+            </p>
+          )}
         </div>
 
         <div>
