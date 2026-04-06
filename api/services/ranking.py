@@ -2,11 +2,98 @@
 
 import logging
 import math
+import re
 from typing import Literal
 
 logger = logging.getLogger(__name__)
 
 Grade = Literal["S", "A", "B", "C", "D"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Class hierarchy for race quality weighting
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Numeric tier: higher = stronger class. Used for both weighting and step calc.
+CLASS_TIER: dict[str, float] = {
+    # JRA graded
+    "G1": 10.0, "Jpn1": 10.0, "GI": 10.0,
+    "G2": 9.0, "Jpn2": 9.0, "GII": 9.0,
+    "G3": 8.0, "Jpn3": 8.0, "GIII": 8.0,
+    # JRA conditions
+    "OP": 7.0, "L": 7.0, "オープン": 7.0,
+    "3勝": 6.0, "1600万": 6.0,
+    "2勝": 5.0, "1000万": 5.0,
+    "1勝": 4.0, "500万": 4.0,
+    "新馬": 3.0, "未勝利": 3.0,
+    # NAR classes
+    "S": 8.5,
+    "A1": 7.5, "A2": 7.0,
+    "B1": 6.0, "B2": 5.5, "B3": 5.0,
+    "C1": 4.0, "C2": 3.5, "C3": 3.0,
+    "D": 2.0,
+}
+
+# class_name → weight multiplier for recent run scoring
+CLASS_WEIGHT: dict[str, float] = {
+    "G1": 2.0, "Jpn1": 2.0, "GI": 2.0,
+    "G2": 1.8, "Jpn2": 1.8, "GII": 1.8,
+    "G3": 1.6, "Jpn3": 1.6, "GIII": 1.6,
+    "OP": 1.4, "L": 1.4, "オープン": 1.4,
+    "3勝": 1.25, "1600万": 1.25,
+    "2勝": 1.15, "1000万": 1.15,
+    "1勝": 1.0, "500万": 1.0,
+    "新馬": 0.9, "未勝利": 0.9,
+    "S": 1.5,
+    "A1": 1.35, "A2": 1.25,
+    "B1": 1.1, "B2": 1.05, "B3": 1.0,
+    "C1": 0.9, "C2": 0.85, "C3": 0.8,
+    "D": 0.7,
+}
+
+# Regex patterns to extract NAR class from race_name
+_NAR_CLASS_PATTERNS = [
+    (re.compile(r"(Jpn[123]|GI{1,3})"), None),       # graded
+    (re.compile(r"\b(A1|A2|B1|B2|B3|C1|C2|C3)\b"), None),
+    (re.compile(r"[（(](A1|A2|B1|B2|B3|C1|C2|C3)[)）]"), None),
+    (re.compile(r"(A1|A2|B1|B2|B3|C1|C2|C3)[ー\-一二三四五六七八九十組]"), None),
+    (re.compile(r"重賞"), "G3"),                        # generic graded
+    (re.compile(r"(ダービー|オークス|皐月|天皇|有馬)"), "G1"),
+]
+
+
+def _infer_class(class_name: str, race_name: str) -> str:
+    """Return a normalised class string from explicit class_name or race_name."""
+    cn = (class_name or "").strip()
+    if cn and cn in CLASS_WEIGHT:
+        return cn
+    # Try to extract from race_name
+    rn = race_name or ""
+    for pat, forced in _NAR_CLASS_PATTERNS:
+        m = pat.search(rn)
+        if m:
+            return forced if forced else m.group(1)
+    return ""
+
+
+def _class_weight(cls: str) -> float:
+    return CLASS_WEIGHT.get(cls, 1.0)
+
+
+def _class_tier(cls: str) -> float:
+    return CLASS_TIER.get(cls, 5.0)
+
+
+def _headcount_factor(headcount: int) -> float:
+    """More runners = more competitive. Returns 0.85-1.15 range."""
+    if headcount <= 0:
+        return 1.0
+    if headcount >= 16:
+        return 1.15
+    if headcount >= 12:
+        return 1.05 + (headcount - 12) * 0.025
+    if headcount >= 8:
+        return 0.95 + (headcount - 8) * 0.025
+    return 0.85 + (headcount - 4) * 0.025
 
 
 def score_to_grade(rank: int, total: int) -> Grade:
@@ -140,8 +227,13 @@ def calculate_matrix(
     recent_data: dict,
     odds_data: dict,
     track_condition: str = "良",
+    race_name: str = "",
+    race_class: str = "",
 ) -> list[dict]:
     """Calculate 8-category scores and grades for all horses."""
+
+    # Infer current race class from race_name if not explicitly given
+    current_class = _infer_class(race_class, race_name)
 
     # If backend API returned no real data, use odds-based fallback
     if not _has_real_data(predictions, flow_data, jockey_data):
@@ -157,7 +249,7 @@ def calculate_matrix(
     flow_map = _build_flow_map(flow_data, entries)
     jockey_map = _build_jockey_map(jockey_data, entries)
     bloodline_map = _build_bloodline_map(bloodline_data)
-    recent_map = _build_recent_map(recent_data)
+    recent_map = _build_recent_map(recent_data, current_class)
     # Track adjustment map: synthesize from bloodline.by_condition + race track_condition
     track_map = _build_track_map(bloodline_data, entries, track_condition)
 
@@ -210,6 +302,9 @@ def calculate_matrix(
     _fill_neutral(horses, "jockey", default=15.0, discount=0.75)
     _fill_neutral(horses, "flow", default=60.0, discount=0.90)
 
+    # Build class step adjustment map: compare past race classes to current
+    class_step_map = _build_class_step_map(recent_data, current_class)
+
     # Compute total as a weighted mix of components. Empirically validated
     # (spearman vs market odds) weights: JRA rho +0.70, NAR rho +0.45.
     # total = 0.35*speed + 0.25*recent + 0.20*jockey + 0.10*flow + 0.10*bloodline
@@ -224,7 +319,10 @@ def calculate_matrix(
         )
         # Apply track adjustment as a small modifier (±10%)
         track_mul = max(0.90, min(1.10, float(s.get("track", 1.0))))
-        s["total"] = round(total * track_mul, 2)
+        # Apply class step adjustment (升級ペナルティ / 降級ボーナス)
+        name = h.get("horse_name", "")
+        class_adj = class_step_map.get(name, 1.0)
+        s["total"] = round(total * track_mul * class_adj, 2)
 
     # Break ties deterministically by adding a horse-number-based nudge
     # (<0.01 for display, never enough to shift ranks for genuinely different
@@ -591,9 +689,16 @@ def _build_bloodline_map(bloodline_data: dict) -> dict:
     return result
 
 
-def _build_recent_map(recent_data: dict) -> dict:
-    """Build {horse_number: recent_score} from recent-runs API.
-    API returns: {horses: [{horse_number, runs: [{finish: N}]}]}
+def _build_recent_map(recent_data: dict, current_class: str = "") -> dict:
+    """Build {horse_number: recent_score} with class + headcount weighting.
+
+    Three factors per past run:
+      1. Base score from finish position (1st=100, decays by 6 per position)
+      2. Class weight: higher-class races multiply the base score
+      3. Headcount factor: more runners = more competitive field (0.85-1.15)
+
+    The weighted scores are averaged across the horse's recent runs, producing
+    a single composite that rewards strong performances in tough fields.
     """
     result = {}
     horses = recent_data.get("horses", recent_data.get("recent_runs", []))
@@ -604,16 +709,73 @@ def _build_recent_map(recent_data: dict) -> dict:
             if not runs:
                 result[num] = 0
                 continue
-            positions = []
+            weighted_scores = []
             for r in runs:
                 pos = r.get("finish", r.get("position", 0))
-                if pos and isinstance(pos, (int, float)) and pos > 0:
-                    positions.append(pos)
-            if not positions:
+                if not pos or not isinstance(pos, (int, float)) or pos <= 0:
+                    continue
+                base = max(0, 100 - (pos - 1) * 6)
+                cls = _infer_class(
+                    r.get("class_name", ""),
+                    r.get("race_name", ""),
+                )
+                cw = _class_weight(cls)
+                hc = r.get("headcount", 0) or 0
+                hf = _headcount_factor(hc)
+                weighted_scores.append(base * cw * hf)
+            if not weighted_scores:
                 result[num] = 0
                 continue
-            avg = sum(positions) / len(positions)
-            result[num] = max(0, 100 - (avg - 1) * 6)
+            result[num] = round(sum(weighted_scores) / len(weighted_scores), 2)
+    return result
+
+
+def _build_class_step_map(recent_data: dict, current_class: str) -> dict:
+    """Build {horse_name: adjustment} for class step-up / step-down.
+
+    Compares the average tier of a horse's recent races to the current race's
+    tier. Stepping up in class penalises the total score; stepping down boosts.
+
+    Returns multipliers in the 0.82-1.08 range.
+    """
+    if not current_class:
+        return {}
+    current_tier = _class_tier(current_class)
+    result: dict = {}
+    horses = recent_data.get("horses", recent_data.get("recent_runs", []))
+    if not isinstance(horses, list):
+        return result
+    for h in horses:
+        name = h.get("horse_name", "")
+        if not name:
+            continue
+        runs = h.get("runs", [])
+        tiers = []
+        for r in runs:
+            cls = _infer_class(r.get("class_name", ""), r.get("race_name", ""))
+            if cls:
+                tiers.append(_class_tier(cls))
+        if not tiers:
+            continue
+        avg_past_tier = sum(tiers) / len(tiers)
+        diff = current_tier - avg_past_tier  # positive = stepping UP
+        if diff >= 3.0:
+            adj = 0.82   # 大幅昇級 → 大きな減点
+        elif diff >= 2.0:
+            adj = 0.87
+        elif diff >= 1.0:
+            adj = 0.93
+        elif diff >= 0.5:
+            adj = 0.97
+        elif diff <= -2.0:
+            adj = 1.08   # 大幅降級 → ボーナス
+        elif diff <= -1.0:
+            adj = 1.05
+        elif diff <= -0.5:
+            adj = 1.02
+        else:
+            adj = 1.0    # 同クラス
+        result[name] = adj
     return result
 
 

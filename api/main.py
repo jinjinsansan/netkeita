@@ -261,6 +261,7 @@ async def api_matrix(race_id: str, date: str = ""):
         recent_data=recent_data,
         odds_data=odds_data,
         track_condition=race_data.get("track_condition", "良"),
+        race_name=race_data.get("race_name", ""),
     )
 
     logger.info(f"Matrix built: {len(horses)} horses, sample scores: {horses[0]['scores'] if horses else 'none'}")
