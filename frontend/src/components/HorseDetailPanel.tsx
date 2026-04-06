@@ -344,13 +344,14 @@ function RecentTab({ data }: { data: HorseDetail }) {
                 ) : null}
               </div>
 
-              {/* Row 2: Race name + class badge */}
+              {/* Row 2: Race name + class badge + race level */}
               {hasRichData && (r.race_name || r.class_name) && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 border-b border-[#f0f0f0]">
                   {r.class_name && <ClassBadge name={r.class_name} />}
                   {r.race_name && (
                     <span className="text-[12px] font-bold text-[#333] truncate">{r.race_name}</span>
                   )}
+                  <RaceLevelBadge level={r.race_level} detail={r.race_level_detail} />
                 </div>
               )}
 
@@ -435,6 +436,30 @@ const CLASS_BADGE_STYLES: Record<string, { bg: string; text: string }> = {
   "未勝利": { bg: "#e0e0e0", text: "#555" },
   "新馬": { bg: "#e0e0e0", text: "#555" },
 };
+
+const RACE_LEVEL_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+  S: { bg: "#FFD700", text: "#7B5800", border: "#DAA520" },
+  A: { bg: "#FFEBEE", text: "#C62828", border: "#EF9A9A" },
+  B: { bg: "#E3F2FD", text: "#1565C0", border: "#90CAF9" },
+  C: { bg: "#F5F5F5", text: "#616161", border: "#BDBDBD" },
+  D: { bg: "#F5F5F5", text: "#9E9E9E", border: "#E0E0E0" },
+};
+
+function RaceLevelBadge({ level, detail }: { level?: string | null; detail?: { win: string; place: string } | null }) {
+  if (!level || level === "?") return null;
+  const style = RACE_LEVEL_STYLES[level];
+  if (!style) return null;
+  const tooltip = detail ? `勝ち上がり ${detail.win}頭 / 複勝 ${detail.place}頭` : "";
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+      style={{ backgroundColor: style.bg, color: style.text, border: `1px solid ${style.border}` }}
+      title={tooltip}
+    >
+      Lv.{level}
+    </span>
+  );
+}
 
 function ClassBadge({ name }: { name: string }) {
   const style = CLASS_BADGE_STYLES[name] || { bg: "#e0e0e0", text: "#555" };

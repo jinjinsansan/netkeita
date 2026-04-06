@@ -30,6 +30,7 @@ from services.rewriter import rewrite_comment
 from services.course_stats_scraper import get_course_stats_for_horse
 from services.race_results import get_cached_result as get_cached_race_result
 from services import articles as articles_service
+from services.race_level import enrich_recent_runs
 
 JST = timezone(timedelta(hours=9))
 
@@ -366,6 +367,8 @@ def api_horse_detail(race_id: str, horse_number: int, date: str = ""):
                 pass
 
     recent_runs = get_horse_recent_runs(race_data, horse_number)
+    if not is_local:
+        enrich_recent_runs(recent_runs)
     bloodline = get_horse_bloodline(race_data, horse_number)
 
     result = {

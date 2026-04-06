@@ -144,6 +144,11 @@ export interface HorseDetail {
     weight?: string;
     track_condition?: string;
     headcount?: number;
+    race_level?: string | null;
+    race_level_detail?: {
+      win: string;
+      place: string;
+    } | null;
   }[];
   course_stats?: Record<string, {
     record: string;
