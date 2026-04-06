@@ -449,14 +449,19 @@ function RaceLevelBadge({ level, detail }: { level?: string | null; detail?: { w
   if (!level || level === "?") return null;
   const style = RACE_LEVEL_STYLES[level];
   if (!style) return null;
-  const tooltip = detail ? `勝ち上がり ${detail.win}頭 / 複勝 ${detail.place}頭` : "";
   return (
-    <span
-      className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
-      style={{ backgroundColor: style.bg, color: style.text, border: `1px solid ${style.border}` }}
-      title={tooltip}
-    >
-      Lv.{level}
+    <span className="inline-flex items-center gap-1 shrink-0 ml-auto">
+      <span
+        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+        style={{ backgroundColor: style.bg, color: style.text, border: `1px solid ${style.border}` }}
+      >
+        Lv.{level}
+      </span>
+      {detail && (
+        <span className="text-[9px] text-[#999]">
+          勝{detail.win} 複{detail.place}
+        </span>
+      )}
     </span>
   );
 }

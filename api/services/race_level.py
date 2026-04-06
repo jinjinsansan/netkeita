@@ -1,10 +1,14 @@
 """Race Level service — look up S/A/B/C/D level for past races.
 
-Data is populated by scripts/scrape_race_level.py (weekly batch) and stored
-in Redis db=3 with key prefix ``nk:racelevel:``.
+Data is populated by scripts/calc_race_level.py (weekly batch from PC-KEIBA DB)
+and stored in Redis db=3 with key prefix ``nk:racelevel:``.
 
-This module provides a lightweight lookup used by the horse-detail API to
-enrich recent_runs with a ``race_level`` field.
+Two key formats are stored per race:
+  - ``nk:racelevel:{YYYYMMDD}_{venue}_{race_bango}`` (primary, always unique)
+  - ``nk:racelevel:{YYYYMMDD}_{venue}_{race_name}`` (secondary, for name lookup)
+
+This module enriches recent_runs returned by horse-detail API with
+``race_level``, ``race_level_detail`` fields.
 """
 
 import json
@@ -16,61 +20,67 @@ logger = logging.getLogger(__name__)
 _r = _redis.Redis(host="127.0.0.1", port=6379, db=3, decode_responses=True)
 _PREFIX = "nk:racelevel"
 
-LEVEL_LABELS = {
-    "S": "超ハイレベル",
-    "A": "ハイレベル",
-    "B": "標準以上",
-    "C": "標準",
-    "D": "低レベル",
-    "?": "データなし",
-}
-
 
 def _normalize_date(date_str: str) -> str:
     """'2026/03/05' or '20260305' → '20260305'."""
     return date_str.replace("/", "")[:8] if date_str else ""
 
 
-def _make_key(date_str: str, venue: str, race_name: str) -> str:
-    d = _normalize_date(date_str)
-    return f"{d}_{venue}_{race_name}"
-
-
 def get_race_level(date_str: str, venue: str, race_name: str) -> dict | None:
-    """Look up race level from Redis.
-
-    Returns dict with level, win/place stats, or None if not found.
-    """
-    key = _make_key(date_str, venue, race_name)
-    if not key or key.startswith("_"):
+    """Look up race level from Redis by date + venue + race_name."""
+    d = _normalize_date(date_str)
+    if not d or not venue:
         return None
+
+    # Try name-based key first (works for named races like 重賞/特別)
+    if race_name and race_name.strip():
+        try:
+            raw = _r.get(f"{_PREFIX}:{d}_{venue}_{race_name.strip()}")
+            if raw:
+                return json.loads(raw)
+        except Exception:
+            pass
+
+    # Fallback: scan for date+venue prefix (for unnamed races)
     try:
-        raw = _r.get(f"{_PREFIX}:{key}")
-        if raw:
-            return json.loads(raw)
+        pattern = f"{_PREFIX}:{d}_{venue}_*"
+        for key in _r.scan_iter(pattern, count=20):
+            raw = _r.get(key)
+            if raw:
+                data = json.loads(raw)
+                if race_name and data.get("race_name", "").strip() == race_name.strip():
+                    return data
     except Exception:
         pass
+
     return None
 
 
 def enrich_recent_runs(runs: list[dict]) -> list[dict]:
-    """Add race_level field to each run in the list (in-place + return).
+    """Add race_level fields to each run (in-place + return).
 
-    Each run is expected to have 'date', 'venue', 'race_name' keys.
-    Adds 'race_level' (str: S/A/B/C/D/?) and 'race_level_detail' (dict).
+    Each run gets:
+      - race_level: str (S/A/B/C/D) or None
+      - race_level_detail: {win: "3/12", place: "6/12"} or None
     """
     if not runs:
         return runs
 
-    # Batch lookup with pipeline for efficiency
-    keys = []
+    # Build keys for batch lookup
+    name_keys = []
     for run in runs:
-        k = _make_key(run.get("date", ""), run.get("venue", ""), run.get("race_name", ""))
-        keys.append(f"{_PREFIX}:{k}" if k and not k.startswith("_") else "")
+        d = _normalize_date(run.get("date", ""))
+        venue = run.get("venue", "")
+        race_name = (run.get("race_name") or "").strip()
+        if d and venue and race_name:
+            name_keys.append(f"{_PREFIX}:{d}_{venue}_{race_name}")
+        else:
+            name_keys.append("")
 
+    # Batch lookup with pipeline
     try:
         pipe = _r.pipeline(transaction=False)
-        for k in keys:
+        for k in name_keys:
             if k:
                 pipe.get(k)
             else:
@@ -78,23 +88,37 @@ def enrich_recent_runs(runs: list[dict]) -> list[dict]:
         results = pipe.execute()
     except Exception:
         logger.exception("race_level pipeline failed")
-        results = [None] * len(keys)
+        results = [None] * len(name_keys)
 
     for i, run in enumerate(runs):
         raw = results[i] if i < len(results) else None
         if raw:
             try:
                 data = json.loads(raw)
-                run["race_level"] = data.get("level", "?")
+                run["race_level"] = data.get("level")
                 run["race_level_detail"] = {
                     "win": f"{data.get('win_count', 0)}/{data.get('win_total', 0)}",
                     "place": f"{data.get('place_count', 0)}/{data.get('place_total', 0)}",
                 }
+                continue
             except Exception:
-                run["race_level"] = None
-                run["race_level_detail"] = None
-        else:
-            run["race_level"] = None
-            run["race_level_detail"] = None
+                pass
+
+        # Fallback: try individual lookup for unnamed races
+        d = _normalize_date(run.get("date", ""))
+        venue = run.get("venue", "")
+        race_name = (run.get("race_name") or "").strip()
+        if d and venue:
+            data = get_race_level(run.get("date", ""), venue, race_name)
+            if data:
+                run["race_level"] = data.get("level")
+                run["race_level_detail"] = {
+                    "win": f"{data.get('win_count', 0)}/{data.get('win_total', 0)}",
+                    "place": f"{data.get('place_count', 0)}/{data.get('place_total', 0)}",
+                }
+                continue
+
+        run["race_level"] = None
+        run["race_level_detail"] = None
 
     return runs

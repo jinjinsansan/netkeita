@@ -79,11 +79,11 @@ def calculate_race_level(win_count: int, win_total: int,
 
     |  Level  |  Score  |  イメージ                       |
     |---------|---------|--------------------------------|
-    |    S    |  25+    |  G1・G2級の超ハイレベル戦        |
-    |    A    |  18+    |  重賞・OP クラスの好メンバー      |
-    |    B    |  10+    |  条件戦で平均以上                |
-    |    C    |   4+    |  標準的なレベル                  |
-    |    D    |   <4    |  低レベル戦 or データ不足          |
+    |    S    |  35+    |  G1〜重賞クラスハイレベル         |
+    |    A    |  22+    |  重賞〜OP クラス                 |
+    |    B    |  12+    |  条件戦で平均的                  |
+    |    C    |   5+    |  やや低い                        |
+    |    D    |   <5    |  低レベル戦 or データ不足          |
     """
     if win_total == 0 and place_total == 0:
         return "?"  # データなし
@@ -93,9 +93,9 @@ def calculate_race_level(win_count: int, win_total: int,
     place_rate = (place_count / total) * 100
     composite = win_rate * 0.4 + place_rate * 0.6
 
-    if composite >= 25:
+    if composite >= 35:
         return "S"
-    elif composite >= 18:
+    elif composite >= 22:
         return "A"
     elif composite >= 10:
         return "B"
