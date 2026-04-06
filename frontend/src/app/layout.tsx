@@ -3,6 +3,7 @@ import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import HeaderLoginButton from "@/components/HeaderLoginButton";
+import MaintenanceGuard from "@/components/MaintenanceGuard";
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
@@ -40,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
           </div>
         </header>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1"><MaintenanceGuard>{children}</MaintenanceGuard></main>
         <footer className="bg-[#163016] mt-0">
           <div className="max-w-[960px] mx-auto px-4 py-6 text-center">
             <p className="text-xs text-[#a3c9a3] mb-1">
