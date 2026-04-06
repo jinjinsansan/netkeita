@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { fetchVoteResults, submitVote } from "@/lib/api";
-import type { VoteResults } from "@/lib/api";
+import { fetchVoteResults, submitVote, fetchCharacterPredictions } from "@/lib/api";
+import type { VoteResults, CharacterPrediction } from "@/lib/api";
 import type { HorseRank } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 
@@ -28,6 +28,7 @@ export default function MinnaVoteDrawer({
 }) {
   const { authenticated } = useAuth();
   const [data, setData] = useState<VoteResults | null>(null);
+  const [predictions, setPredictions] = useState<CharacterPrediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
@@ -36,8 +37,12 @@ export default function MinnaVoteDrawer({
   const [error, setError] = useState<string | null>(null);
 
   const loadResults = useCallback(() => {
-    fetchVoteResults(raceId).then((d) => {
+    Promise.all([
+      fetchVoteResults(raceId),
+      fetchCharacterPredictions(raceId),
+    ]).then(([d, preds]) => {
       setData(d);
+      setPredictions(preds);
       if (d?.my_vote) {
         setSelected(d.my_vote);
         setVoted(true);
@@ -123,6 +128,8 @@ export default function MinnaVoteDrawer({
               maxRate={maxRate}
               myVote={data?.my_vote ?? null}
               authenticated={authenticated}
+              predictions={predictions}
+              horses={sortedHorses}
             />
           ) : (
             /* Voting view */
@@ -211,28 +218,133 @@ export default function MinnaVoteDrawer({
   );
 }
 
+const MARK_COLOR: Record<string, string> = {
+  "◎": "text-[#d4220b] font-black",
+  "○": "text-[#d4220b] font-bold",
+  "▲": "text-[#1565c0] font-bold",
+  "△": "text-[#1565c0]",
+  "✖": "text-[#888] font-bold",
+};
+
+function CharacterPredictionsSection({
+  predictions,
+  horses,
+}: {
+  predictions: CharacterPrediction[];
+  horses: HorseRank[];
+}) {
+  if (predictions.length === 0) return null;
+
+  const markedHorseNums = new Set<number>();
+  for (const pred of predictions) {
+    for (const num of Object.keys(pred.marks)) {
+      markedHorseNums.add(Number(num));
+    }
+  }
+
+  const displayHorses = horses.filter((h) => markedHorseNums.has(h.horse_number));
+
+  return (
+    <div className="px-4 pt-4 pb-2">
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="text-xs">🏇</span>
+        <span className="text-xs font-bold text-[#444]">予想印</span>
+      </div>
+
+      <div className="overflow-x-auto -mx-4 px-4">
+        <table className="w-full text-xs border-collapse min-w-0">
+          <thead>
+            <tr className="border-b border-[#e0e0e0]">
+              <th className="text-left py-1.5 pr-1 text-[10px] text-[#999] font-normal w-[90px]">馬</th>
+              {predictions.map((p) => (
+                <th key={p.id} className="text-center py-1.5 px-1 text-[10px] text-[#666] font-bold whitespace-nowrap">
+                  <span className="mr-0.5">{p.emoji}</span>
+                  <span className="hidden min-[360px]:inline">{p.name}</span>
+                  <span className="min-[360px]:hidden">{p.name.slice(0, 3)}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {displayHorses.map((h) => (
+              <tr key={h.horse_number} className="border-b border-[#f0f0f0] last:border-0">
+                <td className="py-1.5 pr-1">
+                  <div className="flex items-center gap-1">
+                    <span
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold shrink-0 ${
+                        WAKU_BG[h.post] || ""
+                      }`}
+                    >
+                      {h.post}
+                    </span>
+                    <span className="font-bold text-[#333] truncate max-w-[60px]">
+                      {h.horse_name}
+                    </span>
+                  </div>
+                </td>
+                {predictions.map((p) => {
+                  const mark = p.marks[String(h.horse_number)] || "";
+                  return (
+                    <td key={p.id} className="text-center py-1.5 px-1">
+                      <span className={`text-base ${MARK_COLOR[mark] || ""}`}>
+                        {mark}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-[9px] text-[#999]">
+        <span><span className="text-[#d4220b] font-black">◎</span>本命</span>
+        <span><span className="text-[#d4220b] font-bold">○</span>対抗</span>
+        <span><span className="text-[#1565c0] font-bold">▲</span>単穴</span>
+        <span><span className="text-[#1565c0]">△</span>連下</span>
+        <span><span className="text-[#888] font-bold">✖</span>消し</span>
+      </div>
+    </div>
+  );
+}
+
 function ResultsView({
   data,
   maxRate,
   myVote,
   authenticated,
+  predictions,
+  horses,
 }: {
   data: VoteResults | null;
   maxRate: number;
   myVote: number | null;
   authenticated: boolean;
+  predictions: CharacterPrediction[];
+  horses: HorseRank[];
 }) {
   if (!data || data.results.length === 0) {
     return (
-      <div className="py-10 text-center">
-        <div className="text-3xl mb-3">🗳️</div>
-        <div className="text-sm font-bold text-[#999]">まだ投票がありません</div>
+      <div>
+        <CharacterPredictionsSection predictions={predictions} horses={horses} />
+        <div className="py-10 text-center">
+          <div className="text-3xl mb-3">🗳️</div>
+          <div className="text-sm font-bold text-[#999]">まだ投票がありません</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-4">
+      {predictions.length > 0 && (
+        <div className="-mx-4 -mt-4">
+          <CharacterPredictionsSection predictions={predictions} horses={horses} />
+          <div className="border-b border-[#e8e8e8]" />
+        </div>
+      )}
+
       {!authenticated && (
         <div className="bg-[#f8f8f8] border border-dashed border-[#d0d0d0] rounded-lg p-3 mb-3 text-center">
           <p className="text-[11px] text-[#999]">
@@ -241,7 +353,7 @@ function ResultsView({
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 mt-3">
         <span className="text-xs font-bold text-[#444]">投票結果</span>
         <span className="text-[10px] text-[#999]">
           全{data.total_votes}票

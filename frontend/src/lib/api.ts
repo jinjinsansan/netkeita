@@ -205,6 +205,19 @@ export interface VoteResults {
   my_vote: number | null;
 }
 
+export interface CharacterPrediction {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  marks: Record<string, string>;
+}
+
+export interface CharacterPredictionsResponse {
+  race_id: string;
+  predictions: CharacterPrediction[];
+}
+
 export async function fetchVoteResults(raceId: string): Promise<VoteResults | null> {
   if (!API_URL) return null;
   try {
@@ -219,6 +232,21 @@ export async function fetchVoteResults(raceId: string): Promise<VoteResults | nu
     return res.json();
   } catch {
     return null;
+  }
+}
+
+export async function fetchCharacterPredictions(raceId: string): Promise<CharacterPrediction[]> {
+  if (!API_URL) return [];
+  try {
+    const res = await fetch(
+      `${API_URL}/api/votes/${encodeURIComponent(raceId)}/predictions`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const data: CharacterPredictionsResponse = await res.json();
+    return data.predictions || [];
+  } catch {
+    return [];
   }
 }
 

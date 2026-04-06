@@ -530,6 +530,186 @@ def _ensure_dummy_votes(race_id: str):
             pass
 
 
+# ── Character Predictions (3キャラ予想印) ──────────────────────────────
+_PRED_KEY_PREFIX = "nk:charpred"
+_PRED_TTL = 86400 * 90
+
+MARK_HONMEI = "◎"
+MARK_TAIKOU = "○"
+MARK_TANANA = "▲"
+MARK_RENKA  = "△"
+MARK_HOSHI  = "✖"
+
+CHARACTER_PROFILES = [
+    {
+        "id": "honshi",
+        "name": "netkeita本紙",
+        "description": "本命重視の正統派",
+        "emoji": "📰",
+    },
+    {
+        "id": "data",
+        "name": "データ分析",
+        "description": "数値とスピード重視",
+        "emoji": "📊",
+    },
+    {
+        "id": "anaba",
+        "name": "穴党記者",
+        "description": "人気薄の激走を狙う",
+        "emoji": "🔥",
+    },
+]
+
+
+def _generate_character_predictions(race_id: str) -> list[dict] | None:
+    """Generate 3-character mark predictions for a race (cached in Redis)."""
+    cache_key = f"{_PRED_KEY_PREFIX}:{race_id}"
+    cached = _redis_votes.get(cache_key)
+    if cached:
+        try:
+            return _json.loads(cached)
+        except Exception:
+            pass
+
+    horses = []
+    cached_matrix = _matrix_cache.get(race_id)
+    if cached_matrix:
+        horses = cached_matrix[1].get("horses", [])
+    if not horses:
+        date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
+        race_data = get_race_entries(date_str, race_id)
+        if race_data and race_data.get("entries"):
+            horses = [
+                {"horse_number": e["horse_number"], "horse_name": e.get("horse_name", ""),
+                 "scores": {"total": 0, "speed": 0, "ev": 0, "recent": 0, "jockey": 0}}
+                for e in race_data["entries"]
+            ]
+    if len(horses) < 4:
+        return None
+
+    has_scores = any(h.get("scores", {}).get("total", 0) > 0 for h in horses)
+
+    # --- netkeita本紙: total score 順 (正統派) ---
+    if has_scores:
+        by_total = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
+    else:
+        by_total = sorted(horses, key=lambda h: h["horse_number"])
+    honshi_marks = _assign_marks_standard(by_total)
+
+    # --- データ分析: speed + recent + jockey 重み付け ---
+    if has_scores:
+        by_data = sorted(
+            horses,
+            key=lambda h: (
+                h["scores"].get("speed", 0) * 1.5
+                + h["scores"].get("recent", 0) * 1.3
+                + h["scores"].get("jockey", 0) * 1.2
+            ),
+            reverse=True,
+        )
+    else:
+        by_data = sorted(horses, key=lambda h: h["horse_number"])
+    data_marks = _assign_marks_standard(by_data)
+
+    # --- 穴党記者: EV重視 + 中位〜下位から本命を選ぶ ---
+    if has_scores:
+        by_ev = sorted(
+            horses,
+            key=lambda h: (
+                h["scores"].get("ev", 0) * 2.0
+                + h["scores"].get("recent", 0) * 1.0
+                + h["scores"].get("bloodline", 0) * 0.8
+            ),
+            reverse=True,
+        )
+    else:
+        by_ev = sorted(horses, key=lambda h: h["horse_number"], reverse=True)
+    anaba_marks = _assign_marks_anaba(by_ev, by_total if has_scores else by_ev)
+
+    predictions = []
+    for profile, marks in zip(CHARACTER_PROFILES, [honshi_marks, data_marks, anaba_marks]):
+        predictions.append({
+            **profile,
+            "marks": marks,
+        })
+
+    try:
+        _redis_votes.set(cache_key, _json.dumps(predictions, ensure_ascii=False), ex=_PRED_TTL)
+    except Exception:
+        pass
+
+    return predictions
+
+
+def _assign_marks_standard(sorted_horses: list[dict]) -> dict[str, str]:
+    """Assign marks based on a sorted horse list (top = best)."""
+    marks: dict[str, str] = {}
+    n = len(sorted_horses)
+    if n >= 1:
+        marks[str(sorted_horses[0]["horse_number"])] = MARK_HONMEI
+    if n >= 2:
+        marks[str(sorted_horses[1]["horse_number"])] = MARK_TAIKOU
+    if n >= 3:
+        marks[str(sorted_horses[2]["horse_number"])] = MARK_TANANA
+    if n >= 4:
+        marks[str(sorted_horses[3]["horse_number"])] = MARK_RENKA
+    if n >= 5:
+        marks[str(sorted_horses[-1]["horse_number"])] = MARK_HOSHI
+    return marks
+
+
+def _assign_marks_anaba(ev_sorted: list[dict], total_sorted: list[dict]) -> dict[str, str]:
+    """Assign marks for the contrarian character.
+
+    ◎ is NOT the #1 by total — picks from ev_sorted top that isn't
+    the overall favourite, creating interesting divergence.
+    """
+    marks: dict[str, str] = {}
+    top_fav_num = total_sorted[0]["horse_number"] if total_sorted else -1
+    used: set[int] = set()
+
+    # ◎: First in ev_sorted that is NOT the overall favourite
+    for h in ev_sorted:
+        if h["horse_number"] != top_fav_num:
+            marks[str(h["horse_number"])] = MARK_HONMEI
+            used.add(h["horse_number"])
+            break
+    # ○: Next best in ev_sorted
+    for h in ev_sorted:
+        if h["horse_number"] not in used:
+            marks[str(h["horse_number"])] = MARK_TAIKOU
+            used.add(h["horse_number"])
+            break
+    # ▲: Next
+    for h in ev_sorted:
+        if h["horse_number"] not in used:
+            marks[str(h["horse_number"])] = MARK_TANANA
+            used.add(h["horse_number"])
+            break
+    # △: Next
+    for h in ev_sorted:
+        if h["horse_number"] not in used:
+            marks[str(h["horse_number"])] = MARK_RENKA
+            used.add(h["horse_number"])
+            break
+    # ✖: The overall favourite (contrarian pick)
+    if top_fav_num not in used and len(ev_sorted) >= 5:
+        marks[str(top_fav_num)] = MARK_HOSHI
+
+    return marks
+
+
+@app.get("/api/votes/{race_id}/predictions")
+def api_character_predictions(race_id: str):
+    """Return 3-character mark predictions (◎○▲△✖) for a race."""
+    _assert_valid_race_id(race_id)
+    predictions = _generate_character_predictions(race_id)
+    if predictions is None:
+        return {"race_id": race_id, "predictions": []}
+    return {"race_id": race_id, "predictions": predictions}
+
+
 class VoteRequest(BaseModel):
     horse_number: int
 
