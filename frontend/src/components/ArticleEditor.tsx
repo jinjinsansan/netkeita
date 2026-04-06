@@ -10,7 +10,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ArticleInput } from "@/lib/api";
-import { fetchRaces } from "@/lib/api";
+import { fetchRaces, uploadArticleImage } from "@/lib/api";
 import type { RaceSummary } from "@/lib/types";
 import ConfirmModal from "./ConfirmModal";
 import MarkdownToolbar from "./MarkdownToolbar";
@@ -78,6 +78,8 @@ export default function ArticleEditor({
   const dirtyRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [thumbUploading, setThumbUploading] = useState(false);
+  const thumbInputRef = useRef<HTMLInputElement | null>(null);
   const storageKey = `${AUTOSAVE_KEY_PREFIX}:${autosaveKey}`;
 
   // Load today's races for the race selector dropdown
@@ -271,6 +273,21 @@ export default function ArticleEditor({
     }
   };
 
+  const handleThumbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setThumbUploading(true);
+    setLocalError(null);
+    const res = await uploadArticleImage(file);
+    if (res.success && res.url) {
+      setThumbnailUrl(res.url);
+    } else {
+      setLocalError(res.error || "サムネイルのアップロードに失敗しました");
+    }
+    setThumbUploading(false);
+    if (thumbInputRef.current) thumbInputRef.current.value = "";
+  };
+
   const titleCount = title.length;
   const descCount = description.length;
   const bodyCount = body.length;
@@ -417,15 +434,32 @@ export default function ArticleEditor({
 
         <div>
           <label className="block text-[11px] font-bold text-[#444] mb-1">
-            サムネイル URL
+            サムネイル
           </label>
-          <input
-            type="url"
-            value={thumbnailUrl}
-            onChange={(e) => setThumbnailUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f]"
-          />
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={thumbnailUrl}
+              onChange={(e) => setThumbnailUrl(e.target.value)}
+              placeholder="URLを入力 または 画像をアップロード"
+              className="flex-1 border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f]"
+            />
+            <button
+              type="button"
+              onClick={() => thumbInputRef.current?.click()}
+              disabled={thumbUploading}
+              className="shrink-0 bg-[#1f7a1f] hover:bg-[#165a16] text-white text-[11px] font-bold px-3 py-2 rounded transition disabled:opacity-50"
+            >
+              {thumbUploading ? "送信中..." : "画像を選択"}
+            </button>
+            <input
+              ref={thumbInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleThumbUpload}
+              className="hidden"
+            />
+          </div>
           {thumbnailUrl && !isThumbValid && (
             <p className="mt-1 text-[10px] text-[#c62828]">
               http:// または https:// で始まる URL を入力してください
