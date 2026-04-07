@@ -33,6 +33,7 @@ function DashboardContent() {
 
   // Profile edit state
   const [editMode, setEditMode] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const [catchphrase, setCatchphrase] = useState("");
   const [description, setDescription] = useState("");
   const [pictureUrl, setPictureUrl] = useState("");
@@ -51,6 +52,7 @@ function DashboardContent() {
       return;
     }
     setProfile(p);
+    setDisplayName(p.display_name || "");
     setCatchphrase(p.catchphrase || "");
     setDescription(p.description || "");
     setPictureUrl(p.picture_url || "");
@@ -74,7 +76,7 @@ function DashboardContent() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ catchphrase, description, picture_url: pictureUrl }),
+        body: JSON.stringify({ display_name: displayName, catchphrase, description, picture_url: pictureUrl }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -232,6 +234,21 @@ function DashboardContent() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Display name */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold text-[#444]">表示名</label>
+                <span className="text-[10px] text-[#999]">{displayName.length} / 50</span>
+              </div>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value.slice(0, 50))}
+                placeholder="予想家としての名前"
+                className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f]"
+              />
             </div>
 
             {/* Catchphrase */}

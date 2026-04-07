@@ -202,6 +202,7 @@ def reject(line_user_id: str) -> dict | None:
 def update_profile(
     line_user_id: str,
     *,
+    display_name: str | None = None,
     catchphrase: str | None = None,
     description: str | None = None,
     picture_url: str | None = None,
@@ -210,6 +211,10 @@ def update_profile(
     profile = get_tipster(line_user_id)
     if not profile or profile.get("status") != "approved":
         return None
+    if display_name is not None:
+        cleaned = _clean(display_name, MAX_DISPLAY_NAME_LEN)
+        if cleaned:
+            profile["display_name"] = cleaned
     if catchphrase is not None:
         profile["catchphrase"] = _clean(catchphrase, MAX_CATCHPHRASE_LEN)
     if description is not None:

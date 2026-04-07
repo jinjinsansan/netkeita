@@ -1434,6 +1434,7 @@ def api_get_tipster(tipster_id: str):
 
 
 class TipsterProfileUpdateRequest(BaseModel):
+    display_name: str | None = None
     catchphrase: str | None = None
     description: str | None = None
     picture_url: str | None = None
@@ -1450,6 +1451,7 @@ def api_tipster_update_profile(
         raise HTTPException(status_code=401, detail="ログインが必要です")
     updated = tipsters_service.update_profile(
         user["line_user_id"],
+        display_name=req.display_name,
         catchphrase=req.catchphrase,
         description=req.description,
         picture_url=req.picture_url,
