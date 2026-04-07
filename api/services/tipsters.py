@@ -229,6 +229,23 @@ def is_approved_tipster(line_user_id: str) -> bool:
     return bool(profile and profile.get("status") == "approved")
 
 
+def delete_tipster(line_user_id: str) -> bool:
+    """Remove a tipster profile entirely (approved or otherwise)."""
+    try:
+        pipe = _redis.pipeline(transaction=True)
+        pipe.delete(_key(line_user_id))
+        pipe.lrem(_APPROVED_INDEX, 0, line_user_id)
+        pipe.lrem(_PENDING_INDEX, 0, line_user_id)
+        result = pipe.execute()
+    except Exception:
+        logger.exception(f"tipsters: delete failed for {line_user_id}")
+        return False
+    deleted = bool(result and result[0])
+    if deleted:
+        logger.info(f"tipster deleted: {line_user_id}")
+    return deleted
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Premium access management
 # ─────────────────────────────────────────────────────────────────────────────

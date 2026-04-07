@@ -774,3 +774,22 @@ export async function adminRevokePremium(
     return { success: false, error: "通信エラーが発生しました" };
   }
 }
+
+export async function adminDeleteTipster(
+  tipserId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(
+      `${API_URL}/api/admin/tipsters/${encodeURIComponent(tipserId)}`,
+      { method: "DELETE", headers: { ...authHeaders() } }
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { success: false, error: data.detail || "削除に失敗しました" };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}

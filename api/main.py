@@ -1477,6 +1477,15 @@ def api_admin_reject_tipster(tipster_id: str, authorization: str = Header(defaul
     return {"success": True, "profile": profile}
 
 
+@app.delete("/api/admin/tipsters/{tipster_id}")
+def api_admin_delete_tipster(tipster_id: str, authorization: str = Header(default="")):
+    """Delete a tipster profile (admin only)."""
+    _require_admin(authorization)
+    if not tipsters_service.delete_tipster(tipster_id):
+        raise HTTPException(status_code=404, detail="予想家が見つかりません")
+    return {"success": True, "tipster_id": tipster_id}
+
+
 # ── Admin: premium access management ─────────────────────────────────────────
 
 

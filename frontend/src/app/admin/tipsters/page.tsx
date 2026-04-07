@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   fetchPendingTipsters,
+  fetchTipsters,
   adminApproveTipster,
   adminRejectTipster,
+  adminDeleteTipster,
   adminGrantPremium,
   adminRevokePremium,
 } from "@/lib/api";
@@ -25,14 +27,16 @@ export default function AdminTipstersPage() {
 
 function AdminTipstersContent() {
   const [pending, setPending] = useState<TipsterProfile[]>([]);
+  const [approved, setApproved] = useState<TipsterProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [premiumUserId, setPremiumUserId] = useState("");
   const [premiumMsg, setPremiumMsg] = useState<string | null>(null);
 
   const reload = () => {
-    fetchPendingTipsters().then((data) => {
-      setPending(data);
+    Promise.all([fetchPendingTipsters(), fetchTipsters()]).then(([pend, appr]) => {
+      setPending(pend);
+      setApproved(appr);
       setLoading(false);
     });
   };
@@ -49,6 +53,13 @@ function AdminTipstersContent() {
     if (!confirm("却下しますか？")) return;
     const res = await adminRejectTipster(id);
     setActionMsg(res.success ? "却下しました" : res.error || "エラー");
+    reload();
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`「${name}」を削除しますか？この操作は取り消せません。`)) return;
+    const res = await adminDeleteTipster(id);
+    setActionMsg(res.success ? `${name} を削除しました` : res.error || "エラー");
     reload();
   };
 
@@ -133,6 +144,41 @@ function AdminTipstersContent() {
       )}
 
       {/* Premium access management */}
+      {/* Approved tipsters */}
+      <h2 className="text-sm font-black text-[#444] mb-3">承認済み ({approved.length}件)</h2>
+      {approved.length === 0 ? (
+        <p className="text-sm text-[#999] mb-8">承認済みの予想家はいません</p>
+      ) : (
+        <div className="space-y-3 mb-8">
+          {approved.map((t) => (
+            <div key={t.line_user_id} className="border border-[#c8e6c9] rounded-lg p-4 bg-white">
+              <div className="flex items-center gap-3">
+                {t.picture_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={t.picture_url} alt={t.display_name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#e0e0e0] flex items-center justify-center text-base font-bold text-[#888] shrink-0">
+                    {t.display_name[0]}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[#222]">{t.display_name}</p>
+                  <p className="text-[11px] text-[#f57c00] truncate">{t.catchphrase}</p>
+                  <p className="text-[10px] text-[#999]">ID: {t.line_user_id}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(t.line_user_id, t.display_name)}
+                  className="shrink-0 text-xs font-bold text-[#c62828] border border-[#c62828] hover:bg-[#fdecea] px-3 py-1.5 rounded transition"
+                >
+                  削除
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <h2 className="text-sm font-black text-[#444] mb-3">プレミアムアクセス管理</h2>
       <div className="border border-[#d0d0d0] rounded-lg p-4 bg-white">
         <p className="text-[11px] text-[#666] mb-3">
