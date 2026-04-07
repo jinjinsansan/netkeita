@@ -177,12 +177,15 @@ def get_me(authorization: str = Header(default="")):
     user = _load_session(token)
     if not user:
         return {"authenticated": False}
+    uid = user.get("line_user_id", "")
     return {
         "authenticated": True,
         "user": {
             "display_name": user["display_name"],
             "picture_url": user.get("picture_url", ""),
             "is_admin": _is_admin_user(user),
+            "is_tipster": tipsters_service.is_approved_tipster(uid),
+            "line_user_id": uid,
         },
     }
 

@@ -7,6 +7,8 @@ interface User {
   display_name: string;
   picture_url: string;
   is_admin?: boolean;
+  is_tipster?: boolean;
+  line_user_id?: string;
 }
 
 interface AuthState {
