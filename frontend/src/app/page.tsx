@@ -431,45 +431,66 @@ export default function LandingPage() {
 
       {/* ── Tipsters Section ─────────────────────────── */}
       {tipsters.length > 0 && (
-        <section id="tipsters" className="bg-white py-12 md:py-16 border-t border-[#ececec]">
+        <section id="tipsters" className="py-12 md:py-16 border-t border-[#ececec]" style={{background: "linear-gradient(135deg, #fffbf0 0%, #fff8e8 100%)"}}>
           <div className="max-w-[960px] mx-auto px-5">
-            <div className="flex items-end justify-between mb-6 md:mb-8">
-              <div>
-                <h2 className="text-xl md:text-2xl font-black text-[#111]">今週の予想家</h2>
-                <p className="mt-1 text-xs md:text-sm text-[#666]">
-                  netkeita 公認の予想家が今週のレースを分析
-                </p>
-              </div>
-              <Link
-                href="/tipsters"
-                className="shrink-0 text-xs md:text-sm font-bold text-[#d4a017] hover:text-[#b8860b] transition"
-              >
-                すべての予想家を見る →
-              </Link>
+            {/* Header */}
+            <div className="text-center mb-8 md:mb-10">
+              <span className="inline-flex items-center gap-1.5 bg-[#d4a017]/10 text-[#b8860b] text-xs font-bold px-4 py-1.5 rounded-full mb-4">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                公式認定
+              </span>
+              <h2 className="text-2xl md:text-3xl font-black text-[#111]">
+                netkeita<span className="text-[#d4a017]">公認</span>予想家
+              </h2>
+              <p className="mt-2 text-sm text-[#666]">厳選された予想家が毎週のレースを徹底分析</p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+
+            {/* Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {tipsters.map((t) => (
                 <Link
                   key={t.line_user_id}
                   href={`/tipsters/${encodeURIComponent(t.line_user_id)}`}
-                  className="flex flex-col items-center text-center border border-[#d0d0d0] rounded-lg p-3 bg-white hover:border-[#d4a017] hover:shadow-sm transition"
+                  className="group flex items-start gap-4 bg-white border border-[#e8d99a] rounded-xl p-4 hover:border-[#d4a017] hover:shadow-lg transition-all duration-200"
                 >
-                  {t.picture_url ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={t.picture_url}
-                      alt={t.display_name}
-                      className="w-12 h-12 rounded-full object-cover bg-[#eee] mb-2"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-[#e0e0e0] flex items-center justify-center text-lg font-bold text-[#888] mb-2">
-                      {t.display_name[0]}
-                    </div>
-                  )}
-                  <p className="text-xs font-bold text-[#222] line-clamp-1">{t.display_name}</p>
-                  <p className="text-[10px] text-[#f57c00] mt-0.5 line-clamp-2 leading-tight">{t.catchphrase}</p>
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    {t.picture_url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={t.picture_url} alt={t.display_name}
+                        className="w-14 h-14 rounded-full object-cover ring-2 ring-[#e8d99a] group-hover:ring-[#d4a017] transition" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#d4a017] to-[#f0c040] flex items-center justify-center text-xl font-black text-white ring-2 ring-[#e8d99a] group-hover:ring-[#d4a017] transition">
+                        {t.display_name[0]}
+                      </div>
+                    )}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#d4a017] rounded-full flex items-center justify-center">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="white"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                    </span>
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black text-[#111] truncate group-hover:text-[#d4a017] transition">{t.display_name}</p>
+                    {t.catchphrase && (
+                      <p className="text-[11px] text-[#b8860b] font-bold mt-0.5 line-clamp-2 leading-snug">{t.catchphrase}</p>
+                    )}
+                    {t.description && (
+                      <p className="text-[11px] text-[#666] mt-1.5 line-clamp-2 leading-relaxed">{t.description}</p>
+                    )}
+                    <span className="inline-block mt-2 text-[10px] font-bold text-[#d4a017] group-hover:underline">
+                      予想を見る →
+                    </span>
+                  </div>
                 </Link>
               ))}
+            </div>
+
+            <div className="text-center mt-8">
+              <Link href="/tipsters"
+                className="inline-flex items-center gap-2 text-sm font-bold text-[#b8860b] hover:text-[#d4a017] transition">
+                すべての予想家を見る
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </Link>
             </div>
           </div>
         </section>
