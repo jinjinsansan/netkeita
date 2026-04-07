@@ -1,5 +1,18 @@
 import type { RaceSummary, RaceMatrix } from "./types";
 
+// --- Tipster types ---
+
+export interface TipsterProfile {
+  line_user_id: string;
+  display_name: string;
+  picture_url: string;
+  catchphrase: string;
+  description: string;
+  status: "pending" | "approved" | "rejected";
+  applied_at: string;
+  approved_at: string | null;
+}
+
 const API_URL = "https://bot.dlogicai.in/nk";
 
 // --- Auth helpers ---
@@ -357,6 +370,12 @@ export interface ArticleSummary {
   created_at: string;
   updated_at: string;
   race_id?: string;
+  content_type?: "article" | "prediction";
+  tipster_id?: string;
+  bet_method?: string;
+  ticket_count?: number;
+  preview_body?: string;
+  is_premium?: boolean;
 }
 
 export interface Article extends ArticleSummary {
@@ -379,6 +398,12 @@ export interface ArticleInput {
   status: "published" | "draft";
   slug?: string;
   race_id?: string;
+  content_type?: "article" | "prediction";
+  tipster_id?: string;
+  bet_method?: string;
+  ticket_count?: number;
+  preview_body?: string;
+  is_premium?: boolean;
   /**
    * Optimistic-lock sentinel. Send the article's `updated_at` value that
    * was shown to the editor; the server returns 409 if it has changed.
@@ -572,6 +597,177 @@ export async function deleteArticle(
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       return { success: false, error: data.detail || "削除に失敗しました" };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
+// --- Tipster API ---
+
+export async function fetchTipsters(): Promise<TipsterProfile[]> {
+  if (!API_URL) return [];
+  try {
+    const res = await fetch(`${API_URL}/api/tipsters`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.tipsters || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchTipster(
+  tipserId: string
+): Promise<{ profile: TipsterProfile; predictions: ArticleSummary[] } | null> {
+  if (!API_URL) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/tipsters/${encodeURIComponent(tipserId)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchMyTipsterProfile(): Promise<TipsterProfile | null> {
+  if (!API_URL) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/tipsters/me`, {
+      cache: "no-store",
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.profile || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function applyAsTipster(
+  catchphrase: string,
+  description: string
+): Promise<{ success: boolean; profile?: TipsterProfile; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(`${API_URL}/api/tipsters/apply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ catchphrase, description }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.detail || "申請に失敗しました" };
+    return { success: true, profile: data.profile };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
+export async function fetchPremiumStatus(): Promise<boolean> {
+  if (!API_URL) return false;
+  try {
+    const res = await fetch(`${API_URL}/api/auth/premium-status`, {
+      cache: "no-store",
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data.has_premium;
+  } catch {
+    return false;
+  }
+}
+
+// --- Admin: tipster management ---
+
+export async function fetchPendingTipsters(): Promise<TipsterProfile[]> {
+  if (!API_URL) return [];
+  try {
+    const res = await fetch(`${API_URL}/api/admin/tipsters/pending`, {
+      cache: "no-store",
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.pending || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function adminApproveTipster(
+  tipserId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(
+      `${API_URL}/api/admin/tipsters/${encodeURIComponent(tipserId)}/approve`,
+      { method: "POST", headers: { ...authHeaders() } }
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { success: false, error: data.detail || "承認に失敗しました" };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
+export async function adminRejectTipster(
+  tipserId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(
+      `${API_URL}/api/admin/tipsters/${encodeURIComponent(tipserId)}/reject`,
+      { method: "POST", headers: { ...authHeaders() } }
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { success: false, error: data.detail || "却下に失敗しました" };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
+export async function adminGrantPremium(
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(
+      `${API_URL}/api/admin/premium-access/${encodeURIComponent(userId)}`,
+      { method: "POST", headers: { ...authHeaders() } }
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { success: false, error: data.detail || "付与に失敗しました" };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
+
+export async function adminRevokePremium(
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(
+      `${API_URL}/api/admin/premium-access/${encodeURIComponent(userId)}`,
+      { method: "DELETE", headers: { ...authHeaders() } }
+    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { success: false, error: data.detail || "取消に失敗しました" };
     }
     return { success: true };
   } catch {

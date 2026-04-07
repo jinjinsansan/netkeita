@@ -31,6 +31,7 @@ from services.course_stats_scraper import get_course_stats_for_horse
 from services.race_results import get_cached_result as get_cached_race_result
 from services import articles as articles_service
 from services.race_level import enrich_recent_runs
+from services import tipsters as tipsters_service
 
 JST = timezone(timedelta(hours=9))
 
@@ -1084,6 +1085,13 @@ class ArticleCreateRequest(BaseModel):
     status: str = "published"  # "published" or "draft"
     slug: str | None = None    # optional, auto-generated when omitted
     race_id: str = ""          # optional, links article to a specific race
+    # prediction-specific fields (ignored when content_type="article")
+    content_type: str = "article"   # "article" | "prediction"
+    tipster_id: str = ""
+    bet_method: str = ""
+    ticket_count: int = 0
+    preview_body: str = ""
+    is_premium: bool = False
 
 
 class ArticleUpdateRequest(BaseModel):
@@ -1094,6 +1102,10 @@ class ArticleUpdateRequest(BaseModel):
     status: str | None = None
     race_id: str | None = None
     expected_updated_at: str | None = None  # optimistic locking
+    bet_method: str | None = None
+    ticket_count: int | None = None
+    preview_body: str | None = None
+    is_premium: bool | None = None
 
 
 def _require_admin(authorization: str) -> dict:
@@ -1204,11 +1216,24 @@ def api_get_article(slug: str, authorization: str = Header(default="")):
 
 @app.post("/api/articles")
 def api_create_article(req: ArticleCreateRequest, authorization: str = Header(default="")):
-    """Create a new article. Admin only."""
-    user = _require_admin(authorization)
+    """Create a new article/prediction. Admin always allowed; approved tipsters may post predictions."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    uid = user.get("line_user_id", "")
+    is_tipster = req.content_type == "prediction" and tipsters_service.is_approved_tipster(uid)
+    if not _is_admin_user(user) and not is_tipster:
+        raise HTTPException(status_code=403, detail="管理者権限または承認済み予想家のみ投稿できます")
     _rate_limit("article_write", user.get("line_user_id", ""),
                 _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
     try:
+        # For predictions posted by tipsters: allow approved tipsters to post,
+        # not just admins. The caller's line_user_id is stored as tipster_id.
+        is_tipster_post = (
+            req.content_type == "prediction"
+            and tipsters_service.is_approved_tipster(user.get("line_user_id", ""))
+            and not _is_admin_user(user)
+        )
         record = articles_service.create_article(
             title=req.title,
             description=req.description,
@@ -1219,6 +1244,12 @@ def api_create_article(req: ArticleCreateRequest, authorization: str = Header(de
             author_id=user.get("line_user_id", ""),
             slug=req.slug,
             race_id=req.race_id,
+            content_type=req.content_type,
+            tipster_id=req.tipster_id or (user.get("line_user_id", "") if is_tipster_post else ""),
+            bet_method=req.bet_method,
+            ticket_count=req.ticket_count,
+            preview_body=req.preview_body,
+            is_premium=req.is_premium,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1253,6 +1284,10 @@ def api_update_article(
             status=req.status,
             race_id=req.race_id,
             expected_updated_at=req.expected_updated_at,
+            bet_method=req.bet_method,
+            ticket_count=req.ticket_count,
+            preview_body=req.preview_body,
+            is_premium=req.is_premium,
         )
     except articles_service.ConflictError as e:
         raise HTTPException(status_code=409, detail=str(e))
@@ -1327,6 +1362,152 @@ async def api_upload_article_image(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tipster (予想家) endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TipsterApplyRequest(BaseModel):
+    catchphrase: str
+    description: str = ""
+
+
+@app.post("/api/tipsters/apply")
+def api_tipster_apply(req: TipsterApplyRequest, authorization: str = Header(default="")):
+    """Submit a tipster application. Requires LINE login."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    try:
+        profile = tipsters_service.apply(
+            line_user_id=user["line_user_id"],
+            display_name=user.get("display_name", ""),
+            picture_url=user.get("picture_url", ""),
+            catchphrase=req.catchphrase,
+            description=req.description,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "profile": profile}
+
+
+@app.get("/api/tipsters/me")
+def api_tipster_me(authorization: str = Header(default="")):
+    """Get the current user's tipster profile (if any)."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    profile = tipsters_service.get_tipster(user["line_user_id"])
+    return {"profile": profile}
+
+
+@app.get("/api/tipsters")
+def api_list_tipsters():
+    """List all approved tipsters."""
+    tipsters = tipsters_service.list_approved()
+    return {"tipsters": tipsters, "count": len(tipsters)}
+
+
+@app.get("/api/tipsters/{tipster_id}")
+def api_get_tipster(tipster_id: str):
+    """Get a tipster profile and their published predictions."""
+    profile = tipsters_service.get_tipster(tipster_id)
+    if not profile or profile.get("status") != "approved":
+        raise HTTPException(status_code=404, detail="予想家が見つかりません")
+    predictions = articles_service.list_predictions_by_tipster(tipster_id)
+    return {"profile": profile, "predictions": predictions}
+
+
+class TipsterProfileUpdateRequest(BaseModel):
+    catchphrase: str | None = None
+    description: str | None = None
+    picture_url: str | None = None
+
+
+@app.put("/api/tipsters/me")
+def api_tipster_update_profile(
+    req: TipsterProfileUpdateRequest,
+    authorization: str = Header(default=""),
+):
+    """Update the current user's tipster profile."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    updated = tipsters_service.update_profile(
+        user["line_user_id"],
+        catchphrase=req.catchphrase,
+        description=req.description,
+        picture_url=req.picture_url,
+    )
+    if not updated:
+        raise HTTPException(status_code=403, detail="承認済みの予想家のみ更新できます")
+    return {"success": True, "profile": updated}
+
+
+# ── Admin: tipster management ─────────────────────────────────────────────────
+
+
+@app.get("/api/admin/tipsters/pending")
+def api_admin_list_pending(authorization: str = Header(default="")):
+    """List pending tipster applications (admin only)."""
+    _require_admin(authorization)
+    pending = tipsters_service.list_pending()
+    return {"pending": pending, "count": len(pending)}
+
+
+@app.post("/api/admin/tipsters/{tipster_id}/approve")
+def api_admin_approve_tipster(tipster_id: str, authorization: str = Header(default="")):
+    """Approve a tipster application (admin only)."""
+    _require_admin(authorization)
+    profile = tipsters_service.approve(tipster_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="申請が見つかりません")
+    return {"success": True, "profile": profile}
+
+
+@app.post("/api/admin/tipsters/{tipster_id}/reject")
+def api_admin_reject_tipster(tipster_id: str, authorization: str = Header(default="")):
+    """Reject a tipster application (admin only)."""
+    _require_admin(authorization)
+    profile = tipsters_service.reject(tipster_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="申請が見つかりません")
+    return {"success": True, "profile": profile}
+
+
+# ── Admin: premium access management ─────────────────────────────────────────
+
+
+@app.post("/api/admin/premium-access/{target_user_id}")
+def api_admin_grant_premium(target_user_id: str, authorization: str = Header(default="")):
+    """Grant premium access to a user (admin only)."""
+    _require_admin(authorization)
+    tipsters_service.grant_premium_access(target_user_id)
+    return {"success": True, "user_id": target_user_id, "access": "granted"}
+
+
+@app.delete("/api/admin/premium-access/{target_user_id}")
+def api_admin_revoke_premium(target_user_id: str, authorization: str = Header(default="")):
+    """Revoke premium access from a user (admin only)."""
+    _require_admin(authorization)
+    tipsters_service.revoke_premium_access(target_user_id)
+    return {"success": True, "user_id": target_user_id, "access": "revoked"}
+
+
+@app.get("/api/auth/premium-status")
+def api_premium_status(authorization: str = Header(default="")):
+    """Check if the current user has premium access."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        return {"has_premium": False}
+    has_premium = (
+        _is_admin_user(user)
+        or tipsters_service.is_approved_tipster(user["line_user_id"])
+        or tipsters_service.has_premium_access(user["line_user_id"])
+    )
+    return {"has_premium": has_premium}
 
 
 if __name__ == "__main__":

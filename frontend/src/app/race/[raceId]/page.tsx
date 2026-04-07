@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { fetchMatrix, fetchArticlesByRace } from "@/lib/api";
-import type { ArticleSummary } from "@/lib/api";
+import { fetchMatrix, fetchArticlesByRace, fetchTipsters, fetchPremiumStatus } from "@/lib/api";
+import type { ArticleSummary, TipsterProfile } from "@/lib/api";
 import type { RaceMatrix } from "@/lib/types";
 import RankMatrix from "@/components/RankMatrix";
 import MinnaVoteDrawer from "@/components/MinnaVoteDrawer";
+import PredictionCard from "@/components/PredictionCard";
 import AuthGuard from "@/components/AuthGuard";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
 
 export default function RacePage() {
   return (
@@ -21,10 +23,14 @@ export default function RacePage() {
 function RaceContent() {
   const params = useParams();
   const raceId = decodeURIComponent(params.raceId as string);
+  const { user } = useAuth();
   const [matrix, setMatrix] = useState<RaceMatrix | null>(null);
   const [loading, setLoading] = useState(true);
   const [showVote, setShowVote] = useState(false);
+  const [showPredictions, setShowPredictions] = useState(false);
   const [premiumArticles, setPremiumArticles] = useState<ArticleSummary[]>([]);
+  const [tipsterMap, setTipsterMap] = useState<Record<string, TipsterProfile>>({});
+  const [hasPremium, setHasPremium] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,10 +41,23 @@ function RaceContent() {
     });
     fetchArticlesByRace(raceId).then((articles) => {
       if (cancelled) return;
-      setPremiumArticles(articles);
+      // Only show predictions (tipster content) in the premium section
+      const predictions = articles.filter((a) => a.content_type === "prediction");
+      setPremiumArticles(predictions);
     });
+    fetchTipsters().then((tipsters) => {
+      if (cancelled) return;
+      const m: Record<string, TipsterProfile> = {};
+      for (const t of tipsters) m[t.line_user_id] = t;
+      setTipsterMap(m);
+    });
+    if (user) {
+      fetchPremiumStatus().then((p) => {
+        if (!cancelled) setHasPremium(p || !!user?.is_admin);
+      });
+    }
     return () => { cancelled = true; };
-  }, [raceId]);
+  }, [raceId, user]);
 
   if (loading) {
     return (
@@ -99,12 +118,12 @@ function RaceContent() {
                   みんなの予想
                 </button>
                 {premiumArticles.length > 0 && (
-                  <Link
-                    href={`/articles/${premiumArticles[0].slug}`}
+                  <button
+                    onClick={() => setShowPredictions((v) => !v)}
                     className="text-[10px] font-bold text-white bg-[#d4a017] hover:bg-[#b8860b] px-2.5 py-1 rounded transition"
                   >
-                    プレミア予想
-                  </Link>
+                    予想家の予想 ({premiumArticles.length})
+                  </button>
                 )}
               </div>
             </div>
@@ -117,6 +136,32 @@ function RaceContent() {
           </div>
         );
       })()}
+
+      {/* Tipster predictions panel */}
+      {showPredictions && premiumArticles.length > 0 && (
+        <div className="mb-3 border border-[#e8c84a] rounded-lg bg-[#fffdf0] p-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-black text-[#7c5c00]">予想家の予想</h2>
+            <button
+              type="button"
+              onClick={() => setShowPredictions(false)}
+              className="text-[11px] text-[#999] hover:text-[#444]"
+            >
+              閉じる ×
+            </button>
+          </div>
+          <div className="space-y-3">
+            {premiumArticles.map((p) => (
+              <PredictionCard
+                key={p.slug}
+                prediction={p}
+                tipster={p.tipster_id ? tipsterMap[p.tipster_id] : null}
+                hasPremium={hasPremium}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Rank matrix */}
       <RankMatrix horses={matrix.horses} raceId={raceId} jockeyData={matrix.jockey_data} />

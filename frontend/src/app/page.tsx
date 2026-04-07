@@ -5,8 +5,8 @@ import Link from "next/link";
 import RankBadge from "@/components/RankBadge";
 import ArticleCard from "@/components/ArticleCard";
 import type { Grade, RaceSummary } from "@/lib/types";
-import type { ArticleSummary } from "@/lib/api";
-import { fetchDates, fetchRaces, fetchArticles, getLineLoginUrl } from "@/lib/api";
+import type { ArticleSummary, TipsterProfile } from "@/lib/api";
+import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 // How many latest articles to surface on the top page. 6 fits a 3-column
@@ -87,6 +87,7 @@ export default function LandingPage() {
   const [selectedVenue, setSelectedVenue] = useState("");
   const [loading, setLoading] = useState(true);
   const [latestArticles, setLatestArticles] = useState<ArticleSummary[] | null>(null);
+  const [tipsters, setTipsters] = useState<TipsterProfile[]>([]);
 
   const handleLineLogin = async () => {
     try {
@@ -133,11 +134,15 @@ export default function LandingPage() {
     (async () => {
       try {
         const list = await fetchArticles(false);
-        setLatestArticles(list.slice(0, TOP_LATEST_ARTICLES_LIMIT));
+        setLatestArticles(list.filter((a) => !a.race_id).slice(0, TOP_LATEST_ARTICLES_LIMIT));
       } catch {
         setLatestArticles([]);
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    fetchTipsters().then((data) => setTipsters(data.slice(0, 6)));
   }, []);
 
   const currentDateData = allDates[selectedDateIdx];
@@ -418,6 +423,52 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {latestArticles.map((a) => (
                 <ArticleCard key={a.slug} article={a} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Tipsters Section ─────────────────────────── */}
+      {tipsters.length > 0 && (
+        <section id="tipsters" className="bg-white py-12 md:py-16 border-t border-[#ececec]">
+          <div className="max-w-[960px] mx-auto px-5">
+            <div className="flex items-end justify-between mb-6 md:mb-8">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-[#111]">今週の予想家</h2>
+                <p className="mt-1 text-xs md:text-sm text-[#666]">
+                  netkeita 公認の予想家が今週のレースを分析
+                </p>
+              </div>
+              <Link
+                href="/tipsters"
+                className="shrink-0 text-xs md:text-sm font-bold text-[#d4a017] hover:text-[#b8860b] transition"
+              >
+                すべての予想家を見る →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              {tipsters.map((t) => (
+                <Link
+                  key={t.line_user_id}
+                  href={`/tipsters/${encodeURIComponent(t.line_user_id)}`}
+                  className="flex flex-col items-center text-center border border-[#d0d0d0] rounded-lg p-3 bg-white hover:border-[#d4a017] hover:shadow-sm transition"
+                >
+                  {t.picture_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={t.picture_url}
+                      alt={t.display_name}
+                      className="w-12 h-12 rounded-full object-cover bg-[#eee] mb-2"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-[#e0e0e0] flex items-center justify-center text-lg font-bold text-[#888] mb-2">
+                      {t.display_name[0]}
+                    </div>
+                  )}
+                  <p className="text-xs font-bold text-[#222] line-clamp-1">{t.display_name}</p>
+                  <p className="text-[10px] text-[#f57c00] mt-0.5 line-clamp-2 leading-tight">{t.catchphrase}</p>
+                </Link>
               ))}
             </div>
           </div>

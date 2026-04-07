@@ -67,6 +67,8 @@ MAX_TITLE_LEN = 200
 MAX_DESCRIPTION_LEN = 500
 MAX_BODY_LEN = 100_000  # 100 KB of markdown is plenty
 MAX_THUMBNAIL_LEN = 1000
+MAX_PREVIEW_BODY_LEN = 300
+MAX_BET_METHOD_LEN = 100
 
 # Reading time estimation: ~400 Japanese characters per minute is typical
 # for casual readers. Used by public_view() for "◯分で読める" display.
@@ -163,20 +165,31 @@ def _estimate_reading_time(body: str) -> int:
 _PUBLIC_FIELDS = (
     "slug", "title", "description", "body", "thumbnail_url",
     "author", "status", "created_at", "updated_at", "race_id",
+    # prediction-specific fields
+    "content_type", "tipster_id", "bet_method", "ticket_count",
+    "preview_body", "is_premium",
 )
 
 _PUBLIC_SUMMARY_FIELDS = (
     "slug", "title", "description", "thumbnail_url",
     "author", "status", "created_at", "updated_at", "race_id",
+    # prediction-specific fields
+    "content_type", "tipster_id", "bet_method", "ticket_count",
+    "preview_body", "is_premium",
 )
 
 
-def public_view(record: dict) -> dict:
-    """Strip private fields (author_id) from a full record."""
+def public_view(record: dict, has_premium: bool = False) -> dict:
+    """Strip private fields (author_id) from a full record.
+
+    For premium predictions, body is only included when has_premium=True.
+    """
     if not record:
         return {}
     out = {k: record.get(k, "") for k in _PUBLIC_FIELDS}
     out["reading_time_minutes"] = _estimate_reading_time(out.get("body", ""))
+    if out.get("is_premium") and not has_premium:
+        out["body"] = ""  # gate body behind premium access
     return out
 
 
@@ -327,6 +340,12 @@ def create_article(
     author_id: str,
     slug: str | None = None,
     race_id: str = "",
+    content_type: str = "article",
+    tipster_id: str = "",
+    bet_method: str = "",
+    ticket_count: int = 0,
+    preview_body: str = "",
+    is_premium: bool = False,
 ) -> dict:
     """Create a new article. Returns the saved dict.
 
@@ -374,6 +393,12 @@ def create_article(
         "race_id": race_id_clean,
         "created_at": now,
         "updated_at": now,
+        "content_type": content_type if content_type in ("article", "prediction") else "article",
+        "tipster_id": _clean_str(tipster_id, max_len=100),
+        "bet_method": _clean_str(bet_method, max_len=MAX_BET_METHOD_LEN),
+        "ticket_count": max(0, int(ticket_count)) if isinstance(ticket_count, (int, float)) else 0,
+        "preview_body": _clean_str(preview_body, max_len=MAX_PREVIEW_BODY_LEN),
+        "is_premium": bool(is_premium),
     }
 
     chosen_slug: str | None = None
@@ -422,6 +447,10 @@ def update_article(
     status: str | None = None,
     race_id: str | None = None,
     expected_updated_at: str | None = None,
+    bet_method: str | None = None,
+    ticket_count: int | None = None,
+    preview_body: str | None = None,
+    is_premium: bool | None = None,
 ) -> dict | None:
     """Update an existing article in place.
 
@@ -462,6 +491,14 @@ def update_article(
         current["status"] = _validate_status(status)
     if race_id is not None:
         current["race_id"] = _clean_str(race_id, max_len=100)
+    if bet_method is not None:
+        current["bet_method"] = _clean_str(bet_method, max_len=MAX_BET_METHOD_LEN)
+    if ticket_count is not None:
+        current["ticket_count"] = max(0, int(ticket_count))
+    if preview_body is not None:
+        current["preview_body"] = _clean_str(preview_body, max_len=MAX_PREVIEW_BODY_LEN)
+    if is_premium is not None:
+        current["is_premium"] = bool(is_premium)
 
     current["updated_at"] = _now_iso()
 
@@ -503,6 +540,37 @@ def get_articles_by_race_id(race_id: str) -> list[dict]:
     return results
 
 
+def list_predictions_by_tipster(tipster_id: str) -> list[dict]:
+    """Return published predictions for a specific tipster (newest first)."""
+    if not tipster_id:
+        return []
+    try:
+        slugs = _redis.lrange(_INDEX_KEY, 0, -1) or []
+    except Exception:
+        return []
+    if not slugs:
+        return []
+    try:
+        raws = _redis.mget([_article_key(s) for s in slugs])
+    except Exception:
+        return []
+    results = []
+    for raw in raws:
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            continue
+        if (
+            data.get("status") == "published"
+            and data.get("content_type") == "prediction"
+            and data.get("tipster_id") == tipster_id
+        ):
+            results.append(public_summary(data))
+    return results
+
+
 def delete_article(slug: str) -> bool:
     if not is_valid_slug(slug):
         return False
@@ -534,8 +602,11 @@ __all__ = [
     "public_summary",
     "public_view",
     "update_article",
+    "list_predictions_by_tipster",
     "MAX_BODY_LEN",
     "MAX_DESCRIPTION_LEN",
     "MAX_THUMBNAIL_LEN",
     "MAX_TITLE_LEN",
+    "MAX_PREVIEW_BODY_LEN",
+    "MAX_BET_METHOD_LEN",
 ]
