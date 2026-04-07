@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchTipsters } from "@/lib/api";
 import type { TipsterProfile } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
 
 export default function TipstersPage() {
-  const { user } = useAuth();
   const [tipsters, setTipsters] = useState<TipsterProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,14 +31,7 @@ export default function TipstersPage() {
           <h1 className="text-xl font-black text-[#222]">予想家</h1>
           <p className="text-[11px] text-[#888] mt-0.5">netkeita 公認の予想家が毎週のレースを分析</p>
         </div>
-        {user && (
-          <Link
-            href="/tipsters/apply"
-            className="text-xs font-bold border border-[#1f7a1f] text-[#1f7a1f] hover:bg-[#f0f7f0] px-3 py-2 rounded-lg transition"
-          >
-            予想家に申請
-          </Link>
-        )}
+
       </div>
 
       {loading ? (
