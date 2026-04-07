@@ -3,9 +3,9 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { getToken, clearToken, getMe } from "./api";
 
-interface User {
+export interface User {
   display_name: string;
-  picture_url: string;
+  picture_url?: string;
   is_admin?: boolean;
   is_tipster?: boolean;
   line_user_id?: string;

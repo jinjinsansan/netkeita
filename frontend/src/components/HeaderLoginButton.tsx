@@ -1,82 +1,115 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getLineLoginUrl } from "@/lib/api";
 
 export default function HeaderLoginButton() {
   const { loading, authenticated, user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 外側クリックで閉じる
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
   if (loading) return null;
 
   if (authenticated && user) {
+    const hasPowerLinks = user.is_admin || user.is_tipster;
+
+    // 一般ユーザーはドロップダウン不要 — シンプル表示
+    if (!hasPowerLinks) {
+      return (
+        <div className="flex items-center gap-2">
+          <Link href="/mypage" className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition">
+            マイページ
+          </Link>
+          <span className="text-[11px] text-[#a3c9a3] hidden sm:inline truncate max-w-[80px]">{user.display_name}</span>
+          <button onClick={logout} className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition">
+            ログアウト
+          </button>
+        </div>
+      );
+    }
+
+    // 管理者 / 予想家 — アバタードロップダウン
     return (
-      <div className="flex items-center gap-2">
-        {user.is_tipster && !user.is_admin && (
-          <>
-            <Link
-              href="/tipsters/dashboard"
-              className="text-[10px] text-[#ffd54f] hover:text-white border border-[#ffd54f]/50 px-2 py-1 rounded transition"
-            >
-              ダッシュボード
-            </Link>
-            <Link
-              href="/predictions/new"
-              className="text-[10px] text-[#ffd54f] hover:text-white border border-[#ffd54f]/50 px-2 py-1 rounded transition"
-            >
-              予想を投稿
-            </Link>
-          </>
-        )}
-        {user.is_admin && (
-          <>
-            <Link
-              href="/articles"
-              className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
-            >
-              記事
-            </Link>
-            <Link
-              href="/tipsters"
-              className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
-            >
-              予想家
-            </Link>
-            <Link
-              href="/tipsters/dashboard"
-              className="text-[10px] text-[#ffd54f] hover:text-white border border-[#ffd54f]/50 px-2 py-1 rounded transition"
-            >
-              ダッシュボード
-            </Link>
-            <Link
-              href="/predictions/new"
-              className="text-[10px] text-[#ffd54f] hover:text-white border border-[#ffd54f]/50 px-2 py-1 rounded transition"
-            >
-              予想を投稿
-            </Link>
-            <Link
-              href="/admin/tipsters"
-              className="text-[10px] text-[#ffd54f] hover:text-white border border-[#ffd54f]/50 px-2 py-1 rounded transition"
-            >
-              管理
-            </Link>
-          </>
-        )}
-        <Link
-          href="/mypage"
-          className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
-        >
-          マイページ
-        </Link>
-        <span className="text-[11px] text-[#a3c9a3] hidden sm:inline truncate max-w-[80px]">
-          {user.display_name}
-        </span>
+      <div className="relative" ref={menuRef}>
         <button
-          onClick={logout}
-          className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-1.5 text-[11px] text-[#a3c9a3] hover:text-white px-2 py-1 rounded transition select-none"
         >
-          ログアウト
+          {user.picture_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={user.picture_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+          ) : (
+            <span className="w-6 h-6 rounded-full bg-[#4ade80] flex items-center justify-center text-[10px] font-black text-[#163016]">
+              {user.display_name[0]}
+            </span>
+          )}
+          <span className="hidden sm:inline truncate max-w-[72px]">{user.display_name}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+            <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
+
+        {open && (
+          <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-[#d0d0d0] rounded-lg shadow-xl z-50 overflow-hidden">
+            {/* 予想家メニュー */}
+            {(user.is_tipster || user.is_admin) && (
+              <>
+                <div className="px-3 py-1.5 text-[9px] font-bold text-[#999] uppercase tracking-wider bg-[#f9f9f9]">予想家</div>
+                <Link href="/tipsters/dashboard" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-[#222] hover:bg-[#f0f7f0] transition">
+                  ダッシュボード
+                </Link>
+                <Link href="/predictions/new" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-[#222] hover:bg-[#f0f7f0] transition">
+                  予想を投稿
+                </Link>
+              </>
+            )}
+            {/* 管理者メニュー */}
+            {user.is_admin && (
+              <>
+                <div className="px-3 py-1.5 text-[9px] font-bold text-[#999] uppercase tracking-wider bg-[#f9f9f9]">管理者</div>
+                <Link href="/articles" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-[#222] hover:bg-[#f0f7f0] transition">
+                  記事
+                </Link>
+                <Link href="/tipsters" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-[#222] hover:bg-[#f0f7f0] transition">
+                  予想家一覧
+                </Link>
+                <Link href="/admin/tipsters" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-[#ffd54f] font-bold hover:bg-[#fffde7] transition">
+                  管理
+                </Link>
+              </>
+            )}
+            {/* 共通 */}
+            <div className="border-t border-[#e5e5e5]">
+              <Link href="/mypage" onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-[#222] hover:bg-[#f5f5f5] transition">
+                マイページ
+              </Link>
+              <button onClick={() => { logout(); setOpen(false); }}
+                className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs text-[#c62828] hover:bg-[#fdecea] transition">
+                ログアウト
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
