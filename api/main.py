@@ -1265,18 +1265,20 @@ def api_update_article(
     req: ArticleUpdateRequest,
     authorization: str = Header(default=""),
 ):
-    """Update an existing article. Admin only.
-
-    Supply `expected_updated_at` (from the previously fetched record) to
-    enable optimistic locking. If another admin updated the article in
-    the meantime, the endpoint returns 409 Conflict so the client can
-    refresh before retrying.
-    """
-    user = _require_admin(authorization)
-    _rate_limit("article_write", user.get("line_user_id", ""),
-                _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
+    """Update an existing article. Admin or the tipster who owns the prediction."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    uid = user.get("line_user_id", "")
     if not articles_service.is_valid_slug(slug):
         raise HTTPException(status_code=400, detail="不正なスラッグです")
+    existing = articles_service.get_article_raw(slug)
+    if not existing:
+        raise HTTPException(status_code=404, detail="記事が見つかりません")
+    is_owner = existing.get("tipster_id") == uid and tipsters_service.is_approved_tipster(uid)
+    if not _is_admin_user(user) and not is_owner:
+        raise HTTPException(status_code=403, detail="編集権限がありません")
+    _rate_limit("article_write", uid, _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
     try:
         record = articles_service.update_article(
             slug,
@@ -1303,14 +1305,22 @@ def api_update_article(
 
 @app.delete("/api/articles/{slug}")
 def api_delete_article(slug: str, authorization: str = Header(default="")):
-    """Delete an article. Admin only."""
-    user = _require_admin(authorization)
-    _rate_limit("article_write", user.get("line_user_id", ""),
-                _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
+    """Delete an article. Admin or the tipster who owns the prediction."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    uid = user.get("line_user_id", "")
     if not articles_service.is_valid_slug(slug):
         raise HTTPException(status_code=400, detail="不正なスラッグです")
-    if not articles_service.delete_article(slug):
+    record = articles_service.get_article_raw(slug)
+    if not record:
         raise HTTPException(status_code=404, detail="記事が見つかりません")
+    # Allow: admin OR the tipster who originally posted it
+    is_owner = record.get("tipster_id") == uid and tipsters_service.is_approved_tipster(uid)
+    if not _is_admin_user(user) and not is_owner:
+        raise HTTPException(status_code=403, detail="削除権限がありません")
+    _rate_limit("article_write", uid, _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
+    articles_service.delete_article(slug)
     return {"success": True, "slug": slug}
 
 
