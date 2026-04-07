@@ -12,25 +12,27 @@ export default function HeaderLoginButton() {
   if (authenticated && user) {
     return (
       <div className="flex items-center gap-2">
-        <Link
-          href="/articles"
-          className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
-        >
-          記事
-        </Link>
-        <Link
-          href="/tipsters"
-          className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
-        >
-          予想家
-        </Link>
         {user.is_admin && (
-          <Link
-            href="/admin/tipsters"
-            className="text-[10px] text-[#ffd54f] hover:text-white border border-[#ffd54f]/50 px-2 py-1 rounded transition"
-          >
-            管理
-          </Link>
+          <>
+            <Link
+              href="/articles"
+              className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
+            >
+              記事
+            </Link>
+            <Link
+              href="/tipsters"
+              className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
+            >
+              予想家
+            </Link>
+            <Link
+              href="/admin/tipsters"
+              className="text-[10px] text-[#ffd54f] hover:text-white border border-[#ffd54f]/50 px-2 py-1 rounded transition"
+            >
+              管理
+            </Link>
+          </>
         )}
         <Link
           href="/mypage"
@@ -62,12 +64,6 @@ export default function HeaderLoginButton() {
 
   return (
     <div className="flex items-center gap-2">
-      <Link
-        href="/articles"
-        className="text-[10px] text-[#a3c9a3] hover:text-white border border-[#a3c9a3]/30 px-2 py-1 rounded transition"
-      >
-        記事
-      </Link>
       <button
         onClick={handleLogin}
         className="flex items-center gap-1.5 bg-[#06C755] hover:bg-[#05b04c] text-white font-bold text-xs px-3 sm:px-4 py-2 rounded-lg transition"
