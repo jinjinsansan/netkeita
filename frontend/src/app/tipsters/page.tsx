@@ -19,12 +19,9 @@ export default function TipstersPage() {
   return (
     <div>
       {/* Hero */}
-      <div className="relative overflow-hidden py-14 md:py-20" style={{background: "linear-gradient(135deg, #1a1a1a 0%, #2d2200 60%, #1a1a1a 100%)"}}>
-        {/* decorative rings */}
+      <div className="relative overflow-hidden py-14 md:py-20" style={{background:"linear-gradient(135deg,#1a1a1a 0%,#2d2200 60%,#1a1a1a 100%)"}}>
         <div className="absolute top-[-60px] right-[-60px] w-[300px] h-[300px] rounded-full border border-[#d4a017]/10 pointer-events-none" />
-        <div className="absolute top-[-30px] right-[-30px] w-[200px] h-[200px] rounded-full border border-[#d4a017]/15 pointer-events-none" />
         <div className="absolute bottom-[-80px] left-[-40px] w-[250px] h-[250px] rounded-full border border-[#d4a017]/10 pointer-events-none" />
-
         <div className="relative max-w-[900px] mx-auto px-5 text-center">
           <span className="inline-flex items-center gap-1.5 bg-[#d4a017]/20 text-[#ffd54f] text-xs font-bold px-4 py-1.5 rounded-full mb-5 tracking-wider">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
@@ -51,18 +48,18 @@ export default function TipstersPage() {
 
       <div className="max-w-[900px] mx-auto px-5 py-6">
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="border border-[#e5e5e5] rounded-2xl p-5 animate-pulse">
-                <div className="flex items-center gap-4 mb-3">
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border border-[#e5e5e5] rounded-xl overflow-hidden animate-pulse">
+                <div className="h-8 bg-[#f5e0c0]" />
+                <div className="p-4 flex gap-4">
                   <div className="w-16 h-16 rounded-full bg-[#f0f0f0] shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-[#f0f0f0] rounded w-1/2" />
-                    <div className="h-3 bg-[#f0f0f0] rounded w-3/4" />
+                  <div className="flex-1 space-y-2 pt-1">
+                    <div className="h-4 bg-[#f0f0f0] rounded w-1/3" />
+                    <div className="h-3 bg-[#f0f0f0] rounded w-2/3" />
+                    <div className="h-3 bg-[#f0f0f0] rounded w-full" />
                   </div>
                 </div>
-                <div className="h-3 bg-[#f0f0f0] rounded w-full mb-1.5" />
-                <div className="h-3 bg-[#f0f0f0] rounded w-4/5" />
               </div>
             ))}
           </div>
@@ -76,72 +73,67 @@ export default function TipstersPage() {
           </div>
         ) : (
           <>
-            <p className="text-xs text-[#999] mb-5">{tipsters.length}名の公認予想家</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <p className="text-xs text-[#999] mb-4">{tipsters.length}名の公認予想家</p>
+            <div className="space-y-4">
               {tipsters.map((t) => (
-                <Link
-                  key={t.line_user_id}
-                  href={`/tipsters/${encodeURIComponent(t.line_user_id)}`}
-                  className="group relative flex flex-col bg-white border border-[#e5e5e5] rounded-2xl overflow-hidden hover:border-[#d4a017] hover:shadow-xl transition-all duration-200"
-                >
-                  {/* Top accent bar */}
-                  <div className="h-1 bg-gradient-to-r from-[#d4a017] via-[#f0c040] to-[#d4a017]" />
+                <div key={t.line_user_id} className="border border-[#e0e0e0] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  {/* Orange catchphrase badge — like netkeiba */}
+                  {t.catchphrase && (
+                    <div className="bg-[#e65100] px-4 py-2 text-[12px] font-bold text-white leading-tight">
+                      {t.catchphrase}
+                    </div>
+                  )}
 
-                  <div className="p-5">
-                    {/* Avatar + name row */}
-                    <div className="flex items-start gap-4 mb-3">
-                      <div className="relative shrink-0">
+                  <div className="bg-white p-4">
+                    <div className="flex items-start gap-4">
+                      {/* Avatar */}
+                      <Link href={`/tipsters/${encodeURIComponent(t.line_user_id)}`} className="shrink-0">
                         {t.picture_url ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={t.picture_url}
-                            alt={t.display_name}
-                            className="w-16 h-16 rounded-full object-cover ring-[3px] ring-[#e8d99a] group-hover:ring-[#d4a017] transition"
-                          />
+                          <img src={t.picture_url} alt={t.display_name}
+                            className="w-16 h-16 rounded-full object-cover ring-2 ring-[#e8d99a]" />
                         ) : (
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#d4a017] to-[#f0c040] flex items-center justify-center text-2xl font-black text-white ring-[3px] ring-[#e8d99a] group-hover:ring-[#d4a017] transition">
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#d4a017] to-[#f0c040] flex items-center justify-center text-2xl font-black text-white ring-2 ring-[#e8d99a]">
                             {t.display_name[0]}
                           </div>
                         )}
-                        {/* badge */}
-                        <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 bg-[#d4a017] rounded-full flex items-center justify-center shadow">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-                        </span>
-                      </div>
+                      </Link>
 
+                      {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <p className="text-base font-black text-[#111] truncate group-hover:text-[#b8860b] transition">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Link href={`/tipsters/${encodeURIComponent(t.line_user_id)}`}
+                            className="text-base font-black text-[#111] hover:text-[#d4a017] transition">
                             {t.display_name}
-                          </p>
-                          <span className="shrink-0 text-[9px] font-bold text-[#d4a017] bg-[#fffbeb] border border-[#e8d99a] px-1.5 py-0.5 rounded-full">
-                            公認
-                          </span>
+                          </Link>
+                          <span className="text-[9px] font-bold text-[#d4a017] bg-[#fffbeb] border border-[#e8d99a] px-1.5 py-0.5 rounded-full shrink-0">公認</span>
                         </div>
-                        {t.catchphrase && (
-                          <p className="text-xs text-[#b8860b] font-bold leading-snug line-clamp-2">
-                            {t.catchphrase}
+                        {t.description && (
+                          <p className="text-[13px] text-[#555] leading-relaxed line-clamp-2 mb-3">
+                            {t.description}
                           </p>
                         )}
+
+                        {/* SNS links */}
+                        {t.sns_links && Object.values(t.sns_links).some(Boolean) && (
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {t.sns_links.x && <a href={t.sns_links.x} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-[#555] border border-[#d0d0d0] px-2 py-0.5 rounded-full hover:border-black transition">𝕏</a>}
+                            {t.sns_links.youtube && <a href={t.sns_links.youtube} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-[#555] border border-[#d0d0d0] px-2 py-0.5 rounded-full hover:border-red-500 transition">YouTube</a>}
+                            {t.sns_links.instagram && <a href={t.sns_links.instagram} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-[#555] border border-[#d0d0d0] px-2 py-0.5 rounded-full hover:border-pink-500 transition">Instagram</a>}
+                            {t.sns_links.note && <a href={t.sns_links.note} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-[#555] border border-[#d0d0d0] px-2 py-0.5 rounded-full hover:border-[#41c9b4] transition">note</a>}
+                          </div>
+                        )}
+
+                        {/* CTA button */}
+                        <Link href={`/tipsters/${encodeURIComponent(t.line_user_id)}`}
+                          className="inline-flex items-center gap-1.5 bg-[#d4a017] hover:bg-[#b8860b] text-white text-xs font-bold px-4 py-2 rounded-lg transition">
+                          予想を見る
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </Link>
                       </div>
                     </div>
-
-                    {/* Description */}
-                    {t.description && (
-                      <p className="text-[12px] text-[#555] leading-relaxed line-clamp-3 border-t border-[#f5f5f5] pt-3">
-                        {t.description}
-                      </p>
-                    )}
-
-                    {/* CTA */}
-                    <div className="flex items-center justify-end mt-3">
-                      <span className="text-xs font-bold text-[#d4a017] group-hover:underline flex items-center gap-1">
-                        予想を見る
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                      </span>
-                    </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </>
