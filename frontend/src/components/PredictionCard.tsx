@@ -40,16 +40,6 @@ export default function PredictionCard({ prediction, tipster, hasPremium }: Pred
       )}
 
       <div className="p-3">
-        {/* Race badge */}
-        {raceLabel && (
-          <div className="flex items-center gap-1 mb-2">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#b8860b" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span className="text-[11px] font-bold text-[#b8860b] bg-[#fffbeb] border border-[#e8d99a] px-2 py-0.5 rounded-full">
-              {raceLabel}
-            </span>
-          </div>
-        )}
-
         {/* Tipster row */}
         <div className="flex items-center gap-2.5 mb-2.5">
           <Link href={`/tipsters/${encodeURIComponent(prediction.tipster_id || "")}`} className="shrink-0">
@@ -68,6 +58,12 @@ export default function PredictionCard({ prediction, tipster, hasPremium }: Pred
               className="text-sm font-black text-[#111] hover:text-[#d4a017] transition truncate block">
               {tipster?.display_name || prediction.author}
             </Link>
+            {raceLabel && (
+              <span className="inline-flex items-center gap-1 mt-0.5 text-[11px] font-bold text-[#b8860b]">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {raceLabel}
+              </span>
+            )}
           </div>
         </div>
 
