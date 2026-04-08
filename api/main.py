@@ -538,7 +538,7 @@ def _ensure_dummy_votes(race_id: str):
 
 
 # ── Character Predictions (3キャラ予想印) ──────────────────────────────
-_PRED_KEY_PREFIX = "nk:charpred"
+_PRED_KEY_PREFIX = "nk:charpred:v2"
 _PRED_TTL = 86400 * 90
 
 MARK_HONMEI = "◎"
