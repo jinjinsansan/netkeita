@@ -121,7 +121,7 @@ function RaceContent() {
                     onClick={() => setShowPredictions((v) => !v)}
                     className="text-[10px] font-bold text-white bg-[#d4a017] hover:bg-[#b8860b] px-2.5 py-1 rounded transition"
                   >
-                    関連記事・予想 ({premiumArticles.length})
+                    プレミア予想 ({premiumArticles.length})
                   </button>
                 )}
               </div>
@@ -140,7 +140,7 @@ function RaceContent() {
       {showPredictions && premiumArticles.length > 0 && (
         <div className="mb-3 border border-[#e8c84a] rounded-lg bg-[#fffdf0] p-3">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-black text-[#7c5c00]">関連記事・予想</h2>
+            <h2 className="text-sm font-black text-[#7c5c00]">プレミア予想</h2>
             <button
               type="button"
               onClick={() => setShowPredictions(false)}
