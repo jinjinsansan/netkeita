@@ -161,7 +161,7 @@ function AdminTipstersContent() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-[#222]">{t.display_name}</p>
                   <p className="text-[11px] text-[#666] mt-0.5">ID: {t.line_user_id}</p>
-                  <p className="text-xs text-[#f57c00] font-bold mt-1">{t.catchphrase}</p>
+                  <p className="text-xs text-[#1f7a1f] font-bold mt-1">{t.catchphrase}</p>
                   {t.description && (
                     <p className="text-[11px] text-[#555] mt-1">{t.description}</p>
                   )}
@@ -273,7 +273,7 @@ function AdminTipstersContent() {
                       <span className="text-[9px] font-bold text-[#1565C0] bg-[#e3f2fd] px-1.5 py-0.5 rounded-full">管理者作成</span>
                     )}
                   </div>
-                  <p className="text-[11px] text-[#f57c00] truncate">{t.catchphrase}</p>
+                  <p className="text-[11px] text-[#1f7a1f] truncate">{t.catchphrase}</p>
                   <p className="text-[10px] text-[#999]">ID: {t.line_user_id}</p>
                 </div>
                 <button

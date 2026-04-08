@@ -219,7 +219,7 @@ function DashboardContent() {
             )}
             <div>
               <p className="text-base font-bold text-[#222]">{profile?.display_name}</p>
-              <p className="text-xs text-[#f57c00] font-bold mt-1">{profile?.catchphrase || "（未設定）"}</p>
+              <p className="text-xs text-[#1f7a1f] font-bold mt-1">{profile?.catchphrase || "（未設定）"}</p>
               <p className="text-sm text-[#555] mt-1 leading-relaxed">{profile?.description || "（未設定）"}</p>
               {profile?.sns_links && Object.keys(profile.sns_links).length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">

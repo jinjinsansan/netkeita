@@ -72,7 +72,7 @@ export default function TipsterPage() {
       <div className="border border-[#e0e0e0] rounded-xl overflow-hidden shadow-sm mb-6">
         {/* Catchphrase banner */}
         {profile.catchphrase && (
-          <div className="bg-[#e65100] px-5 py-2.5 text-[13px] font-bold text-white leading-tight">
+          <div className="bg-[#163016] px-5 py-2.5 text-[13px] font-bold text-[#4ade80] leading-tight">
             {profile.catchphrase}
           </div>
         )}

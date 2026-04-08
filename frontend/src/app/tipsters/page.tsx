@@ -51,7 +51,7 @@ export default function TipstersPage() {
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="border border-[#e5e5e5] rounded-xl overflow-hidden animate-pulse">
-                <div className="h-8 bg-[#f5e0c0]" />
+                <div className="h-8 bg-[#d0e8d0]" />
                 <div className="p-4 flex gap-4">
                   <div className="w-16 h-16 rounded-full bg-[#f0f0f0] shrink-0" />
                   <div className="flex-1 space-y-2 pt-1">
@@ -77,9 +77,8 @@ export default function TipstersPage() {
             <div className="space-y-4">
               {tipsters.map((t) => (
                 <div key={t.line_user_id} className="border border-[#e0e0e0] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  {/* Orange catchphrase badge — like netkeiba */}
                   {t.catchphrase && (
-                    <div className="bg-[#e65100] px-4 py-2 text-[12px] font-bold text-white leading-tight">
+                    <div className="bg-[#163016] px-4 py-2 text-[12px] font-bold text-[#4ade80] leading-tight">
                       {t.catchphrase}
                     </div>
                   )}
