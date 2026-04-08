@@ -9,11 +9,26 @@ interface PredictionCardProps {
   hasPremium?: boolean;
 }
 
+function parseRaceId(raceId?: string): string | null {
+  if (!raceId) return null;
+  // format: YYYYMMDD-venue-raceNum  e.g. "20260408-川崎-11"
+  const parts = raceId.split("-");
+  if (parts.length < 3) return null;
+  const dateStr = parts[0];
+  const venue = parts[1];
+  const raceNum = parts[2];
+  if (!dateStr || dateStr.length < 8) return null;
+  const month = parseInt(dateStr.slice(4, 6), 10);
+  const day = parseInt(dateStr.slice(6, 8), 10);
+  return `${venue} ${raceNum}R (${month}/${day})`;
+}
+
 export default function PredictionCard({ prediction, tipster, hasPremium }: PredictionCardProps) {
   const isPremium = !!prediction.is_premium;
   const isFree = !isPremium;
   const isPurchased = isPremium && hasPremium;
   const displayCount = prediction.preview_body?.length ?? 0;
+  const raceLabel = parseRaceId(prediction.race_id);
 
   return (
     <div className="border border-[#e0e0e0] rounded-xl bg-white overflow-hidden shadow-sm">
@@ -25,6 +40,16 @@ export default function PredictionCard({ prediction, tipster, hasPremium }: Pred
       )}
 
       <div className="p-3">
+        {/* Race badge */}
+        {raceLabel && (
+          <div className="flex items-center gap-1 mb-2">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#b8860b" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span className="text-[11px] font-bold text-[#b8860b] bg-[#fffbeb] border border-[#e8d99a] px-2 py-0.5 rounded-full">
+              {raceLabel}
+            </span>
+          </div>
+        )}
+
         {/* Tipster row */}
         <div className="flex items-center gap-2.5 mb-2.5">
           <Link href={`/tipsters/${encodeURIComponent(prediction.tipster_id || "")}`} className="shrink-0">
