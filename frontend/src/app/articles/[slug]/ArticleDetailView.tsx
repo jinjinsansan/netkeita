@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
-import { fetchArticle, deleteArticle } from "@/lib/api";
-import type { Article } from "@/lib/api";
+import { fetchArticle, deleteArticle, fetchTipster, fetchPremiumStatus } from "@/lib/api";
+import type { Article, TipsterProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import ShareButton from "@/components/ShareButton";
 import ConfirmModal from "@/components/ConfirmModal";
+import PredictionDetailView from "@/components/PredictionDetailView";
 import { SITE_URL } from "@/lib/site";
 import { formatDate } from "@/lib/format";
 
@@ -34,15 +35,23 @@ export default function ArticleDetailView({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tipster, setTipster] = useState<TipsterProfile | null>(null);
+  const [hasPremium, setHasPremium] = useState(false);
 
   // Client-side refetch triggers:
   //  1. The SSR fetch returned null AND we're an admin — maybe it was a
   //     draft that SSR couldn't see because it had no cookie.
   //  2. The slug prop changes (route navigation).
   useEffect(() => {
-    if (article && article.slug === slug) return;
+    if (article && article.slug === slug) {
+      // 予想記事なら tipster / premium も取得
+      if (article.content_type === "prediction" && article.tipster_id) {
+        fetchTipster(article.tipster_id).then((d) => { if (d) setTipster(d.profile); });
+        if (user) fetchPremiumStatus().then((p) => setHasPremium(p || !!user?.is_admin));
+      }
+      return;
+    }
     if (!isAdmin && article === null && !initialArticle) {
-      // Public user and SSR already said 404 — don't bother refetching.
       return;
     }
     let cancelled = false;
@@ -56,14 +65,20 @@ export default function ArticleDetailView({
       } else {
         setArticle(data);
         setNotFound(false);
+        if (data.content_type === "prediction" && data.tipster_id) {
+          const td = await fetchTipster(data.tipster_id);
+          if (!cancelled && td) setTipster(td.profile);
+          if (user) {
+            const p = await fetchPremiumStatus();
+            if (!cancelled) setHasPremium(p || !!user?.is_admin);
+          }
+        }
       }
       setLoading(false);
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, isAdmin]);
+  }, [slug, isAdmin, user]);
 
   const handleDelete = async () => {
     setConfirmDeleteOpen(false);
@@ -112,6 +127,11 @@ export default function ArticleDetailView({
   const publicUrl = `${SITE_URL}/articles/${encodeURIComponent(slug)}`;
   const isDraft = article.status !== "published";
   const readingTime = article.reading_time_minutes;
+
+  // 予想記事は専用ビューで表示
+  if (article.content_type === "prediction") {
+    return <PredictionDetailView article={article} tipster={tipster} hasPremium={hasPremium || isAdmin} />;
+  }
 
   return (
     <article className="max-w-[680px] mx-auto px-4 py-6">
