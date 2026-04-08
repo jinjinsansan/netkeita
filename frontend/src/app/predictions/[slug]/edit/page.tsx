@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { fetchArticle, updateArticle, fetchRaces } from "@/lib/api";
 import type { Article } from "@/lib/api";
 import type { RaceSummary } from "@/lib/types";
@@ -203,7 +204,7 @@ function EditForm() {
               className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f] font-mono" />
           ) : (
             <div className="border border-[#d0d0d0] rounded p-4 bg-white min-h-[200px] prose-nk">
-              {body.trim() ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+              {body.trim() ? <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{body}</ReactMarkdown>
                 : <p className="text-xs text-[#bbb]">プレビューが表示されます</p>}
             </div>
           )}

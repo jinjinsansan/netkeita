@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { fetchRaces, createArticle, fetchMyTipsterProfile, fetchTipsters } from "@/lib/api";
 import type { RaceSummary } from "@/lib/types";
 import type { TipsterProfile } from "@/lib/api";
@@ -296,7 +297,7 @@ function NewPredictionForm() {
           ) : (
             <div className="border border-[#d0d0d0] rounded p-4 bg-white min-h-[200px] prose-nk">
               {body.trim() ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{body}</ReactMarkdown>
               ) : (
                 <p className="text-xs text-[#bbb]">本文が入力されるとここにプレビューが表示されます</p>
               )}

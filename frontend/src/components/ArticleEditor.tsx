@@ -9,6 +9,7 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import type { ArticleInput } from "@/lib/api";
 import { fetchRaces, uploadArticleImage } from "@/lib/api";
 import type { RaceSummary } from "@/lib/types";
@@ -543,7 +544,7 @@ export default function ArticleEditor({
           <div className="text-[11px] font-bold text-[#444] mb-1">プレビュー</div>
           <div className="border border-[#d0d0d0] rounded p-4 bg-white min-h-[480px] prose-nk">
             {deferredBody.trim() ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{deferredBody}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{deferredBody}</ReactMarkdown>
             ) : (
               <p className="text-xs text-[#bbb]">ここにプレビューが表示されます</p>
             )}

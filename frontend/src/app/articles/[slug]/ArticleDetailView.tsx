@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { fetchArticle, deleteArticle } from "@/lib/api";
 import type { Article } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -190,7 +191,7 @@ export default function ArticleDetailView({
       </div>
 
       <div className="prose-nk">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.body}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{article.body}</ReactMarkdown>
       </div>
 
       {error && (
