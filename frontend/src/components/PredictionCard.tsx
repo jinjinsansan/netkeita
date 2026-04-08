@@ -32,9 +32,9 @@ export default function PredictionCard({ prediction, tipster, hasPremium }: Pred
 
   return (
     <div className="border border-[#e0e0e0] rounded-xl bg-white overflow-hidden shadow-sm">
-      {/* Badge */}
+      {/* Catchphrase banner */}
       {tipster?.catchphrase && (
-        <div className="bg-[#e65100] px-3 py-1.5 text-[11px] font-bold text-white leading-tight">
+        <div className="bg-[#163016] px-3 py-1.5 text-[11px] font-bold text-[#4ade80] leading-tight">
           {tipster.catchphrase}
         </div>
       )}
@@ -88,25 +88,27 @@ export default function PredictionCard({ prediction, tipster, hasPremium }: Pred
         </div>
 
         {/* CTA button */}
-        {isFree ? (
-          <Link href={`/articles/${encodeURIComponent(prediction.slug)}`}
-            className="block w-full text-center text-sm font-bold text-white bg-[#e53935] hover:bg-[#c62828] py-2.5 rounded-lg transition">
-            無料公開<br />
-            <span className="text-[11px] font-normal">予想を見る</span>
-          </Link>
-        ) : isPurchased ? (
-          <Link href={`/articles/${encodeURIComponent(prediction.slug)}`}
-            className="block w-full text-center text-sm font-bold text-white bg-[#757575] hover:bg-[#616161] py-2.5 rounded-lg transition">
-            購入済み<br />
-            <span className="text-[11px] font-normal">予想を見る</span>
-          </Link>
-        ) : (
-          <Link href={`/articles/${encodeURIComponent(prediction.slug)}`}
-            className="block w-full text-center text-sm font-bold text-white bg-[#d4a017] hover:bg-[#b8860b] py-2.5 rounded-lg transition">
-            プレミア予想を見る<br />
-            <span className="text-[11px] font-normal">ポイントで購入</span>
-          </Link>
-        )}
+        <div className="flex justify-end">
+          {isFree ? (
+            <Link href={`/articles/${encodeURIComponent(prediction.slug)}`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#1f7a1f] hover:bg-[#16611a] px-4 py-1.5 rounded-lg transition">
+              無料公開・予想を見る
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </Link>
+          ) : isPurchased ? (
+            <Link href={`/articles/${encodeURIComponent(prediction.slug)}`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#757575] hover:bg-[#616161] px-4 py-1.5 rounded-lg transition">
+              購入済み・予想を見る
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </Link>
+          ) : (
+            <Link href={`/articles/${encodeURIComponent(prediction.slug)}`}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#d4a017] hover:bg-[#b8860b] px-4 py-1.5 rounded-lg transition">
+              プレミア予想を見る
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
