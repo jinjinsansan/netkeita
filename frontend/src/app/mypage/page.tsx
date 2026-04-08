@@ -145,7 +145,7 @@ function MyPageContent() {
         {/* 近日公開ティーザー */}
         <div className="border-t border-[#f0e0a0] pt-3 flex items-center gap-2 opacity-60">
           <span className="text-[10px] bg-[#888] text-white font-bold px-1.5 py-0.5 rounded shrink-0">近日公開</span>
-          <span className="text-[11px] text-[#888]">貯めたKリワードを爆ガチャコインに交換できるようになります</span>
+          <span className="text-[11px] text-[#888]">Kリワードを使った特典機能が近日公開予定です</span>
         </div>
       </div>
 
