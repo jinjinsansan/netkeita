@@ -612,21 +612,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Admin-only floating action button for quick article authoring.
-          Hidden for non-admins and logged-out users via the is_admin flag. */}
-      {user?.is_admin && (
-        <Link
-          href="/articles/new"
-          aria-label="記事を書く"
-          className="fixed bottom-5 right-5 md:bottom-8 md:right-8 z-50 inline-flex items-center gap-2 bg-[#1f7a1f] hover:bg-[#16611a] text-white font-bold text-sm px-5 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          記事を書く
-        </Link>
-      )}
+
     </div>
   );
 }

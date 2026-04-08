@@ -76,12 +76,7 @@ export default function ArticlesPage() {
                 />
                 下書きも表示
               </label>
-              <Link
-                href="/articles/new"
-                className="text-xs font-bold bg-[#1f7a1f] hover:bg-[#16611a] text-white px-3 py-2 rounded-lg shadow-sm transition"
-              >
-                + 新規作成
-              </Link>
+
             </>
           )}
         </div>

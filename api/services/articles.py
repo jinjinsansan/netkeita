@@ -564,7 +564,6 @@ def list_predictions_by_tipster(tipster_id: str) -> list[dict]:
             continue
         if (
             data.get("status") == "published"
-            and data.get("content_type") == "prediction"
             and data.get("tipster_id") == tipster_id
         ):
             results.append(public_summary(data))
