@@ -11,6 +11,14 @@ export interface TipsterProfile {
   status: "pending" | "approved" | "rejected";
   applied_at: string;
   approved_at: string | null;
+  sns_links?: {
+    x?: string;
+    youtube?: string;
+    instagram?: string;
+    tiktok?: string;
+    note?: string;
+  };
+  is_managed?: boolean;
 }
 
 const API_URL = "https://bot.dlogicai.in/nk";

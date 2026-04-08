@@ -87,12 +87,54 @@ export default function TipsterPage() {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black text-[#222]">{profile.display_name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-black text-[#222]">{profile.display_name}</h1>
+              <span className="text-[9px] font-bold text-[#d4a017] bg-[#fffbeb] border border-[#e8d99a] px-1.5 py-0.5 rounded-full">公認</span>
+            </div>
             {profile.catchphrase && (
               <p className="text-xs font-bold text-[#f57c00] mt-1">{profile.catchphrase}</p>
             )}
             {profile.description && (
               <p className="text-sm text-[#555] mt-2 leading-relaxed">{profile.description}</p>
+            )}
+            {profile.sns_links && Object.keys(profile.sns_links).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {profile.sns_links.x && (
+                  <a href={profile.sns_links.x} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#111] hover:text-[#1d9bf0] border border-[#d0d0d0] hover:border-[#1d9bf0] px-2.5 py-1 rounded-full transition">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.631L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"/></svg>
+                    X
+                  </a>
+                )}
+                {profile.sns_links.youtube && (
+                  <a href={profile.sns_links.youtube} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#555] hover:text-[#ff0000] border border-[#d0d0d0] hover:border-[#ff0000] px-2.5 py-1 rounded-full transition">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    YouTube
+                  </a>
+                )}
+                {profile.sns_links.instagram && (
+                  <a href={profile.sns_links.instagram} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#555] hover:text-[#e1306c] border border-[#d0d0d0] hover:border-[#e1306c] px-2.5 py-1 rounded-full transition">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                    Instagram
+                  </a>
+                )}
+                {profile.sns_links.tiktok && (
+                  <a href={profile.sns_links.tiktok} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#555] hover:text-[#010101] border border-[#d0d0d0] hover:border-[#010101] px-2.5 py-1 rounded-full transition">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z"/></svg>
+                    TikTok
+                  </a>
+                )}
+                {profile.sns_links.note && (
+                  <a href={profile.sns_links.note} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#555] hover:text-[#41c9b4] border border-[#d0d0d0] hover:border-[#41c9b4] px-2.5 py-1 rounded-full transition">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.43 0H5.57A5.57 5.57 0 0 0 0 5.57v12.86A5.57 5.57 0 0 0 5.57 24h12.86A5.57 5.57 0 0 0 24 18.43V5.57A5.57 5.57 0 0 0 18.43 0zM7.37 6.2h3.73l2.44 6.04 2.44-6.04h3.65v11.6h-2.72v-7.4l-2.64 6.56h-1.42l-2.64-6.56v7.4H7.37V6.2z"/></svg>
+                    note
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </div>

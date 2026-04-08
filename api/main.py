@@ -1449,6 +1449,7 @@ class TipsterProfileUpdateRequest(BaseModel):
     catchphrase: str | None = None
     description: str | None = None
     picture_url: str | None = None
+    sns_links: dict | None = None
 
 
 @app.put("/api/tipsters/me")
@@ -1466,6 +1467,7 @@ def api_tipster_update_profile(
         catchphrase=req.catchphrase,
         description=req.description,
         picture_url=req.picture_url,
+        sns_links=req.sns_links,
     )
     if not updated:
         raise HTTPException(status_code=403, detail="承認済みの予想家のみ更新できます")

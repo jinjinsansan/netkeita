@@ -37,6 +37,11 @@ function DashboardContent() {
   const [catchphrase, setCatchphrase] = useState("");
   const [description, setDescription] = useState("");
   const [pictureUrl, setPictureUrl] = useState("");
+  const [snsX, setSnsX] = useState("");
+  const [snsYoutube, setSnsYoutube] = useState("");
+  const [snsInstagram, setSnsInstagram] = useState("");
+  const [snsTiktok, setSnsTiktok] = useState("");
+  const [snsNote, setSnsNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -56,6 +61,11 @@ function DashboardContent() {
     setCatchphrase(p.catchphrase || "");
     setDescription(p.description || "");
     setPictureUrl(p.picture_url || "");
+    setSnsX(p.sns_links?.x || "");
+    setSnsYoutube(p.sns_links?.youtube || "");
+    setSnsInstagram(p.sns_links?.instagram || "");
+    setSnsTiktok(p.sns_links?.tiktok || "");
+    setSnsNote(p.sns_links?.note || "");
 
     const data = await fetchTipster(p.line_user_id);
     setPredictions(data?.predictions || []);
@@ -76,7 +86,19 @@ function DashboardContent() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ display_name: displayName, catchphrase, description, picture_url: pictureUrl }),
+        body: JSON.stringify({
+          display_name: displayName,
+          catchphrase,
+          description,
+          picture_url: pictureUrl,
+          sns_links: {
+            ...(snsX.trim() ? { x: snsX.trim() } : {}),
+            ...(snsYoutube.trim() ? { youtube: snsYoutube.trim() } : {}),
+            ...(snsInstagram.trim() ? { instagram: snsInstagram.trim() } : {}),
+            ...(snsTiktok.trim() ? { tiktok: snsTiktok.trim() } : {}),
+            ...(snsNote.trim() ? { note: snsNote.trim() } : {}),
+          },
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -199,6 +221,16 @@ function DashboardContent() {
               <p className="text-base font-bold text-[#222]">{profile?.display_name}</p>
               <p className="text-xs text-[#f57c00] font-bold mt-1">{profile?.catchphrase || "（未設定）"}</p>
               <p className="text-sm text-[#555] mt-1 leading-relaxed">{profile?.description || "（未設定）"}</p>
+              {profile?.sns_links && Object.keys(profile.sns_links).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {Object.entries(profile.sns_links).map(([k, url]) => url && (
+                    <a key={k} href={url} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-[#1565C0] bg-[#e8f0fe] hover:bg-[#d2e3fc] px-2 py-0.5 rounded-full transition">
+                      {k === "x" ? "𝕏" : k.charAt(0).toUpperCase() + k.slice(1)}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -279,6 +311,31 @@ function DashboardContent() {
                 rows={4}
                 className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f]"
               />
+            </div>
+
+            {/* SNS Links */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#444] mb-2">SNS リンク</label>
+              <div className="space-y-2">
+                {[
+                  { key: "x", label: "X (Twitter)", state: snsX, setter: setSnsX, placeholder: "https://x.com/yourname" },
+                  { key: "youtube", label: "YouTube", state: snsYoutube, setter: setSnsYoutube, placeholder: "https://youtube.com/@yourname" },
+                  { key: "instagram", label: "Instagram", state: snsInstagram, setter: setSnsInstagram, placeholder: "https://instagram.com/yourname" },
+                  { key: "tiktok", label: "TikTok", state: snsTiktok, setter: setSnsTiktok, placeholder: "https://tiktok.com/@yourname" },
+                  { key: "note", label: "note", state: snsNote, setter: setSnsNote, placeholder: "https://note.com/yourname" },
+                ].map(({ label, state, setter, placeholder }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-[#555] w-20 shrink-0">{label}</span>
+                    <input
+                      type="url"
+                      value={state}
+                      onChange={(e) => setter(e.target.value.slice(0, 200))}
+                      placeholder={placeholder}
+                      className="flex-1 border border-[#d0d0d0] rounded px-3 py-1.5 text-xs focus:outline-none focus:border-[#1f7a1f]"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

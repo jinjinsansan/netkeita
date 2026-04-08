@@ -32,6 +32,8 @@ _TIPSTER_TTL = 86400 * 365  # 1 year
 MAX_CATCHPHRASE_LEN = 60
 MAX_DESCRIPTION_LEN = 400
 MAX_DISPLAY_NAME_LEN = 50
+MAX_SNS_URL_LEN = 200
+_ALLOWED_SNS_KEYS = {"x", "youtube", "instagram", "tiktok", "note"}
 
 
 def _now_iso() -> str:
@@ -206,6 +208,7 @@ def update_profile(
     catchphrase: str | None = None,
     description: str | None = None,
     picture_url: str | None = None,
+    sns_links: dict | None = None,
 ) -> dict | None:
     """Let an approved tipster update their own profile."""
     profile = get_tipster(line_user_id)
@@ -221,6 +224,14 @@ def update_profile(
         profile["description"] = _clean(description, MAX_DESCRIPTION_LEN)
     if picture_url is not None:
         profile["picture_url"] = picture_url
+    if sns_links is not None:
+        cleaned_sns: dict = {}
+        for k, v in sns_links.items():
+            if k in _ALLOWED_SNS_KEYS and isinstance(v, str):
+                url = v.strip()[:MAX_SNS_URL_LEN]
+                if url:
+                    cleaned_sns[k] = url
+        profile["sns_links"] = cleaned_sns
     try:
         _redis.set(_key(line_user_id), json.dumps(profile, ensure_ascii=False))
     except Exception:
