@@ -569,8 +569,21 @@ CHARACTER_PROFILES = [
 ]
 
 
+_DLOGIC_API_URL = "http://localhost:8000"
+
+
+def _marks_from_top5(top5_numbers: list[int], horse_map: dict[int, str]) -> dict[str, str]:
+    """上位5頭の馬番リストから印辞書を生成する。"""
+    mark_order = [MARK_HONMEI, MARK_TAIKOU, MARK_TANANA, MARK_RENKA, MARK_HOSHI]
+    marks: dict[str, str] = {}
+    for i, num in enumerate(top5_numbers[:5]):
+        if num in horse_map:
+            marks[str(num)] = mark_order[i]
+    return marks
+
+
 def _generate_character_predictions(race_id: str) -> list[dict] | None:
-    """Generate 3-character mark predictions for a race (cached in Redis)."""
+    """Dlogic APIを使って3キャラクターの予想印を生成する（Redisキャッシュあり）。"""
     cache_key = f"{_PRED_KEY_PREFIX}:{race_id}"
     cached = _redis_votes.get(cache_key)
     if cached:
@@ -579,83 +592,76 @@ def _generate_character_predictions(race_id: str) -> list[dict] | None:
         except Exception:
             pass
 
-    horses = []
-    cached_matrix = _matrix_cache.get(race_id)
-    if cached_matrix:
-        horses = cached_matrix[1].get("horses", [])
-    if not horses:
-        date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
-        race_data = get_race_entries(date_str, race_id)
-        if race_data and race_data.get("entries"):
-            horses = [
-                {"horse_number": e["horse_number"], "horse_name": e.get("horse_name", ""),
-                 "scores": {"total": 0, "speed": 0, "ev": 0, "recent": 0, "jockey": 0}}
-                for e in race_data["entries"]
-            ]
-    if len(horses) < 4:
+    # レースエントリーを取得
+    date_str = race_id.split("-")[0] if "-" in race_id else get_today_str()
+    race_data = get_race_entries(date_str, race_id)
+    if not race_data or not race_data.get("entries"):
         return None
 
-    has_scores = any(h.get("scores", {}).get("total", 0) > 0 for h in horses)
+    entries = race_data["entries"]
+    if len(entries) < 4:
+        return None
 
-    # --- netkeita本紙: total score 順 (正統派・オッズ本命重視) ---
-    if has_scores:
-        by_total = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
-    else:
-        by_total = sorted(horses, key=lambda h: h["horse_number"])
-    honshi_marks = _assign_marks_standard(by_total)
+    horse_numbers = [e["horse_number"] for e in entries]
+    horse_names   = [e.get("horse_name", "") for e in entries]
+    jockeys       = [e.get("jockey", "") for e in entries]
+    posts         = [e.get("post", 0) for e in entries]
+    odds_list     = [float(e.get("odds", 10.0)) for e in entries]
+    horse_map     = {e["horse_number"]: e.get("horse_name", "") for e in entries}
 
-    # --- データ分析: 各指標を独立にランキングし、ランク合計で評価 ---
-    # speed / recent / jockey はそれぞれ異なるhashシードで計算されているため
-    # ランクベースで集計すると netkeita本紙と異なる結果になる
-    if has_scores:
-        def _rank_map(key: str) -> dict[int, int]:
-            """馬番 -> そのスコアでの順位(0=1位)を返す"""
-            ranked = sorted(horses, key=lambda h: h["scores"].get(key, 0), reverse=True)
-            return {h["horse_number"]: i for i, h in enumerate(ranked)}
+    # Dlogic API へリクエスト
+    payload = {
+        "race_id": race_id,
+        "horses": horse_names,
+        "horse_numbers": horse_numbers,
+        "venue": race_data.get("venue", ""),
+        "race_number": race_data.get("race_number", 0),
+        "jockeys": jockeys,
+        "posts": posts,
+        "distance": race_data.get("distance", ""),
+        "track_condition": race_data.get("track_condition", "良"),
+        "odds": odds_list,
+    }
 
-        speed_rank = _rank_map("speed")
-        recent_rank = _rank_map("recent")
-        jockey_rank = _rank_map("jockey")
-        flow_rank = _rank_map("flow")
+    try:
+        resp = httpx.post(
+            f"{_DLOGIC_API_URL}/api/v2/predictions/newspaper",
+            json=payload,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
 
-        def _data_sort_key(h: dict) -> float:
-            num = h["horse_number"]
-            # ランク合計が小さい = 各指標で上位 = 良い
-            return (
-                speed_rank[num] * 1.5
-                + recent_rank[num] * 1.3
-                + jockey_rank[num] * 1.2
-                + flow_rank[num] * 0.8
-            )
+        honshi_marks = _marks_from_top5(data.get("dlogic", []),    horse_map)
+        data_marks   = _marks_from_top5(data.get("metalogic", []), horse_map)
+        anaba_marks  = _marks_from_top5(data.get("viewlogic", []), horse_map)
 
-        by_data = sorted(horses, key=_data_sort_key)  # 昇順(ランク合計が少ない方が上位)
-    else:
-        by_data = sorted(horses, key=lambda h: h["horse_number"])
-    data_marks = _assign_marks_standard(by_data)
-
-    # --- 穴党記者: オッズ高い馬(人気薄)を優先しつつ近走スコアで絞る ---
-    # ev_score は (1/odds)*odds*10 = 10 と定数になるバグがあるため
-    # オッズそのものを使って人気薄を優遇する
-    if has_scores:
-        def _anaba_sort_key(h: dict) -> float:
-            odds = h.get("odds", 10.0)
-            recent = h["scores"].get("recent", 0)
-            bloodline = h["scores"].get("bloodline", 0)
-            # オッズが高い(人気薄)ほど加点、近走と血統でフィルタ
-            odds_bonus = min(odds, 30.0) * 2.0  # 最大60点、上限あり
-            return recent * 1.0 + bloodline * 0.8 + odds_bonus
-
-        by_ev = sorted(horses, key=_anaba_sort_key, reverse=True)
-    else:
+    except Exception:
+        logger.exception(f"Dlogic API call failed for {race_id}, falling back to score-based")
+        # フォールバック: スコアベースのロジック
+        cached_matrix = _matrix_cache.get(race_id)
+        horses = cached_matrix[1].get("horses", []) if cached_matrix else []
+        if not horses:
+            horses = [
+                {"horse_number": e["horse_number"], "horse_name": e.get("horse_name", ""),
+                 "odds": float(e.get("odds", 10.0)),
+                 "scores": {"total": 0, "speed": 0, "recent": 0, "jockey": 0,
+                            "flow": 0, "bloodline": 0}}
+                for e in entries
+            ]
+        has_scores = any(h.get("scores", {}).get("total", 0) > 0 for h in horses)
+        if has_scores:
+            by_total = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
+        else:
+            by_total = sorted(horses, key=lambda h: h["horse_number"])
+        honshi_marks = _assign_marks_standard(by_total)
+        data_marks   = honshi_marks
         by_ev = sorted(horses, key=lambda h: h.get("odds", 10.0), reverse=True)
-    anaba_marks = _assign_marks_anaba(by_ev, by_total if has_scores else by_ev)
+        anaba_marks  = _assign_marks_anaba(by_ev, by_total)
 
     predictions = []
     for profile, marks in zip(CHARACTER_PROFILES, [honshi_marks, data_marks, anaba_marks]):
-        predictions.append({
-            **profile,
-            "marks": marks,
-        })
+        predictions.append({**profile, "marks": marks})
 
     try:
         _redis_votes.set(cache_key, _json.dumps(predictions, ensure_ascii=False), ex=_PRED_TTL)
