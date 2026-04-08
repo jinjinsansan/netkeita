@@ -114,16 +114,17 @@ function MyPageContent() {
         </div>
 
         {/* ポイント倍率説明 */}
+        <p className="text-[11px] text-[#888] mb-2">投票した馬が1着 → 単勝オッズに応じてpt付与</p>
         <div className="flex flex-wrap gap-1.5 mb-3">
           {[
-            { label: "1〜10倍的中", pt: "+10pt", color: "#4ade80", bg: "#163016" },
-            { label: "10.1〜30倍的中", pt: "+30pt", color: "#ffd54f", bg: "#7c5c00" },
-            { label: "30.1倍〜的中", pt: "+100pt", color: "#ff7043", bg: "#7f1d1d" },
+            { label: "単勝〜10倍", pt: "+10pt", color: "#4ade80", bg: "#163016" },
+            { label: "単勝〜30倍", pt: "+30pt", color: "#ffd54f", bg: "#7c5c00" },
+            { label: "単勝30倍超", pt: "+100pt", color: "#ff7043", bg: "#7f1d1d" },
           ].map((t) => (
             <span key={t.label}
               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ color: t.color, backgroundColor: t.bg }}>
-              {t.label} → {t.pt}
+              {t.label} {t.pt}
             </span>
           ))}
         </div>
