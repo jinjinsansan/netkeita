@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from config import (
     PORT, LINE_CHANNEL_ID, LINE_CHANNEL_SECRET, FRONTEND_URL,
-    ADMIN_LINE_USER_IDS,
+    ADMIN_LINE_USER_IDS, INTERNAL_API_KEY,
 )
 from services.data_fetcher import (
     get_races, get_race_entries, get_today_str, get_full_scores, get_analysis,
@@ -420,6 +420,19 @@ def _get_user_from_token(authorization: str) -> dict | None:
     if not token:
         return None
     return _load_session(token)
+
+
+def _get_user_from_internal_key(x_internal_key: str) -> dict | None:
+    """Return a synthetic admin user dict when the internal API key matches."""
+    if not INTERNAL_API_KEY or not x_internal_key:
+        return None
+    if not secrets.compare_digest(x_internal_key, INTERNAL_API_KEY):
+        return None
+    return {
+        "line_user_id": ADMIN_LINE_USER_IDS[0] if ADMIN_LINE_USER_IDS else "_internal",
+        "display_name": "Internal System",
+        "is_admin": True,
+    }
 
 
 def _get_valid_horse_numbers(race_id: str) -> tuple[set[int], dict | None]:
@@ -1240,9 +1253,13 @@ def api_get_article(slug: str, authorization: str = Header(default="")):
 
 
 @app.post("/api/articles")
-def api_create_article(req: ArticleCreateRequest, authorization: str = Header(default="")):
+def api_create_article(
+    req: ArticleCreateRequest,
+    authorization: str = Header(default=""),
+    x_internal_key: str = Header(default=""),
+):
     """Create a new article/prediction. Admin always allowed; approved tipsters may post predictions."""
-    user = _get_user_from_token(authorization)
+    user = _get_user_from_token(authorization) or _get_user_from_internal_key(x_internal_key)
     if not user:
         raise HTTPException(status_code=401, detail="ログインが必要です")
     uid = user.get("line_user_id", "")

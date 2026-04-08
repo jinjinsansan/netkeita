@@ -23,3 +23,6 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ADMIN_LINE_USER_IDS = [
     s.strip() for s in os.getenv("ADMIN_LINE_USER_IDS", "").split(",") if s.strip()
 ]
+
+# Internal API key for server-to-server article posting (e.g. dlogic-note cron)
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
