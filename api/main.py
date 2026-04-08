@@ -597,41 +597,57 @@ def _generate_character_predictions(race_id: str) -> list[dict] | None:
 
     has_scores = any(h.get("scores", {}).get("total", 0) > 0 for h in horses)
 
-    # --- netkeita本紙: total score 順 (正統派) ---
+    # --- netkeita本紙: total score 順 (正統派・オッズ本命重視) ---
     if has_scores:
         by_total = sorted(horses, key=lambda h: h["scores"]["total"], reverse=True)
     else:
         by_total = sorted(horses, key=lambda h: h["horse_number"])
     honshi_marks = _assign_marks_standard(by_total)
 
-    # --- データ分析: speed + recent + jockey 重み付け ---
+    # --- データ分析: 各指標を独立にランキングし、ランク合計で評価 ---
+    # speed / recent / jockey はそれぞれ異なるhashシードで計算されているため
+    # ランクベースで集計すると netkeita本紙と異なる結果になる
     if has_scores:
-        by_data = sorted(
-            horses,
-            key=lambda h: (
-                h["scores"].get("speed", 0) * 1.5
-                + h["scores"].get("recent", 0) * 1.3
-                + h["scores"].get("jockey", 0) * 1.2
-            ),
-            reverse=True,
-        )
+        def _rank_map(key: str) -> dict[int, int]:
+            """馬番 -> そのスコアでの順位(0=1位)を返す"""
+            ranked = sorted(horses, key=lambda h: h["scores"].get(key, 0), reverse=True)
+            return {h["horse_number"]: i for i, h in enumerate(ranked)}
+
+        speed_rank = _rank_map("speed")
+        recent_rank = _rank_map("recent")
+        jockey_rank = _rank_map("jockey")
+        flow_rank = _rank_map("flow")
+
+        def _data_sort_key(h: dict) -> float:
+            num = h["horse_number"]
+            # ランク合計が小さい = 各指標で上位 = 良い
+            return (
+                speed_rank[num] * 1.5
+                + recent_rank[num] * 1.3
+                + jockey_rank[num] * 1.2
+                + flow_rank[num] * 0.8
+            )
+
+        by_data = sorted(horses, key=_data_sort_key)  # 昇順(ランク合計が少ない方が上位)
     else:
         by_data = sorted(horses, key=lambda h: h["horse_number"])
     data_marks = _assign_marks_standard(by_data)
 
-    # --- 穴党記者: EV重視 + 中位〜下位から本命を選ぶ ---
+    # --- 穴党記者: オッズ高い馬(人気薄)を優先しつつ近走スコアで絞る ---
+    # ev_score は (1/odds)*odds*10 = 10 と定数になるバグがあるため
+    # オッズそのものを使って人気薄を優遇する
     if has_scores:
-        by_ev = sorted(
-            horses,
-            key=lambda h: (
-                h["scores"].get("ev", 0) * 2.0
-                + h["scores"].get("recent", 0) * 1.0
-                + h["scores"].get("bloodline", 0) * 0.8
-            ),
-            reverse=True,
-        )
+        def _anaba_sort_key(h: dict) -> float:
+            odds = h.get("odds", 10.0)
+            recent = h["scores"].get("recent", 0)
+            bloodline = h["scores"].get("bloodline", 0)
+            # オッズが高い(人気薄)ほど加点、近走と血統でフィルタ
+            odds_bonus = min(odds, 30.0) * 2.0  # 最大60点、上限あり
+            return recent * 1.0 + bloodline * 0.8 + odds_bonus
+
+        by_ev = sorted(horses, key=_anaba_sort_key, reverse=True)
     else:
-        by_ev = sorted(horses, key=lambda h: h["horse_number"], reverse=True)
+        by_ev = sorted(horses, key=lambda h: h.get("odds", 10.0), reverse=True)
     anaba_marks = _assign_marks_anaba(by_ev, by_total if has_scores else by_ev)
 
     predictions = []
