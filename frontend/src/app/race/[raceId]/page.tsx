@@ -41,9 +41,8 @@ function RaceContent() {
     });
     fetchArticlesByRace(raceId).then((articles) => {
       if (cancelled) return;
-      // Only show predictions (tipster content) in the premium section
-      const predictions = articles.filter((a) => a.content_type === "prediction");
-      setPremiumArticles(predictions);
+      // Show all published articles linked to this race (predictions + regular)
+      setPremiumArticles(articles);
     });
     fetchTipsters().then((tipsters) => {
       if (cancelled) return;
@@ -122,7 +121,7 @@ function RaceContent() {
                     onClick={() => setShowPredictions((v) => !v)}
                     className="text-[10px] font-bold text-white bg-[#d4a017] hover:bg-[#b8860b] px-2.5 py-1 rounded transition"
                   >
-                    予想家の予想 ({premiumArticles.length})
+                    関連記事・予想 ({premiumArticles.length})
                   </button>
                 )}
               </div>
@@ -137,11 +136,11 @@ function RaceContent() {
         );
       })()}
 
-      {/* Tipster predictions panel */}
+      {/* Articles / Predictions panel */}
       {showPredictions && premiumArticles.length > 0 && (
         <div className="mb-3 border border-[#e8c84a] rounded-lg bg-[#fffdf0] p-3">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-black text-[#7c5c00]">予想家の予想</h2>
+            <h2 className="text-sm font-black text-[#7c5c00]">関連記事・予想</h2>
             <button
               type="button"
               onClick={() => setShowPredictions(false)}
@@ -151,14 +150,34 @@ function RaceContent() {
             </button>
           </div>
           <div className="space-y-3">
-            {premiumArticles.map((p) => (
-              <PredictionCard
-                key={p.slug}
-                prediction={p}
-                tipster={p.tipster_id ? tipsterMap[p.tipster_id] : null}
-                hasPremium={hasPremium}
-              />
-            ))}
+            {premiumArticles.map((p) =>
+              p.content_type === "prediction" ? (
+                <PredictionCard
+                  key={p.slug}
+                  prediction={p}
+                  tipster={p.tipster_id ? tipsterMap[p.tipster_id] : null}
+                  hasPremium={hasPremium}
+                />
+              ) : (
+                <Link
+                  key={p.slug}
+                  href={`/articles/${encodeURIComponent(p.slug)}`}
+                  className="flex items-start gap-3 bg-white border border-[#e8d99a] rounded-lg p-3 hover:border-[#d4a017] hover:shadow-sm transition"
+                >
+                  {p.thumbnail_url && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={p.thumbnail_url} alt="" className="w-16 h-16 object-cover rounded shrink-0 bg-[#eee]" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#222] line-clamp-2">{p.title}</p>
+                    {p.description && (
+                      <p className="text-[11px] text-[#666] mt-1 line-clamp-2">{p.description}</p>
+                    )}
+                    <p className="text-[10px] text-[#d4a017] font-bold mt-1">記事を読む →</p>
+                  </div>
+                </Link>
+              )
+            )}
           </div>
         </div>
       )}

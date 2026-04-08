@@ -114,6 +114,7 @@ function EditArticleForm({ slug }: { slug: string }) {
     thumbnail_url: article.thumbnail_url,
     status: article.status,
     slug: article.slug,
+    race_id: article.race_id,
   };
 
   return (

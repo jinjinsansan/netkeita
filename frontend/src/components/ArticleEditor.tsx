@@ -83,17 +83,37 @@ export default function ArticleEditor({
   const thumbInputRef = useRef<HTMLInputElement | null>(null);
   const storageKey = `${AUTOSAVE_KEY_PREFIX}:${autosaveKey}`;
 
-  // Load today's races for the race selector dropdown
+  // Load races for the race selector dropdown.
+  // Always fetch today. If the article already has a race_id from a different
+  // date, also fetch that date so the saved value appears in the list.
   useEffect(() => {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-    fetchRaces(dateStr).then((data) => {
+    const toDateStr = (d: Date) =>
+      `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+
+    const today = toDateStr(new Date());
+    const savedRaceId = initial?.race_id ?? "";
+    // race_id format: "YYYYMMDD-venue-num"
+    const savedDate = savedRaceId ? savedRaceId.split("-")[0] : "";
+    const datesToFetch = savedDate && savedDate !== today
+      ? [today, savedDate]
+      : [today];
+
+    Promise.all(datesToFetch.map((d) => fetchRaces(d))).then((results) => {
+      const seen = new Set<string>();
       const all: RaceSummary[] = [];
-      for (const v of data.venues) {
-        all.push(...v.races);
+      for (const data of results) {
+        for (const v of data.venues) {
+          for (const r of v.races) {
+            if (!seen.has(r.race_id)) {
+              seen.add(r.race_id);
+              all.push(r);
+            }
+          }
+        }
       }
       setRaces(all);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Deferred value for preview — stops the markdown parser from running on
