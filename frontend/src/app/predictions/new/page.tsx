@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { fetchRaces, createArticle, fetchMyTipsterProfile } from "@/lib/api";
+import { fetchRaces, createArticle, fetchMyTipsterProfile, fetchTipsters } from "@/lib/api";
 import type { RaceSummary } from "@/lib/types";
 import type { TipsterProfile } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
+import { useAuth } from "@/lib/auth-context";
 
 const BET_METHODS = ["単勝", "複勝", "馬連", "馬単", "ワイド", "三連複", "三連単", "単勝・複勝", "馬連・三連複", "その他"];
 
@@ -22,7 +23,12 @@ export default function NewPredictionPage() {
 
 function NewPredictionForm() {
   const router = useRouter();
-  const [tipster, setTipster] = useState<TipsterProfile | null | undefined>(undefined);
+  const { user } = useAuth();
+  const isAdmin = !!user?.is_admin;
+
+  const [myTipster, setMyTipster] = useState<TipsterProfile | null | undefined>(undefined);
+  const [allTipsters, setAllTipsters] = useState<TipsterProfile[]>([]);
+  const [selectedTipsterId, setSelectedTipsterId] = useState("");
   const [races, setRaces] = useState<RaceSummary[]>([]);
   const [raceId, setRaceId] = useState("");
   const [title, setTitle] = useState("");
@@ -37,7 +43,16 @@ function NewPredictionForm() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMyTipsterProfile().then(setTipster);
+    fetchMyTipsterProfile().then((p) => {
+      setMyTipster(p);
+      if (p && !isAdmin) setSelectedTipsterId(p.line_user_id);
+    });
+    if (isAdmin) {
+      fetchTipsters().then((list) => {
+        setAllTipsters(list);
+        if (list.length > 0) setSelectedTipsterId(list[0].line_user_id);
+      });
+    }
     const today = new Date();
     const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
     fetchRaces(dateStr).then((data) => {
@@ -45,12 +60,14 @@ function NewPredictionForm() {
       for (const v of data.venues) all.push(...v.races);
       setRaces(all);
     });
-  }, []);
+  }, [isAdmin]);
 
-  if (tipster === undefined) {
+  // 読み込み中
+  if (myTipster === undefined && !isAdmin) {
     return <div className="max-w-[800px] mx-auto px-4 py-10 text-center text-sm text-[#888] animate-pulse">読み込み中...</div>;
   }
-  if (!tipster || tipster.status !== "approved") {
+  // 一般ユーザーで未承認
+  if (!isAdmin && (!myTipster || myTipster.status !== "approved")) {
     return (
       <div className="max-w-[800px] mx-auto px-4 py-10 text-center">
         <div className="text-sm font-bold text-[#c62828] mb-4">承認済みの予想家のみ投稿できます</div>
@@ -68,6 +85,7 @@ function NewPredictionForm() {
     if (!title.trim()) { setError("タイトルを入力してください"); return; }
     if (!previewBody.trim()) { setError("見解プレビューを入力してください"); return; }
     if (!body.trim()) { setError("本文（買い目）を入力してください"); return; }
+    if (!selectedTipsterId) { setError("投稿する予想家を選択してください"); return; }
     setError(null);
     setSubmitting(true);
     const res = await createArticle({
@@ -79,7 +97,7 @@ function NewPredictionForm() {
       is_premium: isPremium,
       race_id: raceId,
       content_type: "prediction",
-      tipster_id: tipster.line_user_id,
+      tipster_id: selectedTipsterId,
       status,
     });
     if (res.success) {
@@ -121,6 +139,31 @@ function NewPredictionForm() {
       </div>
 
       <div className="space-y-4">
+        {/* Tipster selector (admin only) */}
+        {isAdmin && (
+          <div className="rounded-lg border border-[#1565C0]/30 bg-[#f0f4ff] p-3">
+            <label className="block text-[11px] font-bold text-[#1565C0] mb-1">
+              投稿する予想家 <span className="text-[#c62828]">*</span>
+            </label>
+            {allTipsters.length === 0 ? (
+              <p className="text-xs text-[#888]">承認済みの予想家がいません</p>
+            ) : (
+              <select
+                value={selectedTipsterId}
+                onChange={(e) => setSelectedTipsterId(e.target.value)}
+                className="w-full border border-[#b0c4e8] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#1565C0]"
+              >
+                {allTipsters.map((t) => (
+                  <option key={t.line_user_id} value={t.line_user_id}>
+                    {t.display_name}
+                    {(t as TipsterProfile & { is_managed?: boolean }).is_managed ? " [管理者作成]" : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+
         {/* Race selector */}
         <div>
           <label className="block text-[11px] font-bold text-[#444] mb-1">

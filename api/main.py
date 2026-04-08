@@ -1232,11 +1232,22 @@ def api_create_article(req: ArticleCreateRequest, authorization: str = Header(de
     try:
         # For predictions posted by tipsters: allow approved tipsters to post,
         # not just admins. The caller's line_user_id is stored as tipster_id.
+        uid = user.get("line_user_id", "")
         is_tipster_post = (
             req.content_type == "prediction"
-            and tipsters_service.is_approved_tipster(user.get("line_user_id", ""))
+            and tipsters_service.is_approved_tipster(uid)
             and not _is_admin_user(user)
         )
+        # Admin can supply any approved tipster_id (including managed ones)
+        if _is_admin_user(user) and req.tipster_id:
+            effective_tipster_id = req.tipster_id
+        elif is_tipster_post:
+            effective_tipster_id = uid
+        else:
+            effective_tipster_id = req.tipster_id or ""
+        # Validate that the supplied tipster_id is actually approved
+        if effective_tipster_id and not tipsters_service.is_approved_tipster(effective_tipster_id):
+            raise HTTPException(status_code=400, detail="指定された予想家IDは承認されていません")
         record = articles_service.create_article(
             title=req.title,
             description=req.description,
@@ -1244,11 +1255,11 @@ def api_create_article(req: ArticleCreateRequest, authorization: str = Header(de
             thumbnail_url=req.thumbnail_url,
             status=req.status,
             author=user.get("display_name", ""),
-            author_id=user.get("line_user_id", ""),
+            author_id=uid,
             slug=req.slug,
             race_id=req.race_id,
             content_type=req.content_type,
-            tipster_id=req.tipster_id or (user.get("line_user_id", "") if is_tipster_post else ""),
+            tipster_id=effective_tipster_id,
             bet_method=req.bet_method,
             ticket_count=req.ticket_count,
             preview_body=req.preview_body,
@@ -1470,6 +1481,32 @@ def api_admin_list_pending(authorization: str = Header(default="")):
     _require_admin(authorization)
     pending = tipsters_service.list_pending()
     return {"pending": pending, "count": len(pending)}
+
+
+class ManagedTipsterCreateRequest(BaseModel):
+    display_name: str
+    catchphrase: str
+    description: str = ""
+    picture_url: str = ""
+
+
+@app.post("/api/admin/tipsters/managed")
+def api_admin_create_managed_tipster(
+    req: ManagedTipsterCreateRequest,
+    authorization: str = Header(default=""),
+):
+    """Create a managed tipster profile (admin only, no LINE account needed)."""
+    _require_admin(authorization)
+    try:
+        profile = tipsters_service.create_managed_tipster(
+            display_name=req.display_name,
+            catchphrase=req.catchphrase,
+            description=req.description,
+            picture_url=req.picture_url,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True, "profile": profile}
 
 
 @app.post("/api/admin/tipsters/{tipster_id}/approve")

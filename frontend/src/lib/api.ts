@@ -793,3 +793,24 @@ export async function adminDeleteTipster(
     return { success: false, error: "通信エラーが発生しました" };
   }
 }
+
+export async function adminCreateManagedTipster(params: {
+  display_name: string;
+  catchphrase: string;
+  description?: string;
+  picture_url?: string;
+}): Promise<{ success: boolean; profile?: TipsterProfile; error?: string }> {
+  if (!API_URL) return { success: false, error: "API unavailable" };
+  try {
+    const res = await fetch(`${API_URL}/api/admin/tipsters/managed`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(params),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.detail || "作成に失敗しました" };
+    return { success: true, profile: data.profile };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}

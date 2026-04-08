@@ -10,6 +10,7 @@ import {
   adminDeleteTipster,
   adminGrantPremium,
   adminRevokePremium,
+  adminCreateManagedTipster,
 } from "@/lib/api";
 import type { TipsterProfile } from "@/lib/api";
 import AdminGate from "@/components/AdminGate";
@@ -32,6 +33,14 @@ function AdminTipstersContent() {
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [premiumUserId, setPremiumUserId] = useState("");
   const [premiumMsg, setPremiumMsg] = useState<string | null>(null);
+
+  // Managed tipster creation
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newCatchphrase, setNewCatchphrase] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newPictureUrl, setNewPictureUrl] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const reload = () => {
     Promise.all([fetchPendingTipsters(), fetchTipsters()]).then(([pend, appr]) => {
@@ -61,6 +70,26 @@ function AdminTipstersContent() {
     const res = await adminDeleteTipster(id);
     setActionMsg(res.success ? `${name} を削除しました` : res.error || "エラー");
     reload();
+  };
+
+  const handleCreateManaged = async () => {
+    if (!newName.trim() || !newCatchphrase.trim()) return;
+    setCreating(true);
+    const res = await adminCreateManagedTipster({
+      display_name: newName.trim(),
+      catchphrase: newCatchphrase.trim(),
+      description: newDescription.trim(),
+      picture_url: newPictureUrl.trim(),
+    });
+    setCreating(false);
+    if (res.success) {
+      setActionMsg(`「${newName}」を作成しました`);
+      setNewName(""); setNewCatchphrase(""); setNewDescription(""); setNewPictureUrl("");
+      setShowCreateForm(false);
+      reload();
+    } else {
+      setActionMsg(res.error || "作成に失敗しました");
+    }
   };
 
   const handleGrantPremium = async () => {
@@ -143,9 +172,57 @@ function AdminTipstersContent() {
         </div>
       )}
 
-      {/* Premium access management */}
       {/* Approved tipsters */}
-      <h2 className="text-sm font-black text-[#444] mb-3">承認済み ({approved.length}件)</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-black text-[#444]">承認済み ({approved.length}件)</h2>
+        <button
+          type="button"
+          onClick={() => setShowCreateForm((v) => !v)}
+          className="text-xs font-bold text-white bg-[#1565C0] hover:bg-[#0d47a1] px-3 py-1.5 rounded transition"
+        >
+          + 管理者用予想家を作成
+        </button>
+      </div>
+
+      {showCreateForm && (
+        <div className="border border-[#1565C0]/30 rounded-lg p-4 bg-[#f0f4ff] mb-4 space-y-3">
+          <p className="text-xs font-bold text-[#1565C0]">管理者用予想家 (LINEアカウント不要)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold text-[#444] mb-1">表示名 <span className="text-red-500">*</span></label>
+              <input type="text" value={newName} onChange={(e) => setNewName(e.target.value.slice(0, 50))}
+                placeholder="例: netkeita編集部" className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1565C0]" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-[#444] mb-1">アイコン画像URL</label>
+              <input type="url" value={newPictureUrl} onChange={(e) => setNewPictureUrl(e.target.value)}
+                placeholder="https://..." className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1565C0]" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-[#444] mb-1">キャッチフレーズ <span className="text-red-500">*</span></label>
+            <input type="text" value={newCatchphrase} onChange={(e) => setNewCatchphrase(e.target.value.slice(0, 60))}
+              placeholder="例: 重賞レースを中心に毎週公開" className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1565C0]" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-[#444] mb-1">自己紹介</label>
+            <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value.slice(0, 400))}
+              rows={2} placeholder="得意なレース・予想スタイルを紹介"
+              className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1565C0]" />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button type="button" onClick={() => setShowCreateForm(false)}
+              className="text-xs font-bold text-[#666] border border-[#ccc] hover:bg-[#f5f5f5] px-3 py-1.5 rounded transition">
+              キャンセル
+            </button>
+            <button type="button" onClick={handleCreateManaged} disabled={creating || !newName.trim() || !newCatchphrase.trim()}
+              className="text-xs font-bold text-white bg-[#1565C0] hover:bg-[#0d47a1] px-4 py-1.5 rounded transition disabled:opacity-40">
+              {creating ? "作成中..." : "作成する"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {approved.length === 0 ? (
         <p className="text-sm text-[#999] mb-8">承認済みの予想家はいません</p>
       ) : (
@@ -162,7 +239,12 @@ function AdminTipstersContent() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[#222]">{t.display_name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-[#222]">{t.display_name}</p>
+                    {(t as TipsterProfile & { is_managed?: boolean }).is_managed && (
+                      <span className="text-[9px] font-bold text-[#1565C0] bg-[#e3f2fd] px-1.5 py-0.5 rounded-full">管理者作成</span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-[#f57c00] truncate">{t.catchphrase}</p>
                   <p className="text-[10px] text-[#999]">ID: {t.line_user_id}</p>
                 </div>

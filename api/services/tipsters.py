@@ -229,6 +229,43 @@ def update_profile(
     return profile
 
 
+def create_managed_tipster(
+    display_name: str,
+    catchphrase: str,
+    description: str = "",
+    picture_url: str = "",
+) -> dict:
+    """Admin-only: create a managed tipster with a generated ID."""
+    import uuid
+    managed_id = f"managed_{uuid.uuid4().hex}"
+    catchphrase_clean = _clean(catchphrase, MAX_CATCHPHRASE_LEN)
+    if not catchphrase_clean:
+        raise ValueError("キャッチフレーズは必須です")
+    now = _now_iso()
+    profile = {
+        "line_user_id": managed_id,
+        "display_name": _clean(display_name, MAX_DISPLAY_NAME_LEN) or "名無し",
+        "picture_url": picture_url or "",
+        "catchphrase": catchphrase_clean,
+        "description": _clean(description, MAX_DESCRIPTION_LEN),
+        "status": "approved",
+        "is_managed": True,
+        "applied_at": now,
+        "approved_at": now,
+    }
+    try:
+        pipe = _redis.pipeline(transaction=True)
+        pipe.set(_key(managed_id), json.dumps(profile, ensure_ascii=False))
+        pipe.lrem(_APPROVED_INDEX, 0, managed_id)
+        pipe.lpush(_APPROVED_INDEX, managed_id)
+        pipe.execute()
+    except Exception:
+        logger.exception("tipsters: create_managed_tipster failed")
+        raise
+    logger.info(f"managed tipster created: {display_name} ({managed_id})")
+    return profile
+
+
 def is_approved_tipster(line_user_id: str) -> bool:
     profile = get_tipster(line_user_id)
     return bool(profile and profile.get("status") == "approved")
