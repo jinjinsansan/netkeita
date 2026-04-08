@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchMyVoteHistory, fetchKReward, transferKReward } from "@/lib/api";
+import { fetchMyVoteHistory, fetchKReward } from "@/lib/api";
 import type { VoteHistory, VoteResultStatus, KRewardData } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
@@ -33,8 +33,6 @@ function MyPageContent() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [kreward, setKreward] = useState<KRewardData | null>(null);
-  const [transferring, setTransferring] = useState(false);
-  const [transferMsg, setTransferMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     const [d, kr] = await Promise.all([fetchMyVoteHistory(), fetchKReward()]);
@@ -44,19 +42,7 @@ function MyPageContent() {
     setLoading(false);
   }, []);
 
-  const handleTransfer = async () => {
-    if (!kreward || kreward.balance <= 0) return;
-    setTransferring(true);
-    setTransferMsg(null);
-    const res = await transferKReward(kreward.balance);
-    if (res.success) {
-      setTransferMsg({ ok: true, text: `${res.coins_granted?.toLocaleString()}コイン を爆ガチャに転送しました！` });
-      setKreward((prev) => prev ? { ...prev, balance: res.new_balance ?? 0 } : prev);
-    } else {
-      setTransferMsg({ ok: false, text: res.error || "転送に失敗しました" });
-    }
-    setTransferring(false);
-  };
+
 
   useEffect(() => {
     load();
@@ -109,77 +95,59 @@ function MyPageContent() {
       </div>
 
       {/* Kリワードセクション */}
-      {!loading && (
-        <div className="border border-[#e8d99a] rounded-xl bg-[#fffdf5] p-4 mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-base">🏆</span>
-              <span className="text-sm font-black text-[#7c5c00]">Kリワード</span>
-              <span className="text-[10px] text-[#999] font-medium">的中ポイント</span>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-black text-[#d4a017]">{kreward?.balance ?? 0}</span>
-              <span className="text-xs text-[#b8860b] ml-1">pt</span>
-            </div>
+      <div className="border border-[#e8d99a] rounded-xl bg-[#fffdf5] p-4 mb-5">
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🏆</span>
+            <span className="text-sm font-black text-[#7c5c00]">Kリワード</span>
+            <span className="text-[10px] text-[#999] font-medium">的中ポイント</span>
           </div>
+          <div className="text-right">
+            {loading ? (
+              <span className="text-2xl font-black text-[#e8d99a]">--</span>
+            ) : (
+              <span className="text-2xl font-black text-[#d4a017]">{kreward?.balance ?? 0}</span>
+            )}
+            <span className="text-xs text-[#b8860b] ml-1">pt</span>
+          </div>
+        </div>
 
-          {/* ポイント倍率説明 */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {[
-              { label: "1〜10倍", pt: "10pt", color: "#4ade80", bg: "#163016" },
-              { label: "10.1〜30倍", pt: "30pt", color: "#ffd54f", bg: "#7c5c00" },
-              { label: "30.1倍〜", pt: "100pt", color: "#ff7043", bg: "#7f1d1d" },
-            ].map((t) => (
-              <span key={t.label}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ color: t.color, backgroundColor: t.bg }}>
-                {t.label} → {t.pt}
-              </span>
+        {/* ポイント倍率説明 */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {[
+            { label: "1〜10倍的中", pt: "+10pt", color: "#4ade80", bg: "#163016" },
+            { label: "10.1〜30倍的中", pt: "+30pt", color: "#ffd54f", bg: "#7c5c00" },
+            { label: "30.1倍〜的中", pt: "+100pt", color: "#ff7043", bg: "#7f1d1d" },
+          ].map((t) => (
+            <span key={t.label}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ color: t.color, backgroundColor: t.bg }}>
+              {t.label} → {t.pt}
+            </span>
+          ))}
+        </div>
+
+        {/* 直近ログ */}
+        {!loading && kreward && kreward.log.length > 0 && (
+          <div className="mb-3 space-y-1">
+            {kreward.log.slice(0, 5).map((l, i) => (
+              <div key={i} className="flex items-center justify-between text-[10px]">
+                <span className="text-[#666] truncate max-w-[75%]">{l.reason}</span>
+                <span className={`font-bold shrink-0 ${l.points > 0 ? "text-[#d4a017]" : "text-[#888]"}`}>
+                  {l.points > 0 ? `+${l.points}pt` : `${l.points}pt`}
+                </span>
+              </div>
             ))}
           </div>
+        )}
 
-          {/* 転送ボタン */}
-          <div className="border-t border-[#f0e0a0] pt-3">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] text-[#888]">
-                爆ガチャ無償コインに転送
-                <span className="ml-1 text-[#b8860b] font-bold">1pt = 100コイン</span>
-              </span>
-              {kreward && kreward.balance > 0 && (
-                <span className="text-[11px] text-[#888]">
-                  → <b className="text-[#d4a017]">{(kreward.balance * (kreward.coin_rate ?? 100)).toLocaleString()}コイン</b>
-                </span>
-              )}
-            </div>
-            <button
-              onClick={handleTransfer}
-              disabled={transferring || !kreward || kreward.balance <= 0}
-              className="w-full py-2 rounded-lg text-sm font-bold transition disabled:opacity-40 disabled:cursor-not-allowed bg-[#d4a017] hover:bg-[#b8860b] text-white"
-            >
-              {transferring ? "転送中..." : kreward && kreward.balance > 0 ? `${kreward.balance}pt を爆ガチャに転送する` : "転送できるポイントがありません"}
-            </button>
-            {transferMsg && (
-              <p className={`mt-2 text-[11px] font-bold text-center ${transferMsg.ok ? "text-[#1f7a1f]" : "text-[#e53935]"}`}>
-                {transferMsg.text}
-              </p>
-            )}
-          </div>
-
-          {/* 直近ログ */}
-          {kreward && kreward.log.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-[#f0e0a0] space-y-1">
-              {kreward.log.slice(0, 5).map((l, i) => (
-                <div key={i} className="flex items-center justify-between text-[10px]">
-                  <span className="text-[#666] truncate max-w-[70%]">{l.reason}</span>
-                  <span className={`font-bold shrink-0 ${l.points > 0 ? "text-[#d4a017]" : "text-[#888]"}`}>
-                    {l.points > 0 ? `+${l.points}pt` : `${l.points}pt`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* 近日公開ティーザー */}
+        <div className="border-t border-[#f0e0a0] pt-3 flex items-center gap-2 opacity-60">
+          <span className="text-[10px] bg-[#888] text-white font-bold px-1.5 py-0.5 rounded shrink-0">近日公開</span>
+          <span className="text-[11px] text-[#888]">貯めたKリワードを爆ガチャコインに交換できるようになります</span>
         </div>
-      )}
+      </div>
 
       {loading ? (
         <div className="py-10 text-center text-sm text-[#888] animate-pulse">
