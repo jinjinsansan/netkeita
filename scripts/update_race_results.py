@@ -41,8 +41,98 @@ from services.race_results import (  # noqa: E402
     get_cached_result,
     save_result,
 )
+import redis as _redis_mod
+import json as _json_mod
 
 JST = timezone(timedelta(hours=9))
+
+# Kリワード付与
+_r_votes = _redis_mod.Redis(host="127.0.0.1", port=6379, db=3, decode_responses=True)
+_VOTE_KEY_PREFIX = "nk:votes"
+_KREWARD_KEY = "nk:kreward:{uid}"
+_KREWARD_LOG_KEY = "nk:kreward:log:{uid}"
+_KREWARD_LOG_MAX = 200
+
+
+def _calc_kreward_points(win_payout_yen: int) -> int:
+    """払戻金額（100円馬券）からKリワードポイントを計算。"""
+    if win_payout_yen <= 0:
+        return 0
+    odds = win_payout_yen / 100.0
+    if odds <= 10.0:
+        return 10
+    elif odds <= 30.0:
+        return 30
+    else:
+        return 100
+
+
+def _grant_kreward(user_id: str, points: int, race_id: str, reason: str) -> None:
+    key = _KREWARD_KEY.format(uid=user_id)
+    log_key = _KREWARD_LOG_KEY.format(uid=user_id)
+    _r_votes.incrby(key, points)
+    entry = _json_mod.dumps({
+        "points": points,
+        "reason": reason,
+        "race_id": race_id,
+        "at": datetime.now(JST).isoformat(),
+    }, ensure_ascii=False)
+    pipe = _r_votes.pipeline(transaction=False)
+    pipe.lpush(log_key, entry)
+    pipe.ltrim(log_key, 0, _KREWARD_LOG_MAX - 1)
+    pipe.execute()
+
+
+def process_krewards(race_id: str, result: dict) -> None:
+    """レース結果を元に投票者にKリワードを付与する。"""
+    if result.get("cancelled"):
+        return
+
+    winners = result.get("winner_horse_numbers") or []
+    if not winners and result.get("winner_horse_number"):
+        winners = [result["winner_horse_number"]]
+    if not winners:
+        return
+
+    payouts = result.get("win_payouts") or {}
+    # 代表払戻額を取得（複数同着の場合は最初の馬）
+    payout_yen = 0
+    for w in winners:
+        p = payouts.get(str(w)) or result.get("win_payout") or 0
+        try:
+            payout_yen = int(p)
+            if payout_yen > 0:
+                break
+        except (ValueError, TypeError):
+            pass
+
+    points = _calc_kreward_points(payout_yen)
+    if points <= 0:
+        return
+
+    # このレースに投票した全ユーザーを取得
+    vote_key = f"{_VOTE_KEY_PREFIX}:{race_id}"
+    all_votes = _r_votes.hgetall(vote_key)
+    if not all_votes:
+        return
+
+    winner_set = {int(w) for w in winners}
+    rewarded = 0
+    for user_id, horse_str in all_votes.items():
+        if user_id.startswith("__dummy"):
+            continue
+        try:
+            horse_number = int(horse_str)
+        except ValueError:
+            continue
+        if horse_number in winner_set:
+            odds_approx = round(payout_yen / 100.0, 1) if payout_yen > 0 else 0
+            reason = f"{race_id} 的中 (オッズ約{odds_approx}倍) +{points}pt"
+            _grant_kreward(user_id, points, race_id, reason)
+            rewarded += 1
+
+    if rewarded > 0:
+        logger.info(f"  Kリワード付与: {race_id} → {rewarded}名 各{points}pt (払戻{payout_yen}円)")
 PREFETCH_DIR = os.environ.get(
     "PREFETCH_DIR", "/opt/dlogic/linebot/data/prefetch"
 )
@@ -130,6 +220,7 @@ def process_date(date_str: str, force: bool = False) -> None:
             continue
 
         if result:
+            already_cached = get_cached_result(race_id)
             save_result(race_id, result)
             if result.get("cancelled"):
                 cancelled += 1
@@ -137,6 +228,9 @@ def process_date(date_str: str, force: bool = False) -> None:
             else:
                 fetched += 1
                 logger.info(f"  {venue} {rno}R: {_format_winners(result)}")
+                # Kリワード: まだ付与していない結果のみ処理
+                if not already_cached or not already_cached.get("finalized"):
+                    process_krewards(race_id, result)
         else:
             not_ready += 1
             logger.info(f"  {venue} {rno}R: not finalised yet")

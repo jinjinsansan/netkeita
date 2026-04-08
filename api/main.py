@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import random
 import re
 import secrets
@@ -414,6 +415,15 @@ _VOTE_COUNT_TTL = 86400 * 90      # count + per-race vote hash retained 90 days
 _VOTE_HISTORY_TTL = 86400 * 90    # user vote history retained for 90 days
 _DUMMY_FLAG_TTL = 86400 * 90      # dummy flag: once generated, never regen
 
+# Kリワードポイント (Redis db=3 に同居)
+_KREWARD_KEY = "nk:kreward:{uid}"        # total balance (int as string)
+_KREWARD_LOG_KEY = "nk:kreward:log:{uid}"  # list of JSON log entries (newest first)
+_KREWARD_LOG_MAX = 200
+_KREWARD_COIN_RATE = 1  # 1 Kリワード = 1 bakugatcha coin
+# bakugatcha endpoint for coin transfer
+_BAKU_KREWARD_URL = os.getenv("BAKU_KREWARD_URL", "https://www.bakugacha.com/api/kreward")
+_BAKU_KREWARD_SECRET = os.getenv("BAKU_KREWARD_SECRET", "")
+
 
 def _get_user_from_token(authorization: str) -> dict | None:
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else ""
@@ -790,8 +800,8 @@ def api_vote(race_id: str, req: VoteRequest, authorization: str = Header(default
     if race_data is None:
         race_data = get_race_entries(date_str, race_id) if date_str else None
     start_dt = _parse_start_datetime(date_str, (race_data or {}).get("start_time", ""))
-    if start_dt and datetime.now(JST) >= start_dt:
-        raise HTTPException(status_code=403, detail="発走時刻を過ぎたため投票できません")
+    if start_dt and datetime.now(JST) >= start_dt - timedelta(minutes=1):
+        raise HTTPException(status_code=403, detail="締め切り（発走1分前）を過ぎたため投票できません")
 
     # Capture odds snapshot for this user+race (used by ROI history).
     odds_snapshot = 0.0
@@ -1107,6 +1117,130 @@ def api_my_vote_history(authorization: str = Header(default="")):
         "finalized_count": finalized_count,
         "pending_count": pending_count,
         "cancelled_count": cancelled_count,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Kリワード (K-Reward point system)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _kreward_balance(user_id: str) -> int:
+    try:
+        v = _redis_votes.get(_KREWARD_KEY.format(uid=user_id))
+        return int(v) if v else 0
+    except Exception:
+        return 0
+
+
+def _kreward_log(user_id: str) -> list[dict]:
+    try:
+        raw = _redis_votes.lrange(_KREWARD_LOG_KEY.format(uid=user_id), 0, 49)
+        return [_json.loads(r) for r in raw]
+    except Exception:
+        return []
+
+
+def grant_kreward(user_id: str, points: int, reason: str, race_id: str = "") -> int:
+    """Kリワードを付与し新残高を返す。"""
+    key = _KREWARD_KEY.format(uid=user_id)
+    log_key = _KREWARD_LOG_KEY.format(uid=user_id)
+    new_balance = _redis_votes.incrby(key, points)
+    entry = _json.dumps({
+        "points": points,
+        "reason": reason,
+        "race_id": race_id,
+        "at": datetime.now(JST).isoformat(),
+    }, ensure_ascii=False)
+    pipe = _redis_votes.pipeline(transaction=False)
+    pipe.lpush(log_key, entry)
+    pipe.ltrim(log_key, 0, _KREWARD_LOG_MAX - 1)
+    pipe.execute()
+    return int(new_balance)
+
+
+@app.get("/api/kreward")
+def api_kreward(authorization: str = Header(default="")):
+    """Get current user's K-reward balance and history."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    uid = user.get("line_user_id", "")
+    return {
+        "balance": _kreward_balance(uid),
+        "coin_rate": _KREWARD_COIN_RATE,
+        "log": _kreward_log(uid),
+    }
+
+
+class KRewardTransferRequest(BaseModel):
+    points: int
+
+
+@app.post("/api/kreward/transfer")
+async def api_kreward_transfer(
+    req: KRewardTransferRequest,
+    authorization: str = Header(default=""),
+):
+    """Transfer K-rewards to bakugatcha free coins. 1pt = 100 coins."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    uid = user.get("line_user_id", "")
+
+    if req.points <= 0:
+        raise HTTPException(status_code=400, detail="転送ポイント数が不正です")
+
+    balance = _kreward_balance(uid)
+    if balance < req.points:
+        raise HTTPException(status_code=400, detail=f"残高不足です（現在: {balance}pt）")
+
+    if not _BAKU_KREWARD_SECRET:
+        raise HTTPException(status_code=503, detail="爆ガチャ連携が設定されていません")
+
+    coins_to_grant = req.points * _KREWARD_COIN_RATE
+
+    # Call bakugatcha /api/kreward endpoint
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                _BAKU_KREWARD_URL,
+                json={
+                    "line_user_id": uid,
+                    "coins": coins_to_grant,
+                    "description": f"netkeita Kリワード転送 ({req.points}pt)",
+                },
+                headers={"X-Kreward-Secret": _BAKU_KREWARD_SECRET},
+                timeout=10,
+            )
+    except Exception as e:
+        logger.error(f"bakugatcha kreward error: {e}")
+        raise HTTPException(status_code=503, detail="爆ガチャへの転送に失敗しました")
+
+    if resp.status_code == 404:
+        raise HTTPException(status_code=404, detail="爆ガチャアカウントが見つかりません。爆ガチャにLINEログインしてください。")
+    if resp.status_code not in (200, 201):
+        logger.warning(f"bakugatcha kreward {resp.status_code}: {resp.text[:200]}")
+        raise HTTPException(status_code=503, detail="爆ガチャへの転送に失敗しました")
+
+    # Deduct K-rewards
+    key = _KREWARD_KEY.format(uid=uid)
+    new_balance = _redis_votes.decrby(key, req.points)
+    log_key = _KREWARD_LOG_KEY.format(uid=uid)
+    entry = _json.dumps({
+        "points": -req.points,
+        "reason": f"爆ガチャ転送 (+{coins_to_grant}コイン)",
+        "at": datetime.now(JST).isoformat(),
+    }, ensure_ascii=False)
+    pipe = _redis_votes.pipeline(transaction=False)
+    pipe.lpush(log_key, entry)
+    pipe.ltrim(log_key, 0, _KREWARD_LOG_MAX - 1)
+    pipe.execute()
+
+    return {
+        "success": True,
+        "points_transferred": req.points,
+        "coins_granted": coins_to_grant,
+        "new_balance": int(new_balance),
     }
 
 
