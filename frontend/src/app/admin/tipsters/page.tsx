@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   fetchPendingTipsters,
@@ -11,6 +11,7 @@ import {
   adminGrantPremium,
   adminRevokePremium,
   adminCreateManagedTipster,
+  uploadArticleImage,
 } from "@/lib/api";
 import type { TipsterProfile } from "@/lib/api";
 import AdminGate from "@/components/AdminGate";
@@ -41,6 +42,8 @@ function AdminTipstersContent() {
   const [newDescription, setNewDescription] = useState("");
   const [newPictureUrl, setNewPictureUrl] = useState("");
   const [creating, setCreating] = useState(false);
+  const [iconUploading, setIconUploading] = useState(false);
+  const iconFileRef = useRef<HTMLInputElement>(null);
 
   const reload = () => {
     Promise.all([fetchPendingTipsters(), fetchTipsters()]).then(([pend, appr]) => {
@@ -70,6 +73,20 @@ function AdminTipstersContent() {
     const res = await adminDeleteTipster(id);
     setActionMsg(res.success ? `${name} を削除しました` : res.error || "エラー");
     reload();
+  };
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIconUploading(true);
+    const res = await uploadArticleImage(file);
+    if (res.success && res.url) {
+      setNewPictureUrl(res.url);
+    } else {
+      setActionMsg(res.error || "アップロードに失敗しました");
+    }
+    setIconUploading(false);
+    if (iconFileRef.current) iconFileRef.current.value = "";
   };
 
   const handleCreateManaged = async () => {
@@ -194,9 +211,20 @@ function AdminTipstersContent() {
                 placeholder="例: netkeita編集部" className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1565C0]" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-[#444] mb-1">アイコン画像URL</label>
-              <input type="url" value={newPictureUrl} onChange={(e) => setNewPictureUrl(e.target.value)}
-                placeholder="https://..." className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1565C0]" />
+              <label className="block text-[10px] font-bold text-[#444] mb-2">アイコン画像</label>
+              <div className="flex items-center gap-2">
+                {newPictureUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={newPictureUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 bg-[#eee]" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#e0e0e0] flex items-center justify-center text-sm text-[#999] shrink-0">?</div>
+                )}
+                <button type="button" onClick={() => iconFileRef.current?.click()} disabled={iconUploading}
+                  className="text-xs font-bold bg-[#1565C0] hover:bg-[#0d47a1] text-white px-3 py-1.5 rounded transition disabled:opacity-40">
+                  {iconUploading ? "アップロード中..." : "画像を選択"}
+                </button>
+                <input ref={iconFileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleIconUpload} className="hidden" />
+              </div>
             </div>
           </div>
           <div>
