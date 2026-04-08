@@ -822,3 +822,52 @@ export async function adminCreateManagedTipster(params: {
     return { success: false, error: "通信エラーが発生しました" };
   }
 }
+
+// --- Kリワード ---
+
+export interface KRewardLog {
+  points: number;
+  reason: string;
+  race_id?: string;
+  at: string;
+}
+
+export interface KRewardData {
+  balance: number;
+  coin_rate: number;
+  log: KRewardLog[];
+}
+
+export async function fetchKReward(): Promise<KRewardData | null> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("nk_token") : null;
+  if (!API_URL || !token) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/kreward`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function transferKReward(
+  points: number
+): Promise<{ success: boolean; coins_granted?: number; new_balance?: number; error?: string }> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("nk_token") : null;
+  if (!API_URL || !token) return { success: false, error: "ログインが必要です" };
+  try {
+    const res = await fetch(`${API_URL}/api/kreward/transfer`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ points }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.detail || "転送に失敗しました" };
+    return { success: true, coins_granted: data.coins_granted, new_balance: data.new_balance };
+  } catch {
+    return { success: false, error: "通信エラーが発生しました" };
+  }
+}
