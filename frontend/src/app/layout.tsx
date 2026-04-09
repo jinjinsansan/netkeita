@@ -47,11 +47,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="text-xs text-[#a3c9a3] mb-2">
               net<span className="text-[#4ade80] font-bold">keita</span> — JRA全レース ランク指数
             </p>
-            <p className="mb-2">
-              <a href="/tradelaw" className="text-[11px] text-[#6b8f6b] hover:text-[#a3c9a3] underline underline-offset-2">
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <a href="/terms" className="text-[11px] text-[#6b8f6b] hover:text-[#a3c9a3] transition">
+                利用規約
+              </a>
+              <span className="text-[#2d5a2d]">|</span>
+              <a href="/privacy" className="text-[11px] text-[#6b8f6b] hover:text-[#a3c9a3] transition">
+                プライバシーポリシー
+              </a>
+              <span className="text-[#2d5a2d]">|</span>
+              <a href="/tradelaw" className="text-[11px] text-[#6b8f6b] hover:text-[#a3c9a3] transition">
                 特定商取引法に基づく表記
               </a>
-            </p>
+            </div>
             <p className="text-[11px] text-[#6b8f6b]">
               &copy; 2026 netkeita. 競馬の未来を、データで。
             </p>

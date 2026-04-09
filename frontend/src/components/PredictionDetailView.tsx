@@ -6,6 +6,8 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import type { Article, TipsterProfile } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import ShareButton from "@/components/ShareButton";
+import { SITE_URL } from "@/lib/site";
 
 const MARK_STYLE: Record<string, { label: string; color: string; bg: string }> = {
   "◎": { label: "◎", color: "#c62828", bg: "#fff" },
@@ -57,9 +59,13 @@ interface PredictionDetailViewProps {
   article: Article;
   tipster?: TipsterProfile | null;
   hasPremium?: boolean;
+  isAdmin?: boolean;
+  deleting?: boolean;
+  onDeleteRequest?: () => void;
 }
 
-export default function PredictionDetailView({ article, tipster, hasPremium }: PredictionDetailViewProps) {
+export default function PredictionDetailView({ article, tipster, hasPremium, isAdmin, deleting, onDeleteRequest }: PredictionDetailViewProps) {
+  const slug = article.slug;
   const isPremium = !!article.is_premium;
   const canRead = !isPremium || hasPremium;
 
@@ -129,7 +135,29 @@ export default function PredictionDetailView({ article, tipster, hasPremium }: P
         <span className="text-[9px] font-bold text-[#d4a017] bg-white border border-[#e8d99a] px-2 py-0.5 rounded-full shrink-0">公認</span>
       </div>
 
-      <h1 className="text-xl font-black text-[#1a1a1a] leading-tight mb-2">{article.title}</h1>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <h1 className="text-xl font-black text-[#1a1a1a] leading-tight">{article.title}</h1>
+        {isAdmin && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Link
+              href={`/predictions/${encodeURIComponent(slug)}/edit`}
+              className="text-[10px] font-bold text-[#1f7a1f] border border-[#1f7a1f] hover:bg-[#f0f7f0] px-2.5 py-1 rounded transition"
+            >
+              編集
+            </Link>
+            {onDeleteRequest && (
+              <button
+                type="button"
+                onClick={onDeleteRequest}
+                disabled={deleting}
+                className="text-[10px] font-bold text-[#c62828] border border-[#c62828] hover:bg-[#fdecea] px-2.5 py-1 rounded transition disabled:opacity-40"
+              >
+                {deleting ? "削除中..." : "削除"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
       <p className="text-[11px] text-[#999] mb-4">{formatDate(article.created_at)}</p>
 
       {/* Preview / teaser */}
@@ -225,6 +253,16 @@ export default function PredictionDetailView({ article, tipster, hasPremium }: P
           )}
         </>
       )}
+
+      <div className="mt-8 pt-5 border-t border-[#e5e5e5] flex items-center justify-between">
+        <ShareButton
+          title={article.title}
+          url={`${SITE_URL}/articles/${encodeURIComponent(slug)}`}
+        />
+        <Link href="/tipsters" className="text-xs font-bold text-[#666] hover:text-[#1f7a1f] transition">
+          ← 予想家一覧
+        </Link>
+      </div>
     </div>
   );
 }

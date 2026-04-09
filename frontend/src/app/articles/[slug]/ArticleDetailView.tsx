@@ -130,7 +130,39 @@ export default function ArticleDetailView({
 
   // 予想記事は専用ビューで表示
   if (article.content_type === "prediction") {
-    return <PredictionDetailView article={article} tipster={tipster} hasPremium={hasPremium || isAdmin} />;
+    return (
+      <>
+        <PredictionDetailView
+          article={article}
+          tipster={tipster}
+          hasPremium={hasPremium || isAdmin}
+          isAdmin={isAdmin}
+          deleting={deleting}
+          onDeleteRequest={isAdmin ? () => setConfirmDeleteOpen(true) : undefined}
+        />
+        {isAdmin && (
+          <>
+            <ConfirmModal
+              open={confirmDeleteOpen}
+              title="予想を削除"
+              message="この予想を完全に削除します。この操作は取り消せません。"
+              confirmLabel="削除する"
+              danger
+              onConfirm={handleDelete}
+              onCancel={() => setConfirmDeleteOpen(false)}
+            />
+            {error && (
+              <div
+                className="fixed bottom-4 left-4 right-4 max-w-[600px] mx-auto rounded-lg bg-[#fdecea] border border-[#f5c6cb] px-3 py-2 text-xs text-[#a33]"
+                role="alert"
+              >
+                {error}
+              </div>
+            )}
+          </>
+        )}
+      </>
+    );
   }
 
   return (

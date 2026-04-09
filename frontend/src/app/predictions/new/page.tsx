@@ -12,7 +12,13 @@ import type { TipsterProfile } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
 
-const BET_METHODS = ["単勝", "複勝", "馬連", "馬単", "ワイド", "三連複", "三連単", "単勝・複勝", "馬連・三連複", "その他"];
+const BET_METHODS = ["単勝", "複勝", "馬連", "馬単", "ワイド", "三連複", "三連単", "その他"];
+
+interface BetEntry {
+  method: string;
+  customMethod: string;
+  count: number | "";
+}
 
 export default function NewPredictionPage() {
   return (
@@ -35,9 +41,7 @@ function NewPredictionForm() {
   const [title, setTitle] = useState("");
   const [previewBody, setPreviewBody] = useState("");
   const [body, setBody] = useState("");
-  const [betMethod, setBetMethod] = useState("");
-  const [customBetMethod, setCustomBetMethod] = useState("");
-  const [ticketCount, setTicketCount] = useState<number | "">("");
+  const [betEntries, setBetEntries] = useState<BetEntry[]>([{ method: "", customMethod: "", count: "" }]);
   const [isPremium, setIsPremium] = useState(false);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [submitting, setSubmitting] = useState(false);
@@ -79,13 +83,32 @@ function NewPredictionForm() {
     );
   }
 
-  const finalBetMethod = betMethod === "その他" ? customBetMethod : betMethod;
+  const addBetEntry = () =>
+    setBetEntries((prev) => [...prev, { method: "", customMethod: "", count: "" }]);
+
+  const removeBetEntry = (idx: number) =>
+    setBetEntries((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateBetEntry = (idx: number, patch: Partial<BetEntry>) =>
+    setBetEntries((prev) => prev.map((e, i) => (i === idx ? { ...e, ...patch } : e)));
+
+  const buildBetMethod = () =>
+    betEntries
+      .map((e) => {
+        const m = e.method === "その他" ? e.customMethod.trim() : e.method;
+        if (!m) return "";
+        return e.count ? `${m} ${e.count}点` : m;
+      })
+      .filter(Boolean)
+      .join(" / ");
+
+  const buildTicketCount = () =>
+    betEntries.reduce((s, e) => s + (Number(e.count) || 0), 0);
 
   const handleSubmit = async (status: "published" | "draft") => {
     if (!raceId) { setError("対象レースを選択してください"); return; }
     if (!title.trim()) { setError("タイトルを入力してください"); return; }
     if (!previewBody.trim()) { setError("見解プレビューを入力してください"); return; }
-    if (!body.trim()) { setError("本文（買い目）を入力してください"); return; }
     if (!selectedTipsterId) { setError("投稿する予想家を選択してください"); return; }
     setError(null);
     setSubmitting(true);
@@ -93,8 +116,8 @@ function NewPredictionForm() {
       title: title.trim(),
       body,
       preview_body: previewBody.trim(),
-      bet_method: finalBetMethod,
-      ticket_count: typeof ticketCount === "number" ? ticketCount : 0,
+      bet_method: buildBetMethod(),
+      ticket_count: buildTicketCount(),
       is_premium: isPremium,
       race_id: raceId,
       content_type: "prediction",
@@ -198,41 +221,63 @@ function NewPredictionForm() {
           />
         </div>
 
-        {/* Bet method + ticket count */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-bold text-[#444] mb-1">買い方</label>
-            <select
-              value={betMethod}
-              onChange={(e) => setBetMethod(e.target.value)}
-              className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#1f7a1f]"
+        {/* Bet entries (multiple) */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[11px] font-bold text-[#444]">買い目 (任意)</label>
+            <button
+              type="button"
+              onClick={addBetEntry}
+              className="text-[10px] font-bold text-[#1f7a1f] border border-[#1f7a1f] hover:bg-[#f0f7f0] px-2 py-0.5 rounded transition"
             >
-              <option value="">選択</option>
-              {BET_METHODS.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-            {betMethod === "その他" && (
-              <input
-                type="text"
-                value={customBetMethod}
-                onChange={(e) => setCustomBetMethod(e.target.value.slice(0, 100))}
-                placeholder="買い方を入力"
-                className="mt-1 w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f]"
-              />
-            )}
+              ＋ 追加
+            </button>
           </div>
-          <div>
-            <label className="block text-[11px] font-bold text-[#444] mb-1">点数</label>
-            <input
-              type="number"
-              min={1}
-              max={999}
-              value={ticketCount}
-              onChange={(e) => setTicketCount(e.target.value === "" ? "" : Number(e.target.value))}
-              placeholder="例: 3"
-              className="w-full border border-[#d0d0d0] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#1f7a1f]"
-            />
+          <div className="space-y-2">
+            {betEntries.map((entry, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <div>
+                    <select
+                      value={entry.method}
+                      onChange={(e) => updateBetEntry(idx, { method: e.target.value })}
+                      className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:border-[#1f7a1f]"
+                    >
+                      <option value="">買い方を選択</option>
+                      {BET_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    {entry.method === "その他" && (
+                      <input
+                        type="text"
+                        value={entry.customMethod}
+                        onChange={(e) => updateBetEntry(idx, { customMethod: e.target.value.slice(0, 100) })}
+                        placeholder="買い方を入力"
+                        className="mt-1 w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1f7a1f]"
+                      />
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={entry.count}
+                    onChange={(e) => updateBetEntry(idx, { count: e.target.value === "" ? "" : Number(e.target.value) })}
+                    placeholder="点数 (任意)"
+                    className="w-full border border-[#d0d0d0] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1f7a1f]"
+                  />
+                </div>
+                {betEntries.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeBetEntry(idx)}
+                    className="mt-1 text-[#c62828] hover:text-[#a32020] text-lg font-bold leading-none"
+                    aria-label="削除"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -270,7 +315,7 @@ function NewPredictionForm() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="text-[11px] font-bold text-[#444]">
-              本文（買い目・分析）<span className="text-[#c62828]">*</span>
+              本文（買い目・分析）
               {isPremium && <span className="text-[#d4a017] font-normal ml-1">— 有料ユーザーのみ閲覧</span>}
             </label>
             <div className="flex gap-1">

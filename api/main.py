@@ -67,7 +67,7 @@ import json as _json
 import redis as _redis
 
 _redis_client = _redis.Redis(host="127.0.0.1", port=6379, db=2, decode_responses=True)
-_SESSION_TTL = 86400  # 24 hours
+_SESSION_TTL = 86400 * 30  # 30 days
 
 
 def _save_session(token: str, data: dict):
@@ -79,8 +79,13 @@ def _save_session(token: str, data: dict):
 
 def _load_session(token: str) -> dict | None:
     try:
-        raw = _redis_client.get(f"nk:session:{token}")
-        return _json.loads(raw) if raw else None
+        key = f"nk:session:{token}"
+        raw = _redis_client.get(key)
+        if not raw:
+            return None
+        # Sliding window: reset TTL on every access so active users stay logged in
+        _redis_client.expire(key, _SESSION_TTL)
+        return _json.loads(raw)
     except Exception:
         logger.exception("Failed to load session from Redis")
         return None
