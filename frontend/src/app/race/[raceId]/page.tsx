@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { fetchMatrix, fetchArticlesByRace, fetchTipsters, fetchPremiumStatus } from "@/lib/api";
 import type { ArticleSummary, TipsterProfile } from "@/lib/api";
 import type { RaceMatrix } from "@/lib/types";
+import { pathToRaceId } from "@/lib/venue-codes";
 import RankMatrix from "@/components/RankMatrix";
 import MinnaVoteDrawer from "@/components/MinnaVoteDrawer";
 import PredictionCard from "@/components/PredictionCard";
@@ -22,7 +23,9 @@ export default function RacePage() {
 
 function RaceContent() {
   const params = useParams();
-  const raceId = decodeURIComponent(params.raceId as string);
+  // Decode short venue code (e.g. "kws") back to Japanese ("川崎").
+  // pathToRaceId is a no-op for old URLs that already contain Japanese.
+  const raceId = pathToRaceId(decodeURIComponent(params.raceId as string));
   const { user } = useAuth();
   const [matrix, setMatrix] = useState<RaceMatrix | null>(null);
   const [loading, setLoading] = useState(true);

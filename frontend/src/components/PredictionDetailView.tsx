@@ -8,6 +8,7 @@ import type { Article, TipsterProfile } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import ShareButton from "@/components/ShareButton";
 import { SITE_URL } from "@/lib/site";
+import { raceIdToPath } from "@/lib/venue-codes";
 
 const MARK_STYLE: Record<string, { label: string; color: string; bg: string }> = {
   "◎": { label: "◎", color: "#c62828", bg: "#fff" },
@@ -104,7 +105,7 @@ export default function PredictionDetailView({ article, tipster, hasPremium, isA
 
       {/* Race badge */}
       {article.race_id && (
-        <Link href={`/race/${encodeURIComponent(article.race_id)}`}
+        <Link href={`/race/${raceIdToPath(article.race_id ?? "")}`}
           className="inline-flex items-center gap-1.5 bg-[#163016] text-[#4ade80] text-[11px] font-bold px-3 py-1 rounded-full mb-3 hover:bg-[#1f4d1f] transition">
           ← レースページを見る
         </Link>

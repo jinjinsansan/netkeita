@@ -7,6 +7,7 @@ import ArticleCard from "@/components/ArticleCard";
 import type { Grade, RaceSummary } from "@/lib/types";
 import type { ArticleSummary, TipsterProfile } from "@/lib/api";
 import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl } from "@/lib/api";
+import { raceIdToPath } from "@/lib/venue-codes";
 import { useAuth } from "@/lib/auth-context";
 
 // How many latest articles to surface on the top page. 6 fits a 3-column
@@ -326,7 +327,7 @@ export default function LandingPage() {
                   return (
                     <Link
                       key={race.race_id}
-                      href={`/race/${encodeURIComponent(race.race_id)}`}
+                      href={`/race/${raceIdToPath(race.race_id)}`}
                       className={`flex flex-col items-center justify-center h-[58px] border rounded-lg bg-white transition text-center shadow-sm ${
                         nar
                           ? "border-[#c6c9d3] hover:bg-[#faf5fc] hover:border-[#7b1fa2]"
@@ -361,7 +362,7 @@ export default function LandingPage() {
                           <td className={`text-center font-bold text-base ${nar ? "text-[#7b1fa2]" : "text-[#1f7a1f]"}`}>{race.race_number}</td>
                           <td>
                             <Link
-                              href={`/race/${encodeURIComponent(race.race_id)}`}
+                              href={`/race/${raceIdToPath(race.race_id)}`}
                               className="text-[#1565C0] hover:underline font-bold text-sm inline-flex items-center gap-1.5"
                             >
                               {nar && (

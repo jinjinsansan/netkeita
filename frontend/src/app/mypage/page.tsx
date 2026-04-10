@@ -6,6 +6,7 @@ import { fetchMyVoteHistory, fetchKReward } from "@/lib/api";
 import type { VoteHistory, VoteResultStatus, KRewardData } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
+import { raceIdToPath } from "@/lib/venue-codes";
 
 export default function MyPage() {
   return (
@@ -234,7 +235,7 @@ function MyPageContent() {
               return (
                 <Link
                   key={h.race_id}
-                  href={`/race/${encodeURIComponent(h.race_id)}`}
+                  href={`/race/${raceIdToPath(h.race_id)}`}
                   className="block bg-white border border-[#d0d0d0] rounded-lg p-3 hover:border-[#1f7a1f] transition shadow-sm"
                   aria-label={`${h.date} ${h.venue} ${h.race_number}R ${h.horse_name} ${r.text}`}
                 >
