@@ -887,6 +887,12 @@ export async function transferKReward(
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
+export interface ReplyTo {
+  id: string;
+  nickname: string;
+  content: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   channel: string;
@@ -897,6 +903,7 @@ export interface ChatMessage {
   author_token: string;
   content: string | null;
   stamp: string | null;
+  reply_to: ReplyTo | null;
   created_at: string;
 }
 
@@ -922,7 +929,10 @@ export async function fetchChatMessages(channel: string): Promise<ChatMessage[]>
 }
 
 export async function sendChatMessage(
-  channel: string, content: string | null, stamp: string | null,
+  channel: string,
+  content: string | null,
+  stamp: string | null,
+  replyTo?: { id: string; nickname: string; content: string | null } | null,
 ): Promise<{ success: boolean; message?: ChatMessage; error?: string }> {
   const token = getToken();
   if (!token) return { success: false, error: "ログインが必要です" };
@@ -930,7 +940,7 @@ export async function sendChatMessage(
     const res = await fetch(`${API_URL}/api/chat/message`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ channel, content, stamp }),
+      body: JSON.stringify({ channel, content, stamp, reply_to: replyTo ?? null }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { success: false, error: data.detail || "送信に失敗しました" };

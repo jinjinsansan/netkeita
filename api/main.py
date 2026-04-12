@@ -1868,10 +1868,17 @@ async def api_upload_user_avatar(
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
 
+class ReplyToInfo(BaseModel):
+    id:       str
+    nickname: str
+    content:  str | None = None   # text preview (≤50 chars)
+
+
 class ChatMessageRequest(BaseModel):
-    channel: str
-    content: str | None = None
-    stamp:   str | None = None
+    channel:  str
+    content:  str | None = None
+    stamp:    str | None = None
+    reply_to: ReplyToInfo | None = None
 
 
 def _parse_created_at(iso: str) -> datetime:
@@ -1911,17 +1918,25 @@ def api_chat_send(req: ChatMessageRequest, authorization: str = Header(default="
         raise HTTPException(status_code=429, detail="送信が速すぎます。少し待ってください。")
 
     profile = _get_user_chat_profile(user["line_user_id"])
+    reply_to = None
+    if req.reply_to and req.reply_to.id:
+        reply_to = {
+            "id":       req.reply_to.id[:20],
+            "nickname": (req.reply_to.nickname or "")[:20],
+            "content":  (req.reply_to.content or "")[:50],
+        }
     msg = {
-        "id":               secrets.token_urlsafe(8),
-        "channel":          req.channel,
-        "line_user_id":     user["line_user_id"],
-        "nickname":         profile["nickname"],
-        "avatar_key":       profile["avatar_key"],
-        "avatar_emoji":     chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
-        "avatar_url":       profile.get("custom_avatar_url"),
-        "content":          content,
-        "stamp":            stamp,
-        "created_at":       datetime.now(JST).isoformat(),
+        "id":           secrets.token_urlsafe(8),
+        "channel":      req.channel,
+        "line_user_id": user["line_user_id"],
+        "nickname":     profile["nickname"],
+        "avatar_key":   profile["avatar_key"],
+        "avatar_emoji": chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
+        "avatar_url":   profile.get("custom_avatar_url"),
+        "content":      content,
+        "stamp":        stamp,
+        "reply_to":     reply_to,
+        "created_at":   datetime.now(JST).isoformat(),
     }
 
     chat_service.cache_message(req.channel, msg)

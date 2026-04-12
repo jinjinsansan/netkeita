@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CHAT_API_BASE,
   CHAT_STAMPS,
   ChatMessage,
+  ReplyTo,
   deleteChatMessage,
   fetchChatMessages,
   sendChatMessage,
@@ -76,15 +77,44 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const [loading, setLoading] = useState(true);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newCount, setNewCount] = useState(0);
+  const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
 
   const endRef = useRef<HTMLDivElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const sseRef = useRef<EventSource | null>(null);
   const channelRef = useRef<Channel>(channel);
   const wasHiddenRef = useRef(false);
   const isAtBottomRef = useRef(true);
   channelRef.current = channel;
+
+  // Unique recent users for @mention (latest first, deduplicated)
+  const mentionUsers = useMemo(() => {
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const n = messages[i].nickname;
+      if (!seen.has(n)) { seen.add(n); list.push(n); }
+      if (list.length >= 8) break;
+    }
+    return list;
+  }, [messages]);
+
+  const filteredMentions = mentionQuery !== null
+    ? mentionUsers.filter(n => n.toLowerCase().startsWith(mentionQuery.toLowerCase()))
+    : [];
+
+  // Render message text with @mention highlights
+  const renderContent = (text: string) => {
+    const parts = text.split(/(@\S+)/g);
+    return parts.map((part, i) =>
+      part.startsWith("@")
+        ? <span key={i} className="text-[#163016] font-bold">{part}</span>
+        : <span key={i}>{part}</span>
+    );
+  };
 
   const scrollBottom = useCallback((smooth = true) => {
     endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
@@ -136,6 +166,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
 
   useEffect(() => {
     setLoading(true); setMessages([]); setNewCount(0); setIsAtBottom(true);
+    setReplyTo(null); setMentionQuery(null);
     isAtBottomRef.current = true;
     fetchChatMessages(channel).then((msgs) => {
       setMessages(msgs); setLoading(false);
@@ -170,9 +201,10 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const handleSend = async () => {
     const text = input.trim();
     if (!text || sending) return;
-    setSending(true); setError(null); setInput("");
-    const res = await sendChatMessage(channel, text, null);
+    setSending(true); setError(null); setInput(""); setMentionQuery(null);
+    const res = await sendChatMessage(channel, text, null, replyTo);
     if (!res.success) { setError(res.error || "送信に失敗しました"); setInput(text); }
+    else setReplyTo(null);
     setSending(false);
   };
 
@@ -184,9 +216,23 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const handleStamp = async (stamp: string) => {
     if (!authenticated || sending) return;
     setSending(true); setError(null);
-    const res = await sendChatMessage(channel, null, stamp);
+    const res = await sendChatMessage(channel, null, stamp, replyTo);
     if (!res.success) setError(res.error || "送信に失敗しました");
+    else setReplyTo(null);
     setSending(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInput(val);
+    const match = val.match(/@([^\s]*)$/);
+    setMentionQuery(match ? match[1] : null);
+  };
+
+  const selectMention = (nickname: string) => {
+    setInput(prev => prev.replace(/@[^\s]*$/, `@${nickname} `));
+    setMentionQuery(null);
+    inputRef.current?.focus();
   };
 
   const last3 = messages.slice(-3);
@@ -282,16 +328,10 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                   {/* Avatar */}
                   <div className="shrink-0 mt-0.5">
                     {msg.avatar_url ? (
-                      <img
-                        src={msg.avatar_url}
-                        alt={msg.nickname}
-                        className="w-7 h-7 rounded-full object-cover"
-                      />
+                      <img src={msg.avatar_url} alt={msg.nickname} className="w-7 h-7 rounded-full object-cover" />
                     ) : (
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black select-none"
-                        style={{ backgroundColor: s.bg, color: s.fg }}
-                      >
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black select-none"
+                        style={{ backgroundColor: s.bg, color: s.fg }}>
                         {initial(msg.nickname)}
                       </div>
                     )}
@@ -299,27 +339,48 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                   {/* Body */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5 mb-0.5">
-                      <span className="text-[11px] font-bold text-[#1a1a1a] truncate max-w-[120px]">
-                        {msg.nickname}
-                      </span>
+                      <span className="text-[11px] font-bold text-[#1a1a1a] truncate max-w-[120px]">{msg.nickname}</span>
                       <span className="text-[9px] text-[#ccc] shrink-0">{relTime(msg.created_at)}</span>
                     </div>
+                    {/* Reply quote */}
+                    {msg.reply_to && (
+                      <div className="flex items-start gap-1.5 mb-1 pl-2 border-l-2 border-[#163016]/25 bg-white/60 rounded-r py-0.5">
+                        <span className="text-[10px] font-bold text-[#163016]/70 shrink-0">@{msg.reply_to.nickname}</span>
+                        <span className="text-[10px] text-[#888] truncate">{msg.reply_to.content || "スタンプ"}</span>
+                      </div>
+                    )}
                     {msg.stamp ? (
                       <span className="text-2xl leading-none">{msg.stamp}</span>
                     ) : (
-                      <p className="text-[13px] text-[#333] leading-relaxed break-words">{msg.content}</p>
+                      <p className="text-[13px] text-[#333] leading-relaxed break-words">
+                        {msg.content ? renderContent(msg.content) : null}
+                      </p>
                     )}
                   </div>
-                  {/* Delete button — always visible on touch, hover-reveal on desktop */}
-                  {canDelete && (
-                    <button
-                      onClick={() => handleDelete(msg)}
-                      className="shrink-0 self-start mt-0.5 text-[#ccc] active:text-red-400 transition-colors text-[11px] leading-none px-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 hover:text-red-400"
-                      title="削除"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  {/* Action buttons */}
+                  <div className="flex flex-col gap-0.5 shrink-0 self-start mt-0.5 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
+                    {authenticated && (
+                      <button
+                        onClick={() => {
+                          setReplyTo({ id: msg.id, nickname: msg.nickname, content: msg.content || msg.stamp });
+                          inputRef.current?.focus();
+                        }}
+                        className="text-[#bbb] hover:text-[#163016] active:text-[#163016] transition-colors text-[11px] leading-none px-1"
+                        title="返信"
+                      >
+                        ↩
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(msg)}
+                        className="text-[#ccc] hover:text-red-400 active:text-red-400 transition-colors text-[11px] leading-none px-1"
+                        title="削除"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -349,7 +410,37 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
       )}
 
       {/* ── Input ───────────────────────────────────── */}
-      <div className="border-t border-[#f0f0f0] bg-white px-3 pt-2.5 pb-safe-3 shrink-0" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+      {/* ── Reply preview bar ───────────────────────── */}
+      {replyTo && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-[#f0f7f0] border-t border-[#c8e6c9] shrink-0">
+          <div className="w-0.5 self-stretch bg-[#163016] rounded-full shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-[#163016]">↩ @{replyTo.nickname}</p>
+            <p className="text-[10px] text-[#666] truncate">{replyTo.content || "スタンプ"}</p>
+          </div>
+          <button onClick={() => setReplyTo(null)} className="text-[#999] hover:text-[#333] text-xs px-1">✕</button>
+        </div>
+      )}
+
+      <div className="border-t border-[#f0f0f0] bg-white px-3 pt-2.5 pb-safe-3 shrink-0 relative" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+        {/* @mention dropdown */}
+        {mentionQuery !== null && filteredMentions.length > 0 && (
+          <div className="absolute bottom-full left-3 right-3 mb-1 bg-white border border-[#e0e0e0] rounded-xl shadow-lg overflow-hidden z-20">
+            {filteredMentions.map((n) => {
+              const ms = avatarStyle(n);
+              return (
+                <button key={n} onMouseDown={(e) => { e.preventDefault(); selectMention(n); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#f5f5f5] active:bg-[#eeeeee] transition-colors text-left">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
+                    style={{ backgroundColor: ms.bg, color: ms.fg }}>
+                    {initial(n)}
+                  </div>
+                  <span className="text-sm font-bold text-[#333]">@{n}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         {/* Stamp row — compact pills */}
         <div className="flex gap-1.5 mb-2.5 overflow-x-auto pb-0.5 scrollbar-none">
           {CHAT_STAMPS.map((s) => (
@@ -372,12 +463,16 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         {authenticated ? (
           <div className="flex items-center gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={input}
               maxLength={100}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="メッセージを入力…"
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") { setMentionQuery(null); setReplyTo(null); return; }
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+              }}
+              placeholder={replyTo ? `@${replyTo.nickname} に返信…` : "メッセージを入力…"}
               disabled={sending}
               className="flex-1 text-base bg-[#f5f5f5] rounded-full px-4 py-2 focus:outline-none focus:bg-[#ededee] transition-colors min-w-0 placeholder-[#bbb]"
             />
