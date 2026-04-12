@@ -153,6 +153,30 @@ def get_online_count(channel: str) -> int:
 
 # ── User profile cache ─────────────────────────────────────────────────────────
 
+_PROFILE_STORE_PREFIX = "nk:user:profile:store"  # permanent, no TTL
+
+
+def get_stored_profile(line_user_id: str) -> dict | None:
+    """Permanent profile store (no TTL). Source of truth when Supabase is unavailable."""
+    raw = _redis.get(f"{_PROFILE_STORE_PREFIX}:{line_user_id}")
+    if raw:
+        try:
+            return json.loads(raw)
+        except Exception:
+            pass
+    return None
+
+
+def store_profile(line_user_id: str, profile: dict) -> None:
+    """Save profile permanently to Redis (no TTL)."""
+    _redis.set(
+        f"{_PROFILE_STORE_PREFIX}:{line_user_id}",
+        json.dumps(profile, ensure_ascii=False),
+    )
+    # Also refresh the short-lived cache so reads are consistent
+    set_cached_profile(line_user_id, profile)
+
+
 def get_cached_profile(line_user_id: str) -> dict | None:
     raw = _redis.get(f"{_PROFILE_PREFIX}:{line_user_id}")
     if raw:

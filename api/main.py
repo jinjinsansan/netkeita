@@ -159,17 +159,6 @@ async def line_callback(req: LineCallbackRequest):
 
         logger.info(f"LINE login: {display_name} ({line_user_id})")
 
-        # Ensure a users row exists so profile updates work
-        try:
-            from services.supabase_client import get_client as _sb
-            _sb().table("chat_profiles").upsert(
-                {"line_user_id": line_user_id, "display_name": display_name},
-                on_conflict="line_user_id",
-                ignore_duplicates=False,
-            ).execute()
-        except Exception:
-            logger.warning("Failed to upsert users row on login (non-fatal)")
-
         return {
             "success": True,
             "token": session_token,
@@ -1773,30 +1762,16 @@ def api_premium_status(authorization: str = Header(default="")):
 # ── User profile ─────────────────────────────────────────────────────────────
 
 def _get_user_chat_profile(line_user_id: str) -> dict:
-    """Return {nickname, avatar_key, custom_avatar_url} for a user, with Redis cache."""
+    """Return {nickname, avatar_key, custom_avatar_url} — Redis-first, no Supabase."""
+    # 1. Permanent Redis store (written on profile update)
+    stored = chat_service.get_stored_profile(line_user_id)
+    if stored:
+        return stored
+    # 2. Short-lived cache fallback
     cached = chat_service.get_cached_profile(line_user_id)
     if cached:
         return cached
-    try:
-        from services.supabase_client import get_client as _sb
-        row = (
-            _sb().table("chat_profiles")
-            .select("display_name, nickname, avatar_key, custom_avatar_url")
-            .eq("line_user_id", line_user_id)
-            .single()
-            .execute()
-        )
-        if row.data:
-            profile = {
-                "nickname":          row.data.get("nickname") or row.data.get("display_name") or "ゲスト",
-                "avatar_key":        row.data.get("avatar_key") or "horse1",
-                "custom_avatar_url": row.data.get("custom_avatar_url"),
-            }
-            chat_service.set_cached_profile(line_user_id, profile)
-            return profile
-    except Exception:
-        logger.exception("Failed to fetch user profile from Supabase")
-    return {"nickname": "ゲスト", "avatar_key": "horse1", "custom_avatar_url": None}
+    return {"nickname": "", "avatar_key": "horse1", "custom_avatar_url": None}
 
 
 @app.get("/api/user/profile")
@@ -1837,24 +1812,16 @@ def api_update_user_profile(
         raise HTTPException(status_code=400, detail="更新内容がありません")
 
     uid = user["line_user_id"]
-    display_name = user.get("display_name", "")
-    try:
-        from services.supabase_client import get_client as _sb
-        row_data: dict = {"line_user_id": uid}
-        if display_name:
-            row_data["display_name"] = display_name
-        if nickname:
-            row_data["nickname"] = nickname
-        if avatar_key:
-            row_data["avatar_key"] = avatar_key
-            row_data["custom_avatar_url"] = None  # emoji selected → clear custom image
-        # Use upsert so this works even if the users row was never created
-        _sb().table("chat_profiles").upsert(row_data, on_conflict="line_user_id", ignore_duplicates=False).execute()
-        chat_service.invalidate_profile_cache(uid)
-        return {"success": True, "nickname": nickname, "avatar_key": avatar_key}
-    except Exception:
-        logger.exception("Failed to update user profile")
-        raise HTTPException(status_code=500, detail="更新に失敗しました")
+    # Merge with existing profile so unchanged fields are preserved
+    current = _get_user_chat_profile(uid)
+    new_profile: dict = {
+        "nickname":          nickname if nickname else current.get("nickname", ""),
+        "avatar_key":        avatar_key if avatar_key else current.get("avatar_key", "horse1"),
+        "custom_avatar_url": None if avatar_key else current.get("custom_avatar_url"),
+    }
+    # Persist to Redis permanently (no Supabase dependency)
+    chat_service.store_profile(uid, new_profile)
+    return {"success": True}
 
 
 @app.post("/api/user/avatar")
@@ -1882,18 +1849,11 @@ async def api_upload_user_avatar(
     except image_upload.ImageUploadError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # Persist URL to Supabase and invalidate profile cache
-    try:
-        from services.supabase_client import get_client as _sb
-        uid = user["line_user_id"]
-        _sb().table("chat_profiles").upsert(
-            {"line_user_id": uid, "custom_avatar_url": url},
-            on_conflict="line_user_id", ignore_duplicates=False,
-        ).execute()
-        chat_service.invalidate_profile_cache(uid)
-    except Exception:
-        logger.exception("Failed to save custom_avatar_url to Supabase")
-        raise HTTPException(status_code=500, detail="画像URLの保存に失敗しました")
+    # Persist avatar URL to Redis profile store
+    uid = user["line_user_id"]
+    current = _get_user_chat_profile(uid)
+    current["custom_avatar_url"] = url
+    chat_service.store_profile(uid, current)
 
     logger.info(f"avatar uploaded for {user['line_user_id']}: {url}")
     return {"success": True, "url": url}
