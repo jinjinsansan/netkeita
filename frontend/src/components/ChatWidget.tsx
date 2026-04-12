@@ -70,21 +70,36 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const isAdmin = user?.is_admin ?? false;
   const [channel, setChannel] = useState<Channel>(defaultChannel);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [newCount, setNewCount] = useState(0);
 
   const endRef = useRef<HTMLDivElement>(null);
+  const scrollBoxRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
   const sseRef = useRef<EventSource | null>(null);
   const channelRef = useRef<Channel>(channel);
   const wasHiddenRef = useRef(false);
+  const isAtBottomRef = useRef(true);
   channelRef.current = channel;
 
   const scrollBottom = useCallback((smooth = true) => {
     endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
+    setIsAtBottom(true);
+    isAtBottomRef.current = true;
+    setNewCount(0);
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollBoxRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    setIsAtBottom(atBottom);
+    isAtBottomRef.current = atBottom;
+    if (atBottom) setNewCount(0);
   }, []);
 
   const connectSSE = useCallback((ch: Channel) => {
@@ -106,7 +121,11 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
           const next = [...prev, d];
           return next.length > 50 ? next.slice(-50) : next;
         });
-        setTimeout(() => scrollBottom(true), 50);
+        if (isAtBottomRef.current) {
+          setTimeout(() => scrollBottom(true), 50);
+        } else {
+          setNewCount((n) => n + 1);
+        }
       } catch { /* ignore */ }
     };
     sse.onerror = () => {
@@ -116,7 +135,8 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   }, [scrollBottom]);
 
   useEffect(() => {
-    setLoading(true); setMessages([]);
+    setLoading(true); setMessages([]); setNewCount(0); setIsAtBottom(true);
+    isAtBottomRef.current = true;
     fetchChatMessages(channel).then((msgs) => {
       setMessages(msgs); setLoading(false);
       setTimeout(() => scrollBottom(false), 50);
@@ -214,7 +234,22 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
       </div>
 
       {/* ── Messages ────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0 bg-[#f9fafb]">
+      {/* ── Scroll-to-bottom button ──────────────────── */}
+      {!isAtBottom && (
+        <div className="relative h-0 overflow-visible z-10 shrink-0">
+          <button
+            onClick={() => scrollBottom(true)}
+            className="absolute left-1/2 -translate-x-1/2 -top-4 flex items-center gap-1.5 bg-[#163016] text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg hover:bg-[#1f4a1f] active:scale-95 transition-all"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M7 10l5 5 5-5z"/>
+            </svg>
+            {newCount > 0 ? `${newCount}件の新着` : "最新へ"}
+          </button>
+        </div>
+      )}
+
+      <div ref={scrollBoxRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 min-h-0 bg-[#f9fafb]">
         {loading ? (
           <div className="flex items-center justify-center h-full gap-1">
             {[0, 1, 2].map((i) => (
