@@ -8,6 +8,15 @@ const ChatWidget = dynamic(() => import("./ChatWidget"), { ssr: false });
 export default function FloatingChat() {
   const [open, setOpen] = useState(false);
 
+  // Lock body scroll when drawer is open to prevent background jitter
+  useEffect(() => {
+    if (open) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };

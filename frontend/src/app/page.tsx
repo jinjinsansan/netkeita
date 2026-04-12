@@ -624,7 +624,7 @@ export default function LandingPage() {
 
       {/* Chat widget */}
       <section className="max-w-[960px] mx-auto px-4 py-6">
-        <div className="border border-[#e5e7eb] rounded-xl overflow-hidden h-[480px]">
+        <div className="border border-[#e5e7eb] rounded-xl overflow-hidden h-[480px]" style={{ contain: "strict" }}>
           <ChatWidget defaultChannel="global" embedded={true} />
         </div>
       </section>
