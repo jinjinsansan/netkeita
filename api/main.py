@@ -1761,7 +1761,7 @@ def api_premium_status(authorization: str = Header(default="")):
 # ── User profile ─────────────────────────────────────────────────────────────
 
 def _get_user_chat_profile(line_user_id: str) -> dict:
-    """Return {nickname, avatar_key} for a user, with Redis cache."""
+    """Return {nickname, avatar_key, custom_avatar_url} for a user, with Redis cache."""
     cached = chat_service.get_cached_profile(line_user_id)
     if cached:
         return cached
@@ -1769,21 +1769,22 @@ def _get_user_chat_profile(line_user_id: str) -> dict:
         from services.supabase_client import get_client as _sb
         row = (
             _sb().table("users")
-            .select("display_name, nickname, avatar_key")
+            .select("display_name, nickname, avatar_key, custom_avatar_url")
             .eq("line_user_id", line_user_id)
             .single()
             .execute()
         )
         if row.data:
             profile = {
-                "nickname":   row.data.get("nickname") or row.data.get("display_name") or "ゲスト",
-                "avatar_key": row.data.get("avatar_key") or "horse1",
+                "nickname":          row.data.get("nickname") or row.data.get("display_name") or "ゲスト",
+                "avatar_key":        row.data.get("avatar_key") or "horse1",
+                "custom_avatar_url": row.data.get("custom_avatar_url"),
             }
             chat_service.set_cached_profile(line_user_id, profile)
             return profile
     except Exception:
         logger.exception("Failed to fetch user profile from Supabase")
-    return {"nickname": "ゲスト", "avatar_key": "horse1"}
+    return {"nickname": "ゲスト", "avatar_key": "horse1", "custom_avatar_url": None}
 
 
 @app.get("/api/user/profile")
@@ -1793,12 +1794,13 @@ def api_get_user_profile(authorization: str = Header(default="")):
         raise HTTPException(status_code=401, detail="ログインが必要です")
     profile = _get_user_chat_profile(user["line_user_id"])
     return {
-        "nickname":      profile["nickname"],
-        "avatar_key":    profile["avatar_key"],
-        "display_name":  user.get("display_name", ""),
-        "avatar_emoji":  chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
-        "valid_avatars": list(chat_service.VALID_AVATARS),
-        "avatar_emoji_map": chat_service.AVATAR_EMOJI,
+        "nickname":          profile["nickname"],
+        "avatar_key":        profile["avatar_key"],
+        "custom_avatar_url": profile.get("custom_avatar_url"),
+        "display_name":      user.get("display_name", ""),
+        "avatar_emoji":      chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
+        "valid_avatars":     list(chat_service.VALID_AVATARS),
+        "avatar_emoji_map":  chat_service.AVATAR_EMOJI,
     }
 
 
@@ -1829,12 +1831,53 @@ def api_update_user_profile(
             update["nickname"] = nickname
         if avatar_key:
             update["avatar_key"] = avatar_key
+            update["custom_avatar_url"] = None  # emoji selected → clear custom image
         _sb().table("users").update(update).eq("line_user_id", user["line_user_id"]).execute()
         chat_service.invalidate_profile_cache(user["line_user_id"])
         return {"success": True, "nickname": nickname, "avatar_key": avatar_key}
     except Exception:
         logger.exception("Failed to update user profile")
         raise HTTPException(status_code=500, detail="更新に失敗しました")
+
+
+@app.post("/api/user/avatar")
+async def api_upload_user_avatar(
+    file: UploadFile = File(...),
+    authorization: str = Header(default=""),
+):
+    """Upload a custom avatar image. Authenticated users only."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+
+    try:
+        from services import image_upload
+    except Exception:
+        raise HTTPException(status_code=500, detail="アップロードサービスが利用できません")
+
+    try:
+        data = await file.read()
+    finally:
+        await file.close()
+
+    try:
+        url = image_upload.upload_avatar(data, file.content_type or "")
+    except image_upload.ImageUploadError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # Persist URL to Supabase and invalidate profile cache
+    try:
+        from services.supabase_client import get_client as _sb
+        _sb().table("users").update({"custom_avatar_url": url}).eq(
+            "line_user_id", user["line_user_id"]
+        ).execute()
+        chat_service.invalidate_profile_cache(user["line_user_id"])
+    except Exception:
+        logger.exception("Failed to save custom_avatar_url to Supabase")
+        raise HTTPException(status_code=500, detail="画像URLの保存に失敗しました")
+
+    logger.info(f"avatar uploaded for {user['line_user_id']}: {url}")
+    return {"success": True, "url": url}
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
@@ -1883,15 +1926,16 @@ def api_chat_send(req: ChatMessageRequest, authorization: str = Header(default="
 
     profile = _get_user_chat_profile(user["line_user_id"])
     msg = {
-        "id":          secrets.token_urlsafe(8),
-        "channel":     req.channel,
-        "line_user_id": user["line_user_id"],
-        "nickname":    profile["nickname"],
-        "avatar_key":  profile["avatar_key"],
-        "avatar_emoji": chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
-        "content":     content,
-        "stamp":       stamp,
-        "created_at":  datetime.now(JST).isoformat(),
+        "id":               secrets.token_urlsafe(8),
+        "channel":          req.channel,
+        "line_user_id":     user["line_user_id"],
+        "nickname":         profile["nickname"],
+        "avatar_key":       profile["avatar_key"],
+        "avatar_emoji":     chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
+        "avatar_url":       profile.get("custom_avatar_url"),
+        "content":          content,
+        "stamp":            stamp,
+        "created_at":       datetime.now(JST).isoformat(),
     }
 
     chat_service.cache_message(req.channel, msg)

@@ -17,5 +17,6 @@ CREATE INDEX IF NOT EXISTS idx_chat_channel_time
     ON chat_messages (channel, created_at DESC);
 
 -- User profile extensions
-ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname   TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_key TEXT DEFAULT 'horse1';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname           TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_key         TEXT DEFAULT 'horse1';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_avatar_url  TEXT;

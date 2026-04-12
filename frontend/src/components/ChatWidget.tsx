@@ -258,8 +258,12 @@ export default function ChatWidget({
           <div className="space-y-2.5">
             {messages.map((msg, i) => (
               <div key={msg.id || i} className="flex gap-2 items-start">
-                <div className="shrink-0 w-7 h-7 rounded-full bg-[#e8f5e9] flex items-center justify-center text-base">
-                  {msg.avatar_emoji}
+                <div className="shrink-0 w-7 h-7 rounded-full bg-[#e8f5e9] overflow-hidden flex items-center justify-center text-base">
+                  {msg.avatar_url ? (
+                    <img src={msg.avatar_url} alt={msg.nickname} className="w-full h-full object-cover" />
+                  ) : (
+                    msg.avatar_emoji
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-1.5">

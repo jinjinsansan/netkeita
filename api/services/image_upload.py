@@ -23,11 +23,12 @@ from services.supabase_client import get_client
 
 logger = logging.getLogger(__name__)
 
-BUCKET_NAME = "article-images"
+BUCKET_NAME         = "article-images"
+AVATAR_BUCKET_NAME  = "user-avatars"
 
-# Cap uploaded images at 5 MB to keep the editor snappy and Supabase
-# storage cheap. Anything over this gets a clean 413 error.
-MAX_IMAGE_BYTES = 5 * 1024 * 1024
+# Cap uploaded images at 5 MB.
+MAX_IMAGE_BYTES  = 5 * 1024 * 1024
+MAX_AVATAR_BYTES = 5 * 1024 * 1024  # same cap for avatars
 
 # Allowed mime types → file extension. SVG deliberately excluded (XSS).
 _MIME_TO_EXT: dict[str, str] = {
@@ -43,23 +44,17 @@ class ImageUploadError(Exception):
     """Raised when the upload cannot proceed (validation or storage failure)."""
 
 
-def _ensure_bucket_exists() -> None:
-    """Idempotently create the public bucket on first call."""
+def _ensure_bucket_exists(bucket: str = BUCKET_NAME) -> None:
+    """Idempotently create a public bucket on first call."""
     try:
         client = get_client()
-        # list_buckets returns a list of BucketResponse objects
         existing = client.storage.list_buckets() or []
         names = {b.name if hasattr(b, "name") else b.get("name") for b in existing}
-        if BUCKET_NAME in names:
+        if bucket in names:
             return
-        client.storage.create_bucket(
-            BUCKET_NAME,
-            options={"public": True},
-        )
-        logger.info(f"image_upload: created Supabase bucket '{BUCKET_NAME}'")
+        client.storage.create_bucket(bucket, options={"public": True})
+        logger.info(f"image_upload: created Supabase bucket '{bucket}'")
     except Exception as exc:
-        # Creating a bucket that already exists races with other workers —
-        # just log and continue; the upload itself will surface real errors.
         logger.warning(f"image_upload: bucket ensure failed (may already exist): {exc}")
 
 
@@ -93,7 +88,7 @@ def upload_image(data: bytes, content_type: str) -> str:
             "サポートされていない画像形式です (JPEG / PNG / WebP / GIF のみ)"
         )
 
-    _ensure_bucket_exists()
+    _ensure_bucket_exists(BUCKET_NAME)
     object_name = _generate_object_name(ext)
 
     try:
@@ -123,4 +118,55 @@ def upload_image(data: bytes, content_type: str) -> str:
     return public_url.rstrip("?")
 
 
-__all__ = ["upload_image", "ImageUploadError", "BUCKET_NAME", "MAX_IMAGE_BYTES"]
+def upload_avatar(data: bytes, content_type: str) -> str:
+    """Upload a user avatar image to the user-avatars bucket.
+
+    Accepts JPEG / PNG / WebP / GIF up to MAX_AVATAR_BYTES.
+    Returns the public URL.
+    """
+    if not data:
+        raise ImageUploadError("ファイルが空です")
+    if len(data) > MAX_AVATAR_BYTES:
+        raise ImageUploadError(
+            f"ファイルサイズが大きすぎます (最大 {MAX_AVATAR_BYTES // (1024 * 1024)}MB)"
+        )
+
+    normalised = (content_type or "").split(";")[0].strip().lower()
+    ext = _MIME_TO_EXT.get(normalised)
+    if not ext:
+        raise ImageUploadError(
+            "サポートされていない画像形式です (JPEG / PNG / WebP / GIF のみ)"
+        )
+
+    _ensure_bucket_exists(AVATAR_BUCKET_NAME)
+    object_name = _generate_object_name(ext)
+
+    try:
+        client = get_client()
+        client.storage.from_(AVATAR_BUCKET_NAME).upload(
+            object_name,
+            data,
+            {
+                "content-type": normalised,
+                "cache-control": "public, max-age=31536000, immutable",
+                "upsert": "false",
+            },
+        )
+    except Exception as exc:
+        logger.exception("image_upload: avatar upload failed")
+        raise ImageUploadError(f"アップロードに失敗しました: {exc}") from exc
+
+    try:
+        public_url = client.storage.from_(AVATAR_BUCKET_NAME).get_public_url(object_name)
+    except Exception as exc:
+        logger.exception("image_upload: avatar public url lookup failed")
+        raise ImageUploadError(f"公開URLの取得に失敗しました: {exc}") from exc
+
+    return public_url.rstrip("?")
+
+
+__all__ = [
+    "upload_image", "upload_avatar",
+    "ImageUploadError", "BUCKET_NAME", "AVATAR_BUCKET_NAME",
+    "MAX_IMAGE_BYTES", "MAX_AVATAR_BYTES",
+]

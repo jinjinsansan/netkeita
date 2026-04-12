@@ -886,6 +886,7 @@ export interface ChatMessage {
   nickname: string;
   avatar_key: string;
   avatar_emoji: string;
+  avatar_url: string | null;
   content: string | null;
   stamp: string | null;
   created_at: string;
@@ -894,6 +895,7 @@ export interface ChatMessage {
 export interface UserProfile {
   nickname: string;
   avatar_key: string;
+  custom_avatar_url: string | null;
   display_name: string;
   avatar_emoji: string;
   valid_avatars: string[];
@@ -962,5 +964,24 @@ export async function updateUserProfile(
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { success: false, error: data.detail || "更新に失敗しました" };
     return { success: true };
+  } catch { return { success: false, error: "通信エラーが発生しました" }; }
+}
+
+export async function uploadUserAvatar(
+  file: File,
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  const token = getToken();
+  if (!token) return { success: false, error: "ログインが必要です" };
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${API_URL}/api/user/avatar`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.detail || "アップロードに失敗しました" };
+    return { success: true, url: data.url };
   } catch { return { success: false, error: "通信エラーが発生しました" }; }
 }

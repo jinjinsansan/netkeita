@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { fetchMyVoteHistory, fetchKReward, fetchUserProfile, updateUserProfile } from "@/lib/api";
+import { fetchMyVoteHistory, fetchKReward, fetchUserProfile, updateUserProfile, uploadUserAvatar } from "@/lib/api";
 import type { VoteHistory, VoteResultStatus, KRewardData, UserProfile } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
@@ -43,8 +43,11 @@ function MyPageContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [nickname, setNickname] = useState("");
   const [avatarKey, setAvatarKey] = useState("horse1");
+  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const [d, kr, prof] = await Promise.all([fetchMyVoteHistory(), fetchKReward(), fetchUserProfile()]);
@@ -54,6 +57,7 @@ function MyPageContent() {
       setProfile(prof);
       setNickname(prof.nickname || "");
       setAvatarKey(prof.avatar_key || "horse1");
+      setCustomAvatarUrl(prof.custom_avatar_url || null);
     }
     setLastUpdated(new Date());
     setLoading(false);
@@ -62,9 +66,34 @@ function MyPageContent() {
   const handleProfileSave = async () => {
     setProfileSaving(true);
     setProfileMsg(null);
-    const res = await updateUserProfile(nickname || undefined, avatarKey || undefined);
+    const res = await updateUserProfile(nickname || undefined, customAvatarUrl ? undefined : avatarKey || undefined);
     setProfileMsg(res.success ? { ok: true, text: "保存しました！" } : { ok: false, text: res.error || "失敗しました" });
     setProfileSaving(false);
+    setTimeout(() => setProfileMsg(null), 3000);
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    setProfileMsg(null);
+    const res = await uploadUserAvatar(file);
+    if (res.success && res.url) {
+      setCustomAvatarUrl(res.url);
+      setProfileMsg({ ok: true, text: "画像をアップロードしました！" });
+      setTimeout(() => setProfileMsg(null), 3000);
+    } else {
+      setProfileMsg({ ok: false, text: res.error || "アップロードに失敗しました" });
+    }
+    setAvatarUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleClearCustomAvatar = async () => {
+    setCustomAvatarUrl(null);
+    const res = await updateUserProfile(undefined, avatarKey);
+    if (!res.success) setProfileMsg({ ok: false, text: res.error || "リセットに失敗しました" });
+    else setProfileMsg({ ok: true, text: "絵文字アバターに戻しました" });
     setTimeout(() => setProfileMsg(null), 3000);
   };
 
@@ -109,8 +138,12 @@ function MyPageContent() {
 
       {/* User header */}
       <div className="bg-[#163016] rounded-lg px-5 py-4 mb-5 flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#4ade80] rounded-full flex items-center justify-center shrink-0 text-xl">
-          {AVATAR_EMOJI_MAP[avatarKey] || "🐴"}
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#4ade80] flex items-center justify-center shrink-0">
+          {customAvatarUrl ? (
+            <img src={customAvatarUrl} alt="アバター" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-xl">{AVATAR_EMOJI_MAP[avatarKey] || "🐴"}</span>
+          )}
         </div>
         <div>
           <div className="text-white font-bold text-sm">{nickname || user?.display_name || "ユーザー"}</div>
@@ -120,22 +153,82 @@ function MyPageContent() {
 
       {/* プロフィール設定 */}
       <div className="border border-[#c8e6c9] rounded-xl bg-[#f1f8f1] p-4 mb-5">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <span className="text-base">👤</span>
           <span className="text-sm font-black text-[#163016]">チャット プロフィール設定</span>
         </div>
 
-        {/* Avatar selector */}
-        <div className="mb-3">
-          <div className="text-[11px] text-[#555] font-bold mb-1.5">アバターを選ぶ</div>
+        {/* Current avatar preview */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-16 h-16 rounded-full bg-[#e8f5e9] border-2 border-[#4ade80] flex items-center justify-center overflow-hidden shrink-0">
+            {customAvatarUrl ? (
+              <img src={customAvatarUrl} alt="アバター" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-3xl">{AVATAR_EMOJI_MAP[avatarKey] || "🐴"}</span>
+            )}
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#333]">現在のアバター</div>
+            <div className="text-[11px] text-[#888] mt-0.5">
+              {customAvatarUrl ? "カスタム画像" : `絵文字: ${AVATAR_EMOJI_MAP[avatarKey]}`}
+            </div>
+            {customAvatarUrl && (
+              <button
+                onClick={handleClearCustomAvatar}
+                className="text-[11px] text-red-500 hover:text-red-700 underline mt-1"
+              >
+                絵文字に戻す
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Custom image upload */}
+        <div className="mb-4 p-3 bg-white border border-[#ddd] rounded-xl">
+          <div className="text-[11px] text-[#555] font-bold mb-2">📷 カスタム画像をアップロード</div>
+          <div className="text-[10px] text-[#888] mb-2">
+            JPEG / PNG / WebP / GIF・最大5MB・デバイスから選択できます
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleAvatarUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={avatarUploading}
+            className="flex items-center gap-2 px-4 py-2 bg-[#163016] text-white text-xs font-bold rounded-lg disabled:opacity-40 hover:bg-[#1f4a1f] transition-colors"
+          >
+            {avatarUploading ? (
+              <>
+                <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                アップロード中...
+              </>
+            ) : (
+              <>📂 画像を選択してアップロード</>
+            )}
+          </button>
+        </div>
+
+        {/* Emoji avatar selector */}
+        <div className="mb-4">
+          <div className="text-[11px] text-[#555] font-bold mb-1.5">
+            または絵文字アバターを選ぶ
+            {customAvatarUrl && <span className="ml-1 text-[#999] font-normal">（選ぶとカスタム画像が解除されます）</span>}
+          </div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(AVATAR_EMOJI_MAP).map(([key, emoji]) => (
               <button
                 key={key}
-                onClick={() => setAvatarKey(key)}
+                onClick={() => { setAvatarKey(key); setCustomAvatarUrl(null); }}
                 title={key}
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all ${
-                  avatarKey === key
+                  !customAvatarUrl && avatarKey === key
                     ? "bg-[#163016] ring-2 ring-[#4ade80] scale-110"
                     : "bg-white border border-[#ddd] hover:border-[#163016]"
                 }`}
@@ -147,7 +240,7 @@ function MyPageContent() {
         </div>
 
         {/* Nickname */}
-        <div className="mb-3">
+        <div className="mb-4">
           <div className="text-[11px] text-[#555] font-bold mb-1.5">ニックネーム（最大20文字）</div>
           <input
             type="text"
@@ -166,10 +259,10 @@ function MyPageContent() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleProfileSave}
-            disabled={profileSaving}
+            disabled={profileSaving || avatarUploading}
             className="px-4 py-2 bg-[#163016] text-white text-xs font-bold rounded-lg disabled:opacity-40 hover:bg-[#1f4a1f] transition-colors"
           >
-            {profileSaving ? "保存中..." : "保存する"}
+            {profileSaving ? "保存中..." : "ニックネームを保存"}
           </button>
           {profileMsg && (
             <span className={`text-xs font-bold ${profileMsg.ok ? "text-[#163016]" : "text-red-600"}`}>
