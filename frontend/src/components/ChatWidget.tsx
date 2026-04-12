@@ -188,6 +188,9 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   }, [connectSSE]);
 
   useEffect(() => {
+    // Embedded widgets stay connected permanently — no IntersectionObserver
+    // to avoid scroll jank when the widget enters/leaves the viewport.
+    if (embedded) return;
     const el = widgetRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(([e]) => {
@@ -196,7 +199,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     }, { threshold: 0 });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [connectSSE]);
+  }, [connectSSE, embedded]);
 
   const handleSend = async () => {
     const text = input.trim();
