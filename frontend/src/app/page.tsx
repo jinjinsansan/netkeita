@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import RankBadge from "@/components/RankBadge";
 import ArticleCard from "@/components/ArticleCard";
 import type { Grade, RaceSummary } from "@/lib/types";
@@ -9,6 +10,8 @@ import type { ArticleSummary, TipsterProfile } from "@/lib/api";
 import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl } from "@/lib/api";
 import { raceIdToPath } from "@/lib/venue-codes";
 import { useAuth } from "@/lib/auth-context";
+
+const ChatWidget = dynamic(() => import("@/components/ChatWidget"), { ssr: false });
 
 // How many latest articles to surface on the top page. 6 fits a 3-column
 // grid on desktop and a 2-column grid on tablets without looking sparse.
@@ -616,21 +619,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Chat banner */}
+      {/* Chat widget */}
       <section className="max-w-[960px] mx-auto px-4 py-6">
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("open-floating-chat"))}
-          className="w-full bg-[#163016] hover:bg-[#1f4a1f] active:bg-[#0f2010] transition-colors rounded-xl px-5 py-4 flex items-center justify-between text-white"
-        >
-          <div className="flex items-center gap-3">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span className="font-bold text-sm">みんなのチャット</span>
-          </div>
-          <span className="text-[#4ade80] text-xs font-bold">参加する →</span>
-        </button>
+        <div className="border border-[#e5e7eb] rounded-xl overflow-hidden h-[480px]">
+          <ChatWidget defaultChannel="global" embedded={true} />
+        </div>
       </section>
 
     </div>
