@@ -43,6 +43,21 @@ body {
   line-height: 1.6;
 }
 
+/*
+ * iOS Safari auto-zoom prevention.
+ * Safari zooms when a focused input has font-size < 16px.
+ * On touch devices we force 16px on all text inputs regardless of
+ * any Tailwind utility class (hence !important).
+ * Checkboxes / radios / file pickers / ranges are excluded.
+ */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 @media (min-width: 768px) {
   body {
     font-size: 15px;

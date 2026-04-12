@@ -330,7 +330,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder="メッセージを入力…"
               disabled={sending}
-              className="flex-1 text-[13px] bg-[#f5f5f5] rounded-full px-4 py-2 focus:outline-none focus:bg-[#ededee] transition-colors min-w-0 placeholder-[#bbb]"
+              className="flex-1 text-base bg-[#f5f5f5] rounded-full px-4 py-2 focus:outline-none focus:bg-[#ededee] transition-colors min-w-0 placeholder-[#bbb]"
             />
             <button
               onClick={handleSend}

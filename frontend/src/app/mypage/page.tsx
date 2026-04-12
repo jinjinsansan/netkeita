@@ -248,7 +248,7 @@ function MyPageContent() {
             maxLength={20}
             onChange={(e) => setNickname(e.target.value)}
             placeholder={profile?.display_name || "ニックネームを入力"}
-            className="w-full text-sm border border-[#ccc] rounded-lg px-3 py-2 focus:outline-none focus:border-[#163016] bg-white"
+            className="w-full text-base border border-[#ccc] rounded-lg px-3 py-2 focus:outline-none focus:border-[#163016] bg-white"
           />
           <div className="text-[10px] text-[#888] mt-1">
             ※チャットに表示される名前です。未設定の場合はLINE表示名を使用します。

@@ -1,10 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import HeaderLoginButton from "@/components/HeaderLoginButton";
 import MaintenanceGuard from "@/components/MaintenanceGuard";
 import ClientFloatingChat from "@/components/ClientFloatingChat";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+};
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
