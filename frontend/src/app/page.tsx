@@ -11,7 +11,10 @@ import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl }
 import { raceIdToPath } from "@/lib/venue-codes";
 import { useAuth } from "@/lib/auth-context";
 
-const ChatWidget = dynamic(() => import("@/components/ChatWidget"), { ssr: false });
+const ChatWidget = dynamic(() => import("@/components/ChatWidget"), {
+  ssr: false,
+  loading: () => <div className="h-[480px] bg-[#f9fafb]" />,
+});
 
 // How many latest articles to surface on the top page. 6 fits a 3-column
 // grid on desktop and a 2-column grid on tablets without looking sparse.

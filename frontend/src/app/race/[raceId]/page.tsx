@@ -6,7 +6,10 @@ import dynamic from "next/dynamic";
 import { fetchMatrix, fetchArticlesByRace, fetchTipsters, fetchPremiumStatus } from "@/lib/api";
 import type { ArticleSummary, TipsterProfile } from "@/lib/api";
 
-const ChatWidget = dynamic(() => import("@/components/ChatWidget"), { ssr: false });
+const ChatWidget = dynamic(() => import("@/components/ChatWidget"), {
+  ssr: false,
+  loading: () => <div className="h-[480px] bg-[#f9fafb]" />,
+});
 import type { RaceMatrix } from "@/lib/types";
 import { pathToRaceId } from "@/lib/venue-codes";
 import RankMatrix from "@/components/RankMatrix";
@@ -197,7 +200,7 @@ function RaceContent() {
       </p>
 
       {/* Chat */}
-      <div className="mt-6 border border-[#e5e7eb] rounded-xl overflow-hidden">
+      <div className="mt-6 border border-[#e5e7eb] rounded-xl overflow-hidden h-[480px]">
         <ChatWidget
           defaultChannel={matrix.is_local ? "nar" : "jra"}
           embedded={true}

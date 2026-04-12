@@ -193,7 +193,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     const obs = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) { wasHiddenRef.current = true; sseRef.current?.close(); sseRef.current = null; }
       else if (wasHiddenRef.current) { wasHiddenRef.current = false; connectSSE(channelRef.current); }
-    }, { threshold: 0.1 });
+    }, { threshold: 0 });
     obs.observe(el);
     return () => obs.disconnect();
   }, [connectSSE]);
