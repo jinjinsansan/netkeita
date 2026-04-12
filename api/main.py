@@ -162,7 +162,7 @@ async def line_callback(req: LineCallbackRequest):
         # Ensure a users row exists so profile updates work
         try:
             from services.supabase_client import get_client as _sb
-            _sb().table("users").upsert(
+            _sb().table("chat_profiles").upsert(
                 {"line_user_id": line_user_id, "display_name": display_name},
                 on_conflict="line_user_id",
                 ignore_duplicates=False,
@@ -1780,7 +1780,7 @@ def _get_user_chat_profile(line_user_id: str) -> dict:
     try:
         from services.supabase_client import get_client as _sb
         row = (
-            _sb().table("users")
+            _sb().table("chat_profiles")
             .select("display_name, nickname, avatar_key, custom_avatar_url")
             .eq("line_user_id", line_user_id)
             .single()
@@ -1849,7 +1849,7 @@ def api_update_user_profile(
             row_data["avatar_key"] = avatar_key
             row_data["custom_avatar_url"] = None  # emoji selected → clear custom image
         # Use upsert so this works even if the users row was never created
-        _sb().table("users").upsert(row_data, on_conflict="line_user_id", ignore_duplicates=False).execute()
+        _sb().table("chat_profiles").upsert(row_data, on_conflict="line_user_id", ignore_duplicates=False).execute()
         chat_service.invalidate_profile_cache(uid)
         return {"success": True, "nickname": nickname, "avatar_key": avatar_key}
     except Exception:
@@ -1886,7 +1886,7 @@ async def api_upload_user_avatar(
     try:
         from services.supabase_client import get_client as _sb
         uid = user["line_user_id"]
-        _sb().table("users").upsert(
+        _sb().table("chat_profiles").upsert(
             {"line_user_id": uid, "custom_avatar_url": url},
             on_conflict="line_user_id", ignore_duplicates=False,
         ).execute()
