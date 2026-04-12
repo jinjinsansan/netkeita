@@ -52,8 +52,10 @@ export default function ChatWidget({
   const [loading, setLoading] = useState(true);
 
   const endRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
   const sseRef = useRef<EventSource | null>(null);
   const channelRef = useRef<Channel>(channel);
+  const wasInvisibleRef = useRef(false);
   channelRef.current = channel;
 
   const scrollToBottom = useCallback((smooth = true) => {
@@ -134,6 +136,27 @@ export default function ChatWidget({
     return () => document.removeEventListener("visibilitychange", handle);
   }, [connectSSE]);
 
+  // Disconnect SSE when widget scrolls out of view (IntersectionObserver)
+  useEffect(() => {
+    const el = widgetRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          wasInvisibleRef.current = true;
+          sseRef.current?.close();
+          sseRef.current = null;
+        } else if (wasInvisibleRef.current) {
+          wasInvisibleRef.current = false;
+          connectSSE(channelRef.current);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [connectSSE]);
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || sending) return;
@@ -167,7 +190,7 @@ export default function ChatWidget({
   const containerH = embedded ? "h-[480px]" : "h-full";
 
   return (
-    <div className={`flex flex-col ${containerH} bg-white overflow-hidden`}>
+    <div ref={widgetRef} className={`flex flex-col ${containerH} bg-white overflow-hidden`}>
       {/* Header */}
       <div className="bg-[#163016] text-white px-3 py-2.5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -240,7 +263,7 @@ export default function ChatWidget({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-[11px] font-bold text-[#333] truncate max-w-[90px]">
+                    <span className="text-[11px] font-bold text-[#333] truncate max-w-[120px]">
                       {msg.nickname}
                     </span>
                     <span className="text-[10px] text-[#bbb] shrink-0">

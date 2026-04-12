@@ -883,7 +883,6 @@ export async function transferKReward(
 export interface ChatMessage {
   id: string;
   channel: string;
-  line_user_id: string;
   nickname: string;
   avatar_key: string;
   avatar_emoji: string;

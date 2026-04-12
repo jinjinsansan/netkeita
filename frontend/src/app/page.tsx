@@ -650,24 +650,29 @@ export default function LandingPage() {
           )}
 
           {/* Preview messages (collapsed) */}
-          {!chatExpanded && chatPreview.length > 0 && (
+          {!chatExpanded && (
             <div
-              className="px-4 py-3 space-y-2 cursor-pointer bg-white hover:bg-[#f9fafb] transition-colors"
+              className="px-4 py-3 cursor-pointer bg-white hover:bg-[#f9fafb] transition-colors"
               onClick={() => setChatExpanded(true)}
             >
-              {chatPreview.slice(-3).map((msg, i) => (
-                <div key={msg.id || i} className="flex items-start gap-2 text-sm">
-                  <span className="text-base shrink-0">{msg.avatar_emoji}</span>
-                  <span className="font-bold text-[11px] text-[#555] shrink-0 max-w-[70px] truncate">{msg.nickname}</span>
-                  {msg.stamp ? (
-                    <span className="text-base">{msg.stamp}</span>
-                  ) : (
-                    <span className="text-[12px] text-[#333] truncate">{msg.content}</span>
-                  )}
+              {chatPreview.length > 0 ? (
+                <div className="space-y-2">
+                  {chatPreview.slice(-3).map((msg, i) => (
+                    <div key={msg.id || i} className="flex items-start gap-2">
+                      <span className="text-base shrink-0">{msg.avatar_emoji}</span>
+                      <span className="font-bold text-[11px] text-[#555] shrink-0 max-w-[80px] truncate">{msg.nickname}</span>
+                      {msg.stamp ? (
+                        <span className="text-base">{msg.stamp}</span>
+                      ) : (
+                        <span className="text-[12px] text-[#333] truncate">{msg.content}</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {chatPreview.length === 0 && (
-                <div className="text-xs text-[#aaa] text-center py-2">最初のメッセージを書いてみましょう！</div>
+              ) : (
+                <div className="text-xs text-[#aaa] text-center py-1">
+                  最初のメッセージを書いてみましょう！タップして開く
+                </div>
               )}
             </div>
           )}

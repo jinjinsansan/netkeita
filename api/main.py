@@ -1845,11 +1845,22 @@ class ChatMessageRequest(BaseModel):
     stamp:   str | None = None
 
 
+def _parse_created_at(iso: str) -> datetime:
+    try:
+        return datetime.fromisoformat(iso)
+    except Exception:
+        return datetime.min.replace(tzinfo=JST)
+
+
 @app.get("/api/chat/messages")
 def api_chat_messages(channel: str = "global", limit: int = 50):
     if channel not in chat_service.VALID_CHANNELS:
         raise HTTPException(status_code=400, detail="Invalid channel")
     msgs = chat_service.get_cached_messages(channel)
+    # JRA/NAR channels only show today's messages (reset at JST 0:00)
+    if channel in ("jra", "nar"):
+        today_start = chat_service.get_jst_today_start()
+        msgs = [m for m in msgs if _parse_created_at(m.get("created_at", "")) >= today_start]
     return {"channel": channel, "messages": msgs[-min(limit, 50):]}
 
 
@@ -1906,11 +1917,21 @@ async def api_chat_stream(channel: str = "global"):
     async def event_generator():
         pubsub = ar.pubsub()
         await pubsub.subscribe(f"nk:chat:pub:{channel}")
+        silent_ticks = 0
         try:
             yield 'data: {"type":"connected"}\n\n'
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    yield f"data: {message['data']}\n\n"
+            while True:
+                msg = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=1.0
+                )
+                if msg and msg["type"] == "message":
+                    yield f"data: {msg['data']}\n\n"
+                    silent_ticks = 0
+                else:
+                    silent_ticks += 1
+                    if silent_ticks >= 30:  # ~30 second heartbeat
+                        yield ": ping\n\n"
+                        silent_ticks = 0
         except (asyncio.CancelledError, Exception):
             pass
         finally:

@@ -47,6 +47,18 @@ CACHE_MAX     = 50   # messages retained in Redis
 RATELIMIT_TTL = 5    # seconds between sends per user
 PROFILE_TTL   = 300  # seconds to cache user profile
 
+_PRIVATE_FIELDS = {"line_user_id"}  # never sent to clients
+
+
+def to_public_msg(msg: dict) -> dict:
+    """Strip server-only fields before sending to clients."""
+    return {k: v for k, v in msg.items() if k not in _PRIVATE_FIELDS}
+
+
+def get_jst_today_start() -> datetime:
+    now = datetime.now(_JST)
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
 
 def get_async_redis() -> aioredis.Redis:
     global _aioredis
@@ -81,7 +93,7 @@ def get_cached_messages(channel: str) -> list[dict]:
 
 def cache_message(channel: str, msg: dict) -> None:
     key = f"{_CACHE_PREFIX}:{channel}"
-    _redis.lpush(key, json.dumps(msg, ensure_ascii=False))
+    _redis.lpush(key, json.dumps(to_public_msg(msg), ensure_ascii=False))
     _redis.ltrim(key, 0, CACHE_MAX - 1)
 
 
@@ -90,7 +102,7 @@ def cache_message(channel: str, msg: dict) -> None:
 def publish_message(channel: str, msg: dict) -> None:
     _redis.publish(
         f"{_PUB_PREFIX}:{channel}",
-        json.dumps(msg, ensure_ascii=False),
+        json.dumps(to_public_msg(msg), ensure_ascii=False),
     )
 
 
