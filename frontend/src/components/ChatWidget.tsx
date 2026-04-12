@@ -298,7 +298,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         </div>
       )}
 
-      <div ref={scrollBoxRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 min-h-0 bg-[#f9fafb]">
+      <div ref={scrollBoxRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 min-h-0 bg-[#f9fafb]" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
         {loading ? (
           <div className="flex items-center justify-center h-full gap-1">
             {[0, 1, 2].map((i) => (

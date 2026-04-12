@@ -38,6 +38,7 @@ export default function FloatingChat() {
         onClick={() => setOpen(true)}
         aria-label="チャットを開く"
         className="fixed bottom-6 right-5 z-40 w-14 h-14 bg-[#163016] rounded-2xl shadow-xl flex items-center justify-center hover:bg-[#1a3e1a] hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-150"
+        style={{ willChange: "transform", transform: "translateZ(0)" }}
       >
         <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
           <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
@@ -59,7 +60,7 @@ export default function FloatingChat() {
             onClick={() => setOpen(false)}
           />
           {/* Panel */}
-          <div className="relative w-full sm:w-[380px] h-[88dvh] sm:h-[620px] bg-white rounded-t-3xl sm:rounded-2xl sm:mb-6 sm:mr-5 shadow-2xl flex flex-col overflow-hidden">
+          <div className="relative w-full sm:w-[380px] h-[88dvh] sm:h-[620px] bg-white rounded-t-3xl sm:rounded-2xl sm:mb-6 sm:mr-5 shadow-2xl flex flex-col overflow-hidden" style={{ willChange: "transform", transform: "translateZ(0)" }}>
             <ChatWidget onClose={() => setOpen(false)} />
           </div>
         </div>
