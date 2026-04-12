@@ -13,6 +13,14 @@ import { useAuth } from "@/lib/auth-context";
 
 type Channel = "global" | "jra" | "nar";
 
+const STAMP_LABELS: Record<string, string> = {
+  "🔥": "熱い",
+  "💰": "儲かれ",
+  "😭": "残念",
+  "🏇": "GO!",
+  "👍": "いいね",
+};
+
 const CHANNEL_LABELS: Record<Channel, string> = {
   global: "全体",
   jra: "中央競馬",
@@ -307,19 +315,20 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
 
       {/* ── Input ───────────────────────────────────── */}
       <div className="border-t border-[#f0f0f0] bg-white px-3 pt-2.5 pb-safe-3 shrink-0" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-        {/* Stamp row */}
-        <div className="flex gap-1.5 mb-2.5">
+        {/* Stamp row — compact pills */}
+        <div className="flex gap-1.5 mb-2.5 overflow-x-auto pb-0.5 scrollbar-none">
           {CHAT_STAMPS.map((s) => (
             <button
               key={s}
               onClick={() => handleStamp(s)}
               disabled={!authenticated || sending}
-              className={`flex-1 py-1.5 rounded-xl text-lg transition-all select-none
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0 select-none transition-all
                 ${authenticated && !sending
-                  ? "bg-[#f5f5f5] hover:bg-[#ebebeb] active:scale-90 active:bg-[#e0e0e0]"
-                  : "opacity-20 cursor-not-allowed"}`}
+                  ? "bg-[#f0f0f0] hover:bg-[#e4e4e4] active:scale-95 active:bg-[#d8d8d8]"
+                  : "bg-[#f5f5f5] opacity-30 cursor-not-allowed"}`}
             >
-              {s}
+              <span className="text-sm leading-none">{s}</span>
+              <span className="text-[10px] font-bold text-[#555] leading-none">{STAMP_LABELS[s]}</span>
             </button>
           ))}
         </div>
