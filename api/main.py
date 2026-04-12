@@ -57,6 +57,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="netkeita API", version="0.3.0")
 
+# Reset SSE online counters on startup (they accumulate across restarts)
+try:
+    import services.chat as _chat_init
+    for _ch in _chat_init.VALID_CHANNELS:
+        _chat_init._redis.set(f"nk:chat:online:{_ch}", 0)
+except Exception:
+    pass
+
 # CORS is handled by Nginx reverse proxy — do NOT add CORSMiddleware here
 # to avoid duplicate Access-Control-Allow-Origin headers.
 

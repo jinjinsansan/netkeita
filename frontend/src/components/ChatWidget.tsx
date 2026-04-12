@@ -16,8 +16,8 @@ type Channel = "global" | "jra" | "nar";
 
 const CHANNEL_LABELS: Record<Channel, string> = {
   global: "全体",
-  jra: "JRA今日",
-  nar: "地方今日",
+  jra: "中央競馬",
+  nar: "地方競馬",
 };
 
 // Deterministic avatar color from name
