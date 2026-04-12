@@ -66,7 +66,14 @@ export async function lineCallback(code: string, state: string): Promise<{
 
 export async function getMe(): Promise<{
   authenticated: boolean;
-  user?: { display_name: string; picture_url: string; is_admin?: boolean };
+  user?: {
+    display_name: string;
+    picture_url: string;
+    is_admin?: boolean;
+    is_tipster?: boolean;
+    line_user_id?: string;
+    author_token?: string;
+  };
 }> {
   const token = getToken();
   const headers: Record<string, string> = {};

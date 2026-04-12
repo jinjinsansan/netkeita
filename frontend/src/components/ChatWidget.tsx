@@ -285,11 +285,11 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                       <p className="text-[13px] text-[#333] leading-relaxed break-words">{msg.content}</p>
                     )}
                   </div>
-                  {/* Delete button */}
+                  {/* Delete button — always visible on touch, hover-reveal on desktop */}
                   {canDelete && (
                     <button
                       onClick={() => handleDelete(msg)}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 self-start mt-0.5 text-[#ccc] hover:text-red-400 transition-all text-[11px] leading-none px-1"
+                      className="shrink-0 self-start mt-0.5 text-[#ccc] active:text-red-400 transition-colors text-[11px] leading-none px-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 hover:text-red-400"
                       title="削除"
                     >
                       ✕
