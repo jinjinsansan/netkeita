@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { fetchMatrix, fetchArticlesByRace, fetchTipsters, fetchPremiumStatus } from "@/lib/api";
 import type { ArticleSummary, TipsterProfile } from "@/lib/api";
+
+const ChatWidget = dynamic(() => import("@/components/ChatWidget"), { ssr: false });
 import type { RaceMatrix } from "@/lib/types";
 import { pathToRaceId } from "@/lib/venue-codes";
 import RankMatrix from "@/components/RankMatrix";
@@ -192,6 +195,14 @@ function RaceContent() {
       <p className="text-[10px] text-[#888] mt-1">
         ※ 各項目は出走馬全頭の相対順位でランク付け。ヘッダーをタップでソート切替。
       </p>
+
+      {/* Chat */}
+      <div className="mt-6 border border-[#e5e7eb] rounded-xl overflow-hidden">
+        <ChatWidget
+          defaultChannel={matrix.is_local ? "nar" : "jra"}
+          embedded={true}
+        />
+      </div>
 
       {/* Minna-no-Yosou vote drawer */}
       {showVote && (

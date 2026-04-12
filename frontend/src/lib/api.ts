@@ -22,6 +22,7 @@ export interface TipsterProfile {
 }
 
 const API_URL = "https://bot.dlogicai.in/nk";
+export const CHAT_API_BASE = API_URL;
 
 // --- Auth helpers ---
 
@@ -875,4 +876,92 @@ export async function transferKReward(
   } catch {
     return { success: false, error: "通信エラーが発生しました" };
   }
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  id: string;
+  channel: string;
+  line_user_id: string;
+  nickname: string;
+  avatar_key: string;
+  avatar_emoji: string;
+  content: string | null;
+  stamp: string | null;
+  created_at: string;
+}
+
+export interface UserProfile {
+  nickname: string;
+  avatar_key: string;
+  display_name: string;
+  avatar_emoji: string;
+  valid_avatars: string[];
+  avatar_emoji_map: Record<string, string>;
+}
+
+export const CHAT_STAMPS = ["🔥", "💰", "😭", "🏇", "👍"] as const;
+
+export async function fetchChatMessages(channel: string): Promise<ChatMessage[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/chat/messages?channel=${channel}&limit=50`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.messages || [];
+  } catch { return []; }
+}
+
+export async function sendChatMessage(
+  channel: string, content: string | null, stamp: string | null,
+): Promise<{ success: boolean; message?: ChatMessage; error?: string }> {
+  const token = getToken();
+  if (!token) return { success: false, error: "ログインが必要です" };
+  try {
+    const res = await fetch(`${API_URL}/api/chat/message`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ channel, content, stamp }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.detail || "送信に失敗しました" };
+    return { success: true, message: data.message };
+  } catch { return { success: false, error: "通信エラーが発生しました" }; }
+}
+
+export async function fetchChatOnline(): Promise<Record<string, number>> {
+  try {
+    const res = await fetch(`${API_URL}/api/chat/online`, { cache: "no-store" });
+    if (!res.ok) return {};
+    return res.json();
+  } catch { return {}; }
+}
+
+export async function fetchUserProfile(): Promise<UserProfile | null> {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/user/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch { return null; }
+}
+
+export async function updateUserProfile(
+  nickname?: string, avatar_key?: string,
+): Promise<{ success: boolean; error?: string }> {
+  const token = getToken();
+  if (!token) return { success: false, error: "ログインが必要です" };
+  try {
+    const res = await fetch(`${API_URL}/api/user/profile`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname: nickname || null, avatar_key: avatar_key || null }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.detail || "更新に失敗しました" };
+    return { success: true };
+  } catch { return { success: false, error: "通信エラーが発生しました" }; }
 }

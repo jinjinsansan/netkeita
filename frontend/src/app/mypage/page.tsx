@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchMyVoteHistory, fetchKReward } from "@/lib/api";
-import type { VoteHistory, VoteResultStatus, KRewardData } from "@/lib/api";
+import { fetchMyVoteHistory, fetchKReward, fetchUserProfile, updateUserProfile } from "@/lib/api";
+import type { VoteHistory, VoteResultStatus, KRewardData, UserProfile } from "@/lib/api";
 import AuthGuard from "@/components/AuthGuard";
 import { useAuth } from "@/lib/auth-context";
 import { raceIdToPath } from "@/lib/venue-codes";
+
+const AVATAR_EMOJI_MAP: Record<string, string> = {
+  horse1: "🐴", horse2: "🏇", jockey1: "🥇", jockey2: "🎯",
+  crown: "👑", fire: "🔥", diamond: "💎", clover: "🍀",
+  thunder: "⚡", star: "🌟", slot: "🎰", eagle: "🦅",
+};
 
 export default function MyPage() {
   return (
@@ -34,14 +40,33 @@ function MyPageContent() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [kreward, setKreward] = useState<KRewardData | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [nickname, setNickname] = useState("");
+  const [avatarKey, setAvatarKey] = useState("horse1");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
-    const [d, kr] = await Promise.all([fetchMyVoteHistory(), fetchKReward()]);
+    const [d, kr, prof] = await Promise.all([fetchMyVoteHistory(), fetchKReward(), fetchUserProfile()]);
     setData(d);
     setKreward(kr);
+    if (prof) {
+      setProfile(prof);
+      setNickname(prof.nickname || "");
+      setAvatarKey(prof.avatar_key || "horse1");
+    }
     setLastUpdated(new Date());
     setLoading(false);
   }, []);
+
+  const handleProfileSave = async () => {
+    setProfileSaving(true);
+    setProfileMsg(null);
+    const res = await updateUserProfile(nickname || undefined, avatarKey || undefined);
+    setProfileMsg(res.success ? { ok: true, text: "保存しました！" } : { ok: false, text: res.error || "失敗しました" });
+    setProfileSaving(false);
+    setTimeout(() => setProfileMsg(null), 3000);
+  };
 
 
 
@@ -84,14 +109,73 @@ function MyPageContent() {
 
       {/* User header */}
       <div className="bg-[#163016] rounded-lg px-5 py-4 mb-5 flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#4ade80] rounded-full flex items-center justify-center shrink-0">
-          <span className="text-[#163016] font-black text-sm">
-            {user?.display_name?.charAt(0) || "?"}
-          </span>
+        <div className="w-10 h-10 bg-[#4ade80] rounded-full flex items-center justify-center shrink-0 text-xl">
+          {AVATAR_EMOJI_MAP[avatarKey] || "🐴"}
         </div>
         <div>
-          <div className="text-white font-bold text-sm">{user?.display_name || "ユーザー"}</div>
+          <div className="text-white font-bold text-sm">{nickname || user?.display_name || "ユーザー"}</div>
           <div className="text-[#a3c9a3] text-[11px]">マイページ</div>
+        </div>
+      </div>
+
+      {/* プロフィール設定 */}
+      <div className="border border-[#c8e6c9] rounded-xl bg-[#f1f8f1] p-4 mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-base">👤</span>
+          <span className="text-sm font-black text-[#163016]">チャット プロフィール設定</span>
+        </div>
+
+        {/* Avatar selector */}
+        <div className="mb-3">
+          <div className="text-[11px] text-[#555] font-bold mb-1.5">アバターを選ぶ</div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(AVATAR_EMOJI_MAP).map(([key, emoji]) => (
+              <button
+                key={key}
+                onClick={() => setAvatarKey(key)}
+                title={key}
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all ${
+                  avatarKey === key
+                    ? "bg-[#163016] ring-2 ring-[#4ade80] scale-110"
+                    : "bg-white border border-[#ddd] hover:border-[#163016]"
+                }`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Nickname */}
+        <div className="mb-3">
+          <div className="text-[11px] text-[#555] font-bold mb-1.5">ニックネーム（最大20文字）</div>
+          <input
+            type="text"
+            value={nickname}
+            maxLength={20}
+            onChange={(e) => setNickname(e.target.value)}
+            placeholder={profile?.display_name || "ニックネームを入力"}
+            className="w-full text-sm border border-[#ccc] rounded-lg px-3 py-2 focus:outline-none focus:border-[#163016] bg-white"
+          />
+          <div className="text-[10px] text-[#888] mt-1">
+            ※チャットに表示される名前です。未設定の場合はLINE表示名を使用します。
+          </div>
+        </div>
+
+        {/* Save button */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleProfileSave}
+            disabled={profileSaving}
+            className="px-4 py-2 bg-[#163016] text-white text-xs font-bold rounded-lg disabled:opacity-40 hover:bg-[#1f4a1f] transition-colors"
+          >
+            {profileSaving ? "保存中..." : "保存する"}
+          </button>
+          {profileMsg && (
+            <span className={`text-xs font-bold ${profileMsg.ok ? "text-[#163016]" : "text-red-600"}`}>
+              {profileMsg.text}
+            </span>
+          )}
         </div>
       </div>
 

@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import RankBadge from "@/components/RankBadge";
 import ArticleCard from "@/components/ArticleCard";
 import type { Grade, RaceSummary } from "@/lib/types";
 import type { ArticleSummary, TipsterProfile } from "@/lib/api";
-import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl } from "@/lib/api";
+import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl, fetchChatMessages, fetchChatOnline } from "@/lib/api";
+import type { ChatMessage } from "@/lib/api";
 import { raceIdToPath } from "@/lib/venue-codes";
 import { useAuth } from "@/lib/auth-context";
+
+const ChatWidget = dynamic(() => import("@/components/ChatWidget"), { ssr: false });
 
 // How many latest articles to surface on the top page. 6 fits a 3-column
 // grid on desktop and a 2-column grid on tablets without looking sparse.
@@ -89,6 +93,9 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [latestArticles, setLatestArticles] = useState<ArticleSummary[] | null>(null);
   const [tipsters, setTipsters] = useState<TipsterProfile[]>([]);
+  const [chatPreview, setChatPreview] = useState<ChatMessage[]>([]);
+  const [chatOnline, setChatOnline] = useState<Record<string, number>>({});
+  const [chatExpanded, setChatExpanded] = useState(false);
 
   const handleLineLogin = async () => {
     try {
@@ -127,6 +134,14 @@ export default function LandingPage() {
         setLoading(false);
       }
     })();
+  }, []);
+
+  // Chat preview — load once on mount
+  useEffect(() => {
+    Promise.all([fetchChatMessages("global"), fetchChatOnline()]).then(([msgs, online]) => {
+      setChatPreview(msgs.slice(-5));
+      setChatOnline(online);
+    });
   }, []);
 
   // Fetch the latest articles in parallel with races. Failures are silent
@@ -613,6 +628,60 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Chat preview / full widget */}
+      <section className="max-w-[960px] mx-auto px-4 py-6">
+        <div className="border border-[#e5e7eb] rounded-xl overflow-hidden">
+          {/* Preview header (collapsed state) */}
+          {!chatExpanded && (
+            <div
+              className="bg-[#163016] text-white px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-[#1f4a1f] transition-colors"
+              onClick={() => setChatExpanded(true)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm">💬 みんなのチャット</span>
+                {(chatOnline.global ?? 0) > 0 && (
+                  <span className="text-[10px] bg-[#4ade80] text-[#163016] px-1.5 py-0.5 rounded-full font-black">
+                    {chatOnline.global}人
+                  </span>
+                )}
+              </div>
+              <span className="text-[#a3c9a3] text-xs font-bold">開く ▼</span>
+            </div>
+          )}
+
+          {/* Preview messages (collapsed) */}
+          {!chatExpanded && chatPreview.length > 0 && (
+            <div
+              className="px-4 py-3 space-y-2 cursor-pointer bg-white hover:bg-[#f9fafb] transition-colors"
+              onClick={() => setChatExpanded(true)}
+            >
+              {chatPreview.slice(-3).map((msg, i) => (
+                <div key={msg.id || i} className="flex items-start gap-2 text-sm">
+                  <span className="text-base shrink-0">{msg.avatar_emoji}</span>
+                  <span className="font-bold text-[11px] text-[#555] shrink-0 max-w-[70px] truncate">{msg.nickname}</span>
+                  {msg.stamp ? (
+                    <span className="text-base">{msg.stamp}</span>
+                  ) : (
+                    <span className="text-[12px] text-[#333] truncate">{msg.content}</span>
+                  )}
+                </div>
+              ))}
+              {chatPreview.length === 0 && (
+                <div className="text-xs text-[#aaa] text-center py-2">最初のメッセージを書いてみましょう！</div>
+              )}
+            </div>
+          )}
+
+          {/* Expanded: full ChatWidget */}
+          {chatExpanded && (
+            <ChatWidget
+              defaultChannel="global"
+              embedded={true}
+              onClose={() => setChatExpanded(false)}
+            />
+          )}
+        </div>
+      </section>
 
     </div>
   );

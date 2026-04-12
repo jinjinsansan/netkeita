@@ -33,6 +33,8 @@ from services.race_results import get_cached_result as get_cached_race_result
 from services import articles as articles_service
 from services.race_level import enrich_recent_runs
 from services import tipsters as tipsters_service
+from services import chat as chat_service
+from fastapi.responses import StreamingResponse
 
 JST = timezone(timedelta(hours=9))
 
@@ -1754,6 +1756,185 @@ def api_premium_status(authorization: str = Header(default="")):
         or tipsters_service.has_premium_access(user["line_user_id"])
     )
     return {"has_premium": has_premium}
+
+
+# ── User profile ─────────────────────────────────────────────────────────────
+
+def _get_user_chat_profile(line_user_id: str) -> dict:
+    """Return {nickname, avatar_key} for a user, with Redis cache."""
+    cached = chat_service.get_cached_profile(line_user_id)
+    if cached:
+        return cached
+    try:
+        from services.supabase_client import get_client as _sb
+        row = (
+            _sb().table("users")
+            .select("display_name, nickname, avatar_key")
+            .eq("line_user_id", line_user_id)
+            .single()
+            .execute()
+        )
+        if row.data:
+            profile = {
+                "nickname":   row.data.get("nickname") or row.data.get("display_name") or "ゲスト",
+                "avatar_key": row.data.get("avatar_key") or "horse1",
+            }
+            chat_service.set_cached_profile(line_user_id, profile)
+            return profile
+    except Exception:
+        logger.exception("Failed to fetch user profile from Supabase")
+    return {"nickname": "ゲスト", "avatar_key": "horse1"}
+
+
+@app.get("/api/user/profile")
+def api_get_user_profile(authorization: str = Header(default="")):
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    profile = _get_user_chat_profile(user["line_user_id"])
+    return {
+        "nickname":      profile["nickname"],
+        "avatar_key":    profile["avatar_key"],
+        "display_name":  user.get("display_name", ""),
+        "avatar_emoji":  chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
+        "valid_avatars": list(chat_service.VALID_AVATARS),
+        "avatar_emoji_map": chat_service.AVATAR_EMOJI,
+    }
+
+
+class UserProfileUpdateRequest(BaseModel):
+    nickname:   str | None = None
+    avatar_key: str | None = None
+
+
+@app.put("/api/user/profile")
+def api_update_user_profile(
+    req: UserProfileUpdateRequest,
+    authorization: str = Header(default=""),
+):
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+
+    nickname   = (req.nickname or "").strip()[:20] or None
+    avatar_key = req.avatar_key if req.avatar_key in chat_service.VALID_AVATARS else None
+
+    if nickname is None and avatar_key is None:
+        raise HTTPException(status_code=400, detail="更新内容がありません")
+
+    try:
+        from services.supabase_client import get_client as _sb
+        update: dict = {}
+        if nickname:
+            update["nickname"] = nickname
+        if avatar_key:
+            update["avatar_key"] = avatar_key
+        _sb().table("users").update(update).eq("line_user_id", user["line_user_id"]).execute()
+        chat_service.invalidate_profile_cache(user["line_user_id"])
+        return {"success": True, "nickname": nickname, "avatar_key": avatar_key}
+    except Exception:
+        logger.exception("Failed to update user profile")
+        raise HTTPException(status_code=500, detail="更新に失敗しました")
+
+
+# ── Chat ──────────────────────────────────────────────────────────────────────
+
+class ChatMessageRequest(BaseModel):
+    channel: str
+    content: str | None = None
+    stamp:   str | None = None
+
+
+@app.get("/api/chat/messages")
+def api_chat_messages(channel: str = "global", limit: int = 50):
+    if channel not in chat_service.VALID_CHANNELS:
+        raise HTTPException(status_code=400, detail="Invalid channel")
+    msgs = chat_service.get_cached_messages(channel)
+    return {"channel": channel, "messages": msgs[-min(limit, 50):]}
+
+
+@app.post("/api/chat/message")
+def api_chat_send(req: ChatMessageRequest, authorization: str = Header(default="")):
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+
+    if req.channel not in chat_service.VALID_CHANNELS:
+        raise HTTPException(status_code=400, detail="Invalid channel")
+
+    content = (req.content or "").strip()[:100] or None
+    stamp   = req.stamp if req.stamp in chat_service.VALID_STAMPS else None
+    if not content and not stamp:
+        raise HTTPException(status_code=400, detail="メッセージかスタンプが必要です")
+
+    if not chat_service.check_rate_limit(user["line_user_id"]):
+        raise HTTPException(status_code=429, detail="送信が速すぎます。少し待ってください。")
+
+    profile = _get_user_chat_profile(user["line_user_id"])
+    msg = {
+        "id":          secrets.token_urlsafe(8),
+        "channel":     req.channel,
+        "line_user_id": user["line_user_id"],
+        "nickname":    profile["nickname"],
+        "avatar_key":  profile["avatar_key"],
+        "avatar_emoji": chat_service.AVATAR_EMOJI.get(profile["avatar_key"], "🐴"),
+        "content":     content,
+        "stamp":       stamp,
+        "created_at":  datetime.now(JST).isoformat(),
+    }
+
+    chat_service.cache_message(req.channel, msg)
+    chat_service.publish_message(req.channel, msg)
+
+    try:
+        from services.supabase_client import get_client as _sb
+        chat_service.save_message_to_db(req.channel, msg, _sb())
+    except Exception:
+        pass
+
+    return {"success": True, "message": msg}
+
+
+@app.get("/api/chat/stream")
+async def api_chat_stream(channel: str = "global"):
+    if channel not in chat_service.VALID_CHANNELS:
+        raise HTTPException(status_code=400, detail="Invalid channel")
+
+    ar = chat_service.get_async_redis()
+    chat_service.incr_online(channel)
+
+    async def event_generator():
+        pubsub = ar.pubsub()
+        await pubsub.subscribe(f"nk:chat:pub:{channel}")
+        try:
+            yield 'data: {"type":"connected"}\n\n'
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    yield f"data: {message['data']}\n\n"
+        except (asyncio.CancelledError, Exception):
+            pass
+        finally:
+            try:
+                await pubsub.unsubscribe(f"nk:chat:pub:{channel}")
+                await pubsub.aclose()
+            except Exception:
+                pass
+            chat_service.decr_online(channel)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+@app.get("/api/chat/online")
+def api_chat_online():
+    return {ch: chat_service.get_online_count(ch) for ch in chat_service.VALID_CHANNELS}
 
 
 if __name__ == "__main__":
