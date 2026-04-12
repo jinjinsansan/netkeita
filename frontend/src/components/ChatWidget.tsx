@@ -7,7 +7,6 @@ import {
   ChatMessage,
   deleteChatMessage,
   fetchChatMessages,
-  fetchChatOnline,
   sendChatMessage,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -63,7 +62,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const isAdmin = user?.is_admin ?? false;
   const [channel, setChannel] = useState<Channel>(defaultChannel);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [online, setOnline] = useState<Record<string, number>>({});
+
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,12 +117,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     return () => { sseRef.current?.close(); sseRef.current = null; };
   }, [channel, connectSSE, scrollBottom]);
 
-  useEffect(() => {
-    const poll = () => fetchChatOnline().then(setOnline);
-    poll();
-    const id = setInterval(poll, 30_000);
-    return () => clearInterval(id);
-  }, []);
+
 
   useEffect(() => {
     const h = () => {
@@ -183,12 +177,6 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
           <span className="text-white font-bold text-sm">みんなのチャット</span>
         </div>
         <div className="flex items-center gap-2.5">
-          {(online[channel] ?? 0) > 0 && (
-            <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-2.5 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse block shrink-0" />
-              <span className="text-[#4ade80] text-[10px] font-bold">{online[channel]}人</span>
-            </div>
-          )}
           {onClose && (
             <button onClick={onClose} className="text-white/40 hover:text-white transition-colors text-base leading-none">
               ✕
@@ -200,7 +188,6 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
       {/* ── Channel tabs ────────────────────────────── */}
       <div className="flex bg-white border-b border-[#f0f0f0] shrink-0">
         {(Object.keys(CHANNEL_LABELS) as Channel[]).map((ch) => {
-          const cnt = online[ch] ?? 0;
           const active = ch === channel;
           return (
             <button
@@ -210,11 +197,6 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                 ${active ? "text-[#163016]" : "text-[#bbb] hover:text-[#777]"}`}
             >
               {CHANNEL_LABELS[ch]}
-              {cnt > 0 && (
-                <span className={`ml-1 font-black text-[9px] ${active ? "text-[#4ade80]" : "text-[#ccc]"}`}>
-                  {cnt}
-                </span>
-              )}
               {active && (
                 <span className="absolute bottom-0 left-6 right-6 h-[2px] bg-[#163016] rounded-full" />
               )}

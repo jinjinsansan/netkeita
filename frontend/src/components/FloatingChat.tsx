@@ -2,23 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { fetchChatOnline } from "@/lib/api";
 
 const ChatWidget = dynamic(() => import("./ChatWidget"), { ssr: false });
 
 export default function FloatingChat() {
   const [open, setOpen] = useState(false);
-  const [totalOnline, setTotalOnline] = useState(0);
-
-  useEffect(() => {
-    const poll = async () => {
-      const online = await fetchChatOnline();
-      setTotalOnline(Object.values(online).reduce((a, b) => a + b, 0));
-    };
-    poll();
-    const id = setInterval(poll, 60_000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -46,12 +34,7 @@ export default function FloatingChat() {
           <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
         </svg>
 
-        {/* Online badge */}
-        {totalOnline > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-[#4ade80] text-[#163016] text-[9px] font-black rounded-full flex items-center justify-center px-1.5 shadow-sm pointer-events-none select-none">
-            {totalOnline}
-          </span>
-        )}
+
       </button>
 
       {/* ── Drawer ──────────────────────────────────── */}
