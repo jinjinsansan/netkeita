@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, startTransition, useState } from "react";
 import {
   CHAT_API_BASE,
   CHAT_STAMPS,
@@ -142,20 +142,19 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         const d = JSON.parse(e.data);
         if (d.type === "connected") return;
         if (d.type === "message_deleted") {
-          setMessages((prev) => prev.filter((m) => m.id !== d.id));
+          startTransition(() => setMessages((prev) => prev.filter((m) => m.id !== d.id)));
           return;
         }
         if (d.channel !== channelRef.current) return;
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === d.id)) return prev;
-          const next = [...prev, d];
-          return next.length > 50 ? next.slice(-50) : next;
+        startTransition(() => {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === d.id)) return prev;
+            const next = [...prev, d];
+            return next.length > 50 ? next.slice(-50) : next;
+          });
+          if (!isAtBottomRef.current) setNewCount((n) => n + 1);
         });
-        if (isAtBottomRef.current) {
-          setTimeout(() => scrollBottom(true), 50);
-        } else {
-          setNewCount((n) => n + 1);
-        }
+        if (isAtBottomRef.current) setTimeout(() => scrollBottom(true), 50);
       } catch { /* ignore */ }
     };
     sse.onerror = () => {
