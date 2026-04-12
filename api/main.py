@@ -159,6 +159,17 @@ async def line_callback(req: LineCallbackRequest):
 
         logger.info(f"LINE login: {display_name} ({line_user_id})")
 
+        # Ensure a users row exists so profile updates work
+        try:
+            from services.supabase_client import get_client as _sb
+            _sb().table("users").upsert(
+                {"line_user_id": line_user_id, "display_name": display_name},
+                on_conflict="line_user_id",
+                ignore_duplicates=False,
+            ).execute()
+        except Exception:
+            logger.warning("Failed to upsert users row on login (non-fatal)")
+
         return {
             "success": True,
             "token": session_token,
@@ -1825,16 +1836,21 @@ def api_update_user_profile(
     if nickname is None and avatar_key is None:
         raise HTTPException(status_code=400, detail="更新内容がありません")
 
+    uid = user["line_user_id"]
+    display_name = user.get("display_name", "")
     try:
         from services.supabase_client import get_client as _sb
-        update: dict = {}
+        row_data: dict = {"line_user_id": uid}
+        if display_name:
+            row_data["display_name"] = display_name
         if nickname:
-            update["nickname"] = nickname
+            row_data["nickname"] = nickname
         if avatar_key:
-            update["avatar_key"] = avatar_key
-            update["custom_avatar_url"] = None  # emoji selected → clear custom image
-        _sb().table("users").update(update).eq("line_user_id", user["line_user_id"]).execute()
-        chat_service.invalidate_profile_cache(user["line_user_id"])
+            row_data["avatar_key"] = avatar_key
+            row_data["custom_avatar_url"] = None  # emoji selected → clear custom image
+        # Use upsert so this works even if the users row was never created
+        _sb().table("users").upsert(row_data, on_conflict="line_user_id", ignore_duplicates=False).execute()
+        chat_service.invalidate_profile_cache(uid)
         return {"success": True, "nickname": nickname, "avatar_key": avatar_key}
     except Exception:
         logger.exception("Failed to update user profile")
@@ -1869,10 +1885,12 @@ async def api_upload_user_avatar(
     # Persist URL to Supabase and invalidate profile cache
     try:
         from services.supabase_client import get_client as _sb
-        _sb().table("users").update({"custom_avatar_url": url}).eq(
-            "line_user_id", user["line_user_id"]
+        uid = user["line_user_id"]
+        _sb().table("users").upsert(
+            {"line_user_id": uid, "custom_avatar_url": url},
+            on_conflict="line_user_id", ignore_duplicates=False,
         ).execute()
-        chat_service.invalidate_profile_cache(user["line_user_id"])
+        chat_service.invalidate_profile_cache(uid)
     except Exception:
         logger.exception("Failed to save custom_avatar_url to Supabase")
         raise HTTPException(status_code=500, detail="画像URLの保存に失敗しました")
