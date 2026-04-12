@@ -70,25 +70,22 @@ _redis_client = _redis.Redis(host="127.0.0.1", port=6379, db=2, decode_responses
 _SESSION_TTL = 86400 * 30  # 30 days
 
 
-def _save_session(token: str, data: dict):
-    try:
-        _redis_client.setex(f"nk:session:{token}", _SESSION_TTL, _json.dumps(data))
-    except Exception:
-        logger.exception("Failed to save session to Redis")
+def _save_session(token: str, data: dict) -> None:
+    """Save session to Redis. Raises on failure so callers can handle it."""
+    _redis_client.setex(f"nk:session:{token}", _SESSION_TTL, _json.dumps(data))
 
 
 def _load_session(token: str) -> dict | None:
-    try:
-        key = f"nk:session:{token}"
-        raw = _redis_client.get(key)
-        if not raw:
-            return None
-        # Sliding window: reset TTL on every access so active users stay logged in
-        _redis_client.expire(key, _SESSION_TTL)
-        return _json.loads(raw)
-    except Exception:
-        logger.exception("Failed to load session from Redis")
+    """Load session from Redis.
+    Returns None when the session does not exist (legitimate expired/invalid token).
+    Raises redis.RedisError on infrastructure failures so callers can return 503."""
+    key = f"nk:session:{token}"
+    raw = _redis_client.get(key)
+    if not raw:
         return None
+    # Sliding window: reset TTL on every access so active users stay logged in
+    _redis_client.expire(key, _SESSION_TTL)
+    return _json.loads(raw)
 
 
 class LineCallbackRequest(BaseModel):
@@ -148,11 +145,15 @@ async def line_callback(req: LineCallbackRequest):
         picture_url = profile.get("pictureUrl", "")
 
         session_token = secrets.token_urlsafe(32)
-        _save_session(session_token, {
-            "line_user_id": line_user_id,
-            "display_name": display_name,
-            "picture_url": picture_url,
-        })
+        try:
+            _save_session(session_token, {
+                "line_user_id": line_user_id,
+                "display_name": display_name,
+                "picture_url": picture_url,
+            })
+        except Exception:
+            logger.exception("Failed to save session after LINE login — Redis may be down")
+            return {"success": False, "error": "セッションの保存に失敗しました。もう一度お試しください。"}
 
         logger.info(f"LINE login: {display_name} ({line_user_id})")
 
@@ -180,7 +181,11 @@ def get_me(authorization: str = Header(default="")):
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else ""
     if not token:
         return {"authenticated": False}
-    user = _load_session(token)
+    try:
+        user = _load_session(token)
+    except Exception:
+        logger.exception("Redis error in get_me — returning 503 so client keeps token")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
     if not user:
         return {"authenticated": False}
     uid = user.get("line_user_id", "")

@@ -1,17 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getLineLoginUrl, isLoggedIn } from "@/lib/api";
 
-export default function LoginPage() {
+const CALLBACK_ERRORS: Record<string, string> = {
+  cancelled: "LINEログインがキャンセルされました。",
+  failed: "LINE認証に失敗しました。もう一度お試しください。",
+  network: "サーバーとの通信に失敗しました。しばらく待ってから再試行してください。",
+  session: "セッションの作成に失敗しました。もう一度お試しください。",
+};
+
+function LoginContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (isLoggedIn()) router.replace("/");
-  }, [router]);
+    const errorCode = searchParams.get("error");
+    if (errorCode) setError(CALLBACK_ERRORS[errorCode] ?? "ログインに失敗しました。もう一度お試しください。");
+  }, [router, searchParams]);
 
   const startLineLogin = async () => {
     setError("");
@@ -72,5 +82,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[70vh] flex items-center justify-center text-[#888] text-sm">読み込み中...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

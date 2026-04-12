@@ -68,9 +68,14 @@ export async function getMe(): Promise<{
   user?: { display_name: string; picture_url: string; is_admin?: boolean };
 }> {
   const token = getToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API_URL}/api/auth/me`, { headers });
+  if (!res.ok) {
+    // 5xx = infrastructure error (Redis down, etc.) — throw so auth-context
+    // keeps the local token instead of clearing it.
+    throw new Error(`getMe HTTP ${res.status}`);
+  }
   return res.json();
 }
 

@@ -47,13 +47,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthenticated(true);
           setUser(res.user);
         } else {
+          // Server explicitly confirmed the token is invalid — safe to discard.
           clearToken();
           setAuthenticated(false);
           setUser(null);
         }
       })
       .catch(() => {
-        clearToken();
+        // Network / infrastructure error (CORS, 5xx, timeout).
+        // Do NOT clear the token — the session may still be valid once the
+        // server recovers. AuthGuard will show an error state instead of
+        // bouncing the user through LINE login repeatedly.
         setAuthenticated(false);
         setUser(null);
       })
