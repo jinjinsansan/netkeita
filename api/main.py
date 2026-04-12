@@ -57,11 +57,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="netkeita API", version="0.3.0")
 
-# Reset SSE online counters on startup (they accumulate across restarts)
+# Reset SSE online member sets on startup
 try:
     import services.chat as _chat_init
-    for _ch in _chat_init.VALID_CHANNELS:
-        _chat_init._redis.set(f"nk:chat:online:{_ch}", 0)
+    _chat_init.reset_online_counts()
 except Exception:
     pass
 
@@ -1990,7 +1989,8 @@ async def api_chat_stream(channel: str = "global"):
         raise HTTPException(status_code=400, detail="Invalid channel")
 
     ar = chat_service.get_async_redis()
-    chat_service.incr_online(channel)
+    conn_id = secrets.token_hex(8)
+    chat_service.join_channel(channel, conn_id)
 
     async def event_generator():
         pubsub = ar.pubsub()
@@ -2018,7 +2018,7 @@ async def api_chat_stream(channel: str = "global"):
                 await pubsub.aclose()
             except Exception:
                 pass
-            chat_service.decr_online(channel)
+            chat_service.leave_channel(channel, conn_id)
 
     return StreamingResponse(
         event_generator(),

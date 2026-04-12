@@ -128,27 +128,33 @@ def publish_message(channel: str, msg: dict) -> None:
     )
 
 
-# ── Online count ───────────────────────────────────────────────────────────────
+# ── Online count (Set-based, accurate per unique connection) ──────────────────
 
-def incr_online(channel: str) -> int:
-    key = f"{_ONLINE_PREFIX}:{channel}"
-    count = _redis.incr(key)
+_MEMBERS_PREFIX = "nk:chat:members"  # Redis Set of conn_ids per channel
+
+
+def join_channel(channel: str, conn_id: str) -> int:
+    key = f"{_MEMBERS_PREFIX}:{channel}"
+    _redis.sadd(key, conn_id)
     _redis.expire(key, 3600)
-    return int(count)
+    return int(_redis.scard(key))
 
 
-def decr_online(channel: str) -> int:
-    key = f"{_ONLINE_PREFIX}:{channel}"
-    count = _redis.decr(key)
-    if count < 0:
-        _redis.set(key, 0)
-        return 0
-    return int(count)
+def leave_channel(channel: str, conn_id: str) -> int:
+    key = f"{_MEMBERS_PREFIX}:{channel}"
+    _redis.srem(key, conn_id)
+    count = _redis.scard(key)
+    return max(0, int(count))
 
 
 def get_online_count(channel: str) -> int:
-    val = _redis.get(f"{_ONLINE_PREFIX}:{channel}")
-    return max(0, int(val or 0))
+    return max(0, int(_redis.scard(f"{_MEMBERS_PREFIX}:{channel}") or 0))
+
+
+def reset_online_counts() -> None:
+    """Delete all member sets (call on startup)."""
+    for ch in VALID_CHANNELS:
+        _redis.delete(f"{_MEMBERS_PREFIX}:{ch}")
 
 
 # ── User profile cache ─────────────────────────────────────────────────────────
