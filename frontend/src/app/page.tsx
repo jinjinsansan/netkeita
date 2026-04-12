@@ -2,17 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import RankBadge from "@/components/RankBadge";
 import ArticleCard from "@/components/ArticleCard";
 import type { Grade, RaceSummary } from "@/lib/types";
 import type { ArticleSummary, TipsterProfile } from "@/lib/api";
-import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl, fetchChatMessages, fetchChatOnline } from "@/lib/api";
-import type { ChatMessage } from "@/lib/api";
+import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl } from "@/lib/api";
 import { raceIdToPath } from "@/lib/venue-codes";
 import { useAuth } from "@/lib/auth-context";
-
-const ChatWidget = dynamic(() => import("@/components/ChatWidget"), { ssr: false });
 
 // How many latest articles to surface on the top page. 6 fits a 3-column
 // grid on desktop and a 2-column grid on tablets without looking sparse.
@@ -93,9 +89,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [latestArticles, setLatestArticles] = useState<ArticleSummary[] | null>(null);
   const [tipsters, setTipsters] = useState<TipsterProfile[]>([]);
-  const [chatPreview, setChatPreview] = useState<ChatMessage[]>([]);
-  const [chatOnline, setChatOnline] = useState<Record<string, number>>({});
-  const [chatExpanded, setChatExpanded] = useState(false);
+
 
   const handleLineLogin = async () => {
     try {
@@ -136,13 +130,7 @@ export default function LandingPage() {
     })();
   }, []);
 
-  // Chat preview — load once on mount
-  useEffect(() => {
-    Promise.all([fetchChatMessages("global"), fetchChatOnline()]).then(([msgs, online]) => {
-      setChatPreview(msgs.slice(-5));
-      setChatOnline(online);
-    });
-  }, []);
+
 
   // Fetch the latest articles in parallel with races. Failures are silent
   // because the section is hidden entirely when no articles are available.
@@ -628,64 +616,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Chat preview / full widget */}
+      {/* Chat banner */}
       <section className="max-w-[960px] mx-auto px-4 py-6">
-        <div className="border border-[#e5e7eb] rounded-xl overflow-hidden">
-          {/* Preview header (collapsed state) */}
-          {!chatExpanded && (
-            <div
-              className="bg-[#163016] text-white px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-[#1f4a1f] transition-colors"
-              onClick={() => setChatExpanded(true)}
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm">💬 みんなのチャット</span>
-                {(chatOnline.global ?? 0) > 0 && (
-                  <span className="text-[10px] bg-[#4ade80] text-[#163016] px-1.5 py-0.5 rounded-full font-black">
-                    {chatOnline.global}人
-                  </span>
-                )}
-              </div>
-              <span className="text-[#a3c9a3] text-xs font-bold">開く ▼</span>
-            </div>
-          )}
-
-          {/* Preview messages (collapsed) */}
-          {!chatExpanded && (
-            <div
-              className="px-4 py-3 cursor-pointer bg-white hover:bg-[#f9fafb] transition-colors"
-              onClick={() => setChatExpanded(true)}
-            >
-              {chatPreview.length > 0 ? (
-                <div className="space-y-2">
-                  {chatPreview.slice(-3).map((msg, i) => (
-                    <div key={msg.id || i} className="flex items-start gap-2">
-                      <span className="text-base shrink-0">{msg.avatar_emoji}</span>
-                      <span className="font-bold text-[11px] text-[#555] shrink-0 max-w-[80px] truncate">{msg.nickname}</span>
-                      {msg.stamp ? (
-                        <span className="text-base">{msg.stamp}</span>
-                      ) : (
-                        <span className="text-[12px] text-[#333] truncate">{msg.content}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-[#aaa] text-center py-1">
-                  最初のメッセージを書いてみましょう！タップして開く
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Expanded: full ChatWidget */}
-          {chatExpanded && (
-            <ChatWidget
-              defaultChannel="global"
-              embedded={true}
-              onClose={() => setChatExpanded(false)}
-            />
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("open-floating-chat"))}
+          className="w-full bg-[#163016] hover:bg-[#1f4a1f] active:bg-[#0f2010] transition-colors rounded-xl px-5 py-4 flex items-center justify-between text-white"
+        >
+          <div className="flex items-center gap-3">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span className="font-bold text-sm">みんなのチャット</span>
+          </div>
+          <span className="text-[#4ade80] text-xs font-bold">参加する →</span>
+        </button>
       </section>
 
     </div>

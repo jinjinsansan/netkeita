@@ -27,6 +27,13 @@ export default function FloatingChat() {
     return () => document.removeEventListener("keydown", h);
   }, [open]);
 
+  // Allow external triggers (e.g. top-page chat banner)
+  useEffect(() => {
+    const h = () => setOpen(true);
+    window.addEventListener("open-floating-chat", h);
+    return () => window.removeEventListener("open-floating-chat", h);
+  }, []);
+
   return (
     <>
       {/* ── Floating button ─────────────────────────── */}

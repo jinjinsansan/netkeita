@@ -887,6 +887,7 @@ export interface ChatMessage {
   avatar_key: string;
   avatar_emoji: string;
   avatar_url: string | null;
+  author_token: string;
   content: string | null;
   stamp: string | null;
   created_at: string;
@@ -983,5 +984,22 @@ export async function uploadUserAvatar(
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { success: false, error: data.detail || "アップロードに失敗しました" };
     return { success: true, url: data.url };
+  } catch { return { success: false, error: "通信エラーが発生しました" }; }
+}
+
+export async function deleteChatMessage(
+  msgId: string, channel: string,
+): Promise<{ success: boolean; error?: string }> {
+  const token = getToken();
+  if (!token) return { success: false, error: "ログインが必要です" };
+  try {
+    const params = new URLSearchParams({ channel });
+    const res = await fetch(`${API_URL}/api/chat/message/${msgId}?${params}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, error: data.detail || "削除に失敗しました" };
+    return { success: true };
   } catch { return { success: false, error: "通信エラーが発生しました" }; }
 }

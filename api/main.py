@@ -199,6 +199,7 @@ def get_me(authorization: str = Header(default="")):
             "is_admin": _is_admin_user(user),
             "is_tipster": tipsters_service.is_approved_tipster(uid),
             "line_user_id": uid,
+            "author_token": chat_service.author_token(uid) if uid else None,
         },
     }
 
@@ -1947,7 +1948,54 @@ def api_chat_send(req: ChatMessageRequest, authorization: str = Header(default="
     except Exception:
         pass
 
-    return {"success": True, "message": msg}
+    return {"success": True, "message": chat_service.to_public_msg(msg)}
+
+
+@app.delete("/api/chat/message/{msg_id}")
+def api_chat_delete(msg_id: str, channel: str, authorization: str = Header(default="")):
+    """Delete a chat message. Allowed for the sender and admin users."""
+    user = _get_user_from_token(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+
+    if channel not in chat_service.VALID_CHANNELS:
+        raise HTTPException(status_code=400, detail="Invalid channel")
+
+    is_admin = _is_admin_user(user)
+    uid = user["line_user_id"]
+
+    # Verify ownership via Supabase (admin bypasses this check)
+    if not is_admin:
+        try:
+            from services.supabase_client import get_client as _sb
+            row = _sb().table("chat_messages").select("line_user_id").eq("id", msg_id).maybe_single().execute()
+            if not row.data:
+                raise HTTPException(status_code=404, detail="メッセージが見つかりません")
+            if row.data["line_user_id"] != uid:
+                raise HTTPException(status_code=403, detail="削除権限がありません")
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("chat delete: DB lookup failed")
+            raise HTTPException(status_code=500, detail="サーバーエラー")
+
+    # Remove from Supabase
+    try:
+        from services.supabase_client import get_client as _sb
+        _sb().table("chat_messages").delete().eq("id", msg_id).execute()
+    except Exception:
+        logger.exception("chat delete: DB delete failed")
+
+    # Remove from Redis cache
+    chat_service.remove_from_cache(channel, msg_id)
+
+    # Broadcast deletion to all SSE subscribers
+    chat_service._redis.publish(
+        f"nk:chat:pub:{channel}",
+        __import__("json").dumps({"type": "message_deleted", "id": msg_id}),
+    )
+
+    return {"success": True}
 
 
 @app.get("/api/chat/stream")

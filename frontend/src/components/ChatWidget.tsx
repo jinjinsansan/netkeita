@@ -5,6 +5,7 @@ import {
   CHAT_API_BASE,
   CHAT_STAMPS,
   ChatMessage,
+  deleteChatMessage,
   fetchChatMessages,
   fetchChatOnline,
   sendChatMessage,
@@ -57,7 +58,9 @@ interface Props {
 }
 
 export default function ChatWidget({ defaultChannel = "global", embedded = false, onClose }: Props) {
-  const { authenticated } = useAuth();
+  const { authenticated, user } = useAuth();
+  const myToken = user?.author_token ?? null;
+  const isAdmin = user?.is_admin ?? false;
   const [channel, setChannel] = useState<Channel>(defaultChannel);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [online, setOnline] = useState<Record<string, number>>({});
@@ -86,6 +89,10 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
       try {
         const d = JSON.parse(e.data);
         if (d.type === "connected") return;
+        if (d.type === "message_deleted") {
+          setMessages((prev) => prev.filter((m) => m.id !== d.id));
+          return;
+        }
         if (d.channel !== channelRef.current) return;
         setMessages((prev) => {
           if (prev.some((m) => m.id === d.id)) return prev;
@@ -145,6 +152,11 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     const res = await sendChatMessage(channel, text, null);
     if (!res.success) { setError(res.error || "送信に失敗しました"); setInput(text); }
     setSending(false);
+  };
+
+  const handleDelete = async (msg: ChatMessage) => {
+    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+    await deleteChatMessage(msg.id, msg.channel);
   };
 
   const handleStamp = async (stamp: string) => {
@@ -239,8 +251,9 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
           <div className="space-y-3">
             {messages.map((msg, i) => {
               const s = avatarStyle(msg.nickname);
+              const canDelete = isAdmin || (!!myToken && msg.author_token === myToken);
               return (
-                <div key={msg.id || i} className="flex gap-2.5">
+                <div key={msg.id || i} className="flex gap-2.5 group">
                   {/* Avatar */}
                   <div className="shrink-0 mt-0.5">
                     {msg.avatar_url ? (
@@ -272,6 +285,16 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                       <p className="text-[13px] text-[#333] leading-relaxed break-words">{msg.content}</p>
                     )}
                   </div>
+                  {/* Delete button */}
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDelete(msg)}
+                      className="opacity-0 group-hover:opacity-100 shrink-0 self-start mt-0.5 text-[#ccc] hover:text-red-400 transition-all text-[11px] leading-none px-1"
+                      title="削除"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               );
             })}

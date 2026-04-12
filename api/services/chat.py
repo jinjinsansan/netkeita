@@ -10,6 +10,7 @@ Redis db=4:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -50,9 +51,18 @@ PROFILE_TTL   = 300  # seconds to cache user profile
 _PRIVATE_FIELDS = {"line_user_id"}  # never sent to clients
 
 
+def author_token(line_user_id: str) -> str:
+    """Deterministic non-PII token used by clients to identify their own messages."""
+    return hashlib.sha256(f"nk:{line_user_id}".encode()).hexdigest()[:16]
+
+
 def to_public_msg(msg: dict) -> dict:
     """Strip server-only fields before sending to clients."""
-    return {k: v for k, v in msg.items() if k not in _PRIVATE_FIELDS}
+    out = {k: v for k, v in msg.items() if k not in _PRIVATE_FIELDS}
+    # Attach author_token so clients can detect their own messages
+    if "line_user_id" in msg:
+        out["author_token"] = author_token(msg["line_user_id"])
+    return out
 
 
 def get_jst_today_start() -> datetime:
@@ -95,6 +105,18 @@ def cache_message(channel: str, msg: dict) -> None:
     key = f"{_CACHE_PREFIX}:{channel}"
     _redis.lpush(key, json.dumps(to_public_msg(msg), ensure_ascii=False))
     _redis.ltrim(key, 0, CACHE_MAX - 1)
+
+
+def remove_from_cache(channel: str, msg_id: str) -> None:
+    """Remove a single message from the Redis list cache by id."""
+    key = f"{_CACHE_PREFIX}:{channel}"
+    raw = _redis.lrange(key, 0, -1)
+    for r in raw:
+        try:
+            if json.loads(r).get("id") == msg_id:
+                _redis.lrem(key, 0, r)
+        except Exception:
+            pass
 
 
 # ── Pub/sub broadcast ──────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ export interface User {
   is_admin?: boolean;
   is_tipster?: boolean;
   line_user_id?: string;
+  author_token?: string;
 }
 
 interface AuthState {
