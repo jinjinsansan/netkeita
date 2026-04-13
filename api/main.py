@@ -1968,7 +1968,7 @@ def api_chat_delete(msg_id: str, channel: str, authorization: str = Header(defau
     if not is_admin:
         try:
             from services.supabase_client import get_client as _sb
-            row = _sb().table("chat_messages").select("line_user_id").eq("id", msg_id).maybe_single().execute()
+            row = _sb().table("chat_messages").select("line_user_id").eq("message_id", msg_id).maybe_single().execute()
             if not row.data:
                 raise HTTPException(status_code=404, detail="メッセージが見つかりません")
             if row.data["line_user_id"] != uid:
@@ -1982,7 +1982,7 @@ def api_chat_delete(msg_id: str, channel: str, authorization: str = Header(defau
     # Remove from Supabase
     try:
         from services.supabase_client import get_client as _sb
-        _sb().table("chat_messages").delete().eq("id", msg_id).execute()
+        _sb().table("chat_messages").delete().eq("message_id", msg_id).execute()
     except Exception:
         logger.exception("chat delete: DB delete failed")
 
@@ -2003,36 +2003,32 @@ async def api_chat_stream(channel: str = "global"):
     if channel not in chat_service.VALID_CHANNELS:
         raise HTTPException(status_code=400, detail="Invalid channel")
 
-    ar = chat_service.get_async_redis()
     conn_id = secrets.token_hex(8)
     chat_service.join_channel(channel, conn_id)
+    stream_q = await chat_service.subscribe_stream(channel)
 
     async def event_generator():
-        pubsub = ar.pubsub()
-        await pubsub.subscribe(f"nk:chat:pub:{channel}")
         silent_ticks = 0
         try:
             yield 'data: {"type":"connected"}\n\n'
             while True:
-                msg = await pubsub.get_message(
-                    ignore_subscribe_messages=True, timeout=1.0
-                )
-                if msg and msg["type"] == "message":
-                    yield f"data: {msg['data']}\n\n"
-                    silent_ticks = 0
-                else:
+                try:
+                    data = await asyncio.wait_for(stream_q.get(), timeout=1.0)
+                except asyncio.TimeoutError:
                     silent_ticks += 1
                     if silent_ticks >= 30:  # ~30 second heartbeat
+                        chat_service.touch_channel(channel, conn_id)
                         yield ": ping\n\n"
                         silent_ticks = 0
+                    continue
+                if data:
+                    chat_service.touch_channel(channel, conn_id)
+                    yield f"data: {data}\n\n"
+                    silent_ticks = 0
         except (asyncio.CancelledError, Exception):
             pass
         finally:
-            try:
-                await pubsub.unsubscribe(f"nk:chat:pub:{channel}")
-                await pubsub.aclose()
-            except Exception:
-                pass
+            chat_service.unsubscribe_stream(channel, stream_q)
             chat_service.leave_channel(channel, conn_id)
 
     return StreamingResponse(

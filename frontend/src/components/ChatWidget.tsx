@@ -76,6 +76,11 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const { authenticated, user } = useAuth();
   const myToken = user?.author_token ?? null;
   const isAdmin = user?.is_admin ?? false;
+  const isIOS = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    return /iP(ad|hone|od)/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }, []);
   const [channel, setChannel] = useState<Channel>(defaultChannel);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -94,6 +99,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const widgetRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const sseRef = useRef<EventSource | null>(null);
+  const scrollRafRef = useRef<number | null>(null);
   const channelRef = useRef<Channel>(channel);
   const wasHiddenRef = useRef(false);
   const isAtBottomRef = useRef(true);
@@ -126,11 +132,22 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   };
 
   const scrollBottom = useCallback((smooth = true) => {
-    endRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
+    const el = scrollBoxRef.current;
+    if (!el) return;
+    const behavior: ScrollBehavior = smooth && !isIOS ? "smooth" : "auto";
+    el.scrollTo({ top: el.scrollHeight, behavior });
     setIsAtBottom(true);
     isAtBottomRef.current = true;
     setNewCount(0);
-  }, []);
+  }, [isIOS]);
+
+  const scheduleScrollBottom = useCallback((smooth = true) => {
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      scrollBottom(smooth);
+    });
+  }, [scrollBottom]);
 
   const handleScroll = useCallback(() => {
     const el = scrollBoxRef.current;
@@ -141,7 +158,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     if (atBottom) setNewCount(0);
   }, []);
 
-  const connectSSE = useCallback((ch: Channel) => {
+  const connectSSE = useCallback(function connect(ch: Channel) {
     sseRef.current?.close();
     sseRef.current = null;
     const sse = new EventSource(`${CHAT_API_BASE}/api/chat/stream?channel=${ch}`);
@@ -175,14 +192,14 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
           });
           if (!isAtBottomRef.current) setNewCount((n) => n + 1);
         });
-        if (isAtBottomRef.current) setTimeout(() => scrollBottom(true), 50);
+        if (isAtBottomRef.current) scheduleScrollBottom(true);
       } catch { /* ignore */ }
     };
     sse.onerror = () => {
       sse.close(); sseRef.current = null;
-      setTimeout(() => { if (channelRef.current === ch) connectSSE(ch); }, 5_000);
+      setTimeout(() => { if (channelRef.current === ch) connect(ch); }, 5_000);
     };
-  }, [scrollBottom]);
+  }, [scheduleScrollBottom]);
 
   useEffect(() => {
     setLoading(true); setMessages([]); setNewCount(0); setIsAtBottom(true);
@@ -190,11 +207,11 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     isAtBottomRef.current = true;
     fetchChatMessages(channel).then((msgs) => {
       setMessages(msgs); setLoading(false);
-      setTimeout(() => scrollBottom(false), 50);
+      scheduleScrollBottom(false);
     });
     connectSSE(channel);
     return () => { sseRef.current?.close(); sseRef.current = null; };
-  }, [channel, connectSSE, scrollBottom]);
+  }, [channel, connectSSE, scheduleScrollBottom]);
 
   useEffect(() => {
     const h = () => {
@@ -223,6 +240,12 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     return () => obs.disconnect();
   }, [connectSSE, embedded]);
 
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    };
+  }, []);
+
   const makeOptimistic = useCallback((content: string | null, stamp: string | null): ChatMessage => ({
     id: `${PENDING_PREFIX}${Date.now()}`,
     channel,
@@ -247,7 +270,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         return next.length > 50 ? next.slice(-50) : next;
       });
     });
-    if (isAtBottomRef.current) setTimeout(() => scrollBottom(true), 50);
+    if (isAtBottomRef.current) scheduleScrollBottom(true);
     const res = await sendChatMessage(channel, text, null, replyTo);
     if (!res.success) {
       setError(res.error || "送信に失敗しました");
@@ -275,7 +298,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         return next.length > 50 ? next.slice(-50) : next;
       });
     });
-    if (isAtBottomRef.current) setTimeout(() => scrollBottom(true), 50);
+    if (isAtBottomRef.current) scheduleScrollBottom(true);
     const res = await sendChatMessage(channel, null, stamp, replyTo);
     if (!res.success) {
       setError(res.error || "送信に失敗しました");

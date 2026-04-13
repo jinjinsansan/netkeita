@@ -1,21 +1,54 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const ChatWidget = dynamic(() => import("./ChatWidget"), { ssr: false });
 
 export default function FloatingChat() {
   const [open, setOpen] = useState(false);
+  const isIOS = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    return /iP(ad|hone|od)/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }, []);
 
   // Lock body scroll when drawer is open to prevent background jitter
   useEffect(() => {
     if (open) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = prev; };
+      const body = document.body;
+      const prev = {
+        overflow: body.style.overflow,
+        position: body.style.position,
+        top: body.style.top,
+        left: body.style.left,
+        right: body.style.right,
+        width: body.style.width,
+        touchAction: body.style.touchAction,
+      };
+      const scrollY = window.scrollY;
+      if (isIOS) {
+        body.style.position = "fixed";
+        body.style.top = `-${scrollY}px`;
+        body.style.left = "0";
+        body.style.right = "0";
+        body.style.width = "100%";
+        body.style.touchAction = "none";
+      } else {
+        body.style.overflow = "hidden";
+      }
+      return () => {
+        body.style.overflow = prev.overflow;
+        body.style.position = prev.position;
+        body.style.top = prev.top;
+        body.style.left = prev.left;
+        body.style.right = prev.right;
+        body.style.width = prev.width;
+        body.style.touchAction = prev.touchAction;
+        if (isIOS) window.scrollTo(0, scrollY);
+      };
     }
-  }, [open]);
+  }, [open, isIOS]);
 
   useEffect(() => {
     if (!open) return;

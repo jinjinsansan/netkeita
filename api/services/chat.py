@@ -10,9 +10,11 @@ Redis db=4:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 
 import redis
@@ -128,33 +130,50 @@ def publish_message(channel: str, msg: dict) -> None:
     )
 
 
-# ── Online count (Set-based, accurate per unique connection) ──────────────────
+# ── Online count (ZSET-based, auto-expiring per connection) ──────────────────
 
-_MEMBERS_PREFIX = "nk:chat:members"  # Redis Set of conn_ids per channel
+_MEMBERS_PREFIX = "nk:chat:members"  # Redis ZSET of conn_ids per channel
+_ONLINE_TTL = 90  # seconds before a connection is considered stale
+
+
+def _online_key(channel: str) -> str:
+    return f"{_MEMBERS_PREFIX}:{channel}"
 
 
 def join_channel(channel: str, conn_id: str) -> int:
-    key = f"{_MEMBERS_PREFIX}:{channel}"
-    _redis.sadd(key, conn_id)
-    _redis.expire(key, 3600)
-    return int(_redis.scard(key))
+    now = time.time()
+    key = _online_key(channel)
+    _redis.zadd(key, {conn_id: now})
+    _redis.expire(key, _ONLINE_TTL * 3)
+    return get_online_count(channel)
+
+
+def touch_channel(channel: str, conn_id: str) -> None:
+    key = _online_key(channel)
+    _redis.zadd(key, {conn_id: time.time()})
+    _redis.expire(key, _ONLINE_TTL * 3)
 
 
 def leave_channel(channel: str, conn_id: str) -> int:
-    key = f"{_MEMBERS_PREFIX}:{channel}"
-    _redis.srem(key, conn_id)
-    count = _redis.scard(key)
-    return max(0, int(count))
+    key = _online_key(channel)
+    _redis.zrem(key, conn_id)
+    return get_online_count(channel)
 
 
 def get_online_count(channel: str) -> int:
-    return max(0, int(_redis.scard(f"{_MEMBERS_PREFIX}:{channel}") or 0))
+    key = _online_key(channel)
+    cutoff = time.time() - _ONLINE_TTL
+    try:
+        _redis.zremrangebyscore(key, 0, cutoff)
+    except Exception:
+        pass
+    return max(0, int(_redis.zcard(key) or 0))
 
 
 def reset_online_counts() -> None:
     """Delete all member sets (call on startup)."""
     for ch in VALID_CHANNELS:
-        _redis.delete(f"{_MEMBERS_PREFIX}:{ch}")
+        _redis.delete(_online_key(ch))
 
 
 # ── User profile cache ─────────────────────────────────────────────────────────
@@ -214,6 +233,7 @@ def invalidate_profile_cache(line_user_id: str) -> None:
 def save_message_to_db(channel: str, msg: dict, supabase_client) -> None:
     try:
         supabase_client.table("chat_messages").insert({
+            "message_id":  msg["id"],
             "channel":      channel,
             "line_user_id": msg["line_user_id"],
             "nickname":     msg["nickname"],
@@ -223,3 +243,85 @@ def save_message_to_db(channel: str, msg: dict, supabase_client) -> None:
         }).execute()
     except Exception:
         logger.exception("chat: failed to persist message to Supabase")
+
+
+# ── SSE fan-out hub (single Redis pubsub per channel) ────────────────────────
+
+_STREAM_QUEUE_MAX = 200
+
+
+class _ChannelStream:
+    def __init__(self, channel: str):
+        self.channel = channel
+        self.queues: set[asyncio.Queue[str]] = set()
+        self._task: asyncio.Task | None = None
+        self._lock = asyncio.Lock()
+
+    async def ensure_task(self) -> None:
+        async with self._lock:
+            if self._task is None or self._task.done():
+                self._task = asyncio.create_task(self._run())
+
+    async def _run(self) -> None:
+        ar = get_async_redis()
+        pubsub = ar.pubsub()
+        await pubsub.subscribe(f"{_PUB_PREFIX}:{self.channel}")
+        try:
+            while True:
+                msg = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=1.0
+                )
+                if not msg or msg.get("type") != "message":
+                    continue
+                data = msg.get("data")
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8", errors="ignore")
+                for q in list(self.queues):
+                    if q.full():
+                        try:
+                            q.get_nowait()
+                        except asyncio.QueueEmpty:
+                            pass
+                    try:
+                        q.put_nowait(data)
+                    except asyncio.QueueFull:
+                        pass
+        except Exception:
+            logger.exception("chat stream hub error")
+        finally:
+            try:
+                await pubsub.unsubscribe(f"{_PUB_PREFIX}:{self.channel}")
+                await pubsub.aclose()
+            except Exception:
+                pass
+
+    def register(self, q: asyncio.Queue[str]) -> None:
+        self.queues.add(q)
+
+    def unregister(self, q: asyncio.Queue[str]) -> None:
+        self.queues.discard(q)
+
+
+_STREAMS: dict[str, _ChannelStream] = {}
+
+
+def _get_stream(channel: str) -> _ChannelStream:
+    stream = _STREAMS.get(channel)
+    if stream is None:
+        stream = _ChannelStream(channel)
+        _STREAMS[channel] = stream
+    return stream
+
+
+async def subscribe_stream(channel: str) -> asyncio.Queue[str]:
+    stream = _get_stream(channel)
+    await stream.ensure_task()
+    q: asyncio.Queue[str] = asyncio.Queue(maxsize=_STREAM_QUEUE_MAX)
+    stream.register(q)
+    return q
+
+
+def unsubscribe_stream(channel: str, q: asyncio.Queue[str]) -> None:
+    stream = _STREAMS.get(channel)
+    if stream:
+        stream.unregister(q)
