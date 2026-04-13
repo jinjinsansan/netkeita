@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { getLineLoginUrl, isLoggedIn } from "@/lib/api";
 
 const CALLBACK_ERRORS: Record<string, string> = {
@@ -76,9 +77,9 @@ function LoginContent() {
         </div>
 
         <div className="text-center mt-5">
-          <a href="/" className="text-xs text-[#999] hover:text-[#555] transition">
+          <Link href="/" className="text-xs text-[#999] hover:text-[#555] transition">
             &larr; トップページに戻る
-          </a>
+          </Link>
         </div>
       </div>
     </div>

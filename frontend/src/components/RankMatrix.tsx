@@ -18,6 +18,23 @@ type SortMode = RankKey | "odds" | "number" | "win_prob" | "place_prob";
 const FROZEN_TH: React.CSSProperties = { position: "sticky", zIndex: 10, background: "#ddd" };
 const FROZEN_TD: React.CSSProperties = { position: "sticky", zIndex: 10, background: "#fff" };
 const HOVER_BG = "#f0f7f0";
+const RANK_COLORS = ["#FFD700", "#E53935", "#1E88E5", "#43A047", "#9E9E9E"];
+
+interface SortHeaderProps {
+  col: SortMode;
+  label: string;
+  className?: string;
+  sortKey: SortMode;
+  sortAsc: boolean;
+  onSort: (key: SortMode) => void;
+}
+
+const SortHeader = ({ col, label, className, sortKey, sortAsc, onSort }: SortHeaderProps) => (
+  <th onClick={() => onSort(col)} className={`cursor-pointer hover:bg-[#ccc] select-none ${className || ""}`}>
+    <span className={sortKey === col ? "text-[#1f7a1f] font-bold" : ""}>{label}</span>
+    {sortKey === col && <span className="text-[9px] ml-0.5">{sortAsc ? "▼" : "▲"}</span>}
+  </th>
+);
 
 export default function RankMatrix({ horses, raceId, jockeyData }: Props) {
   const [sortKey, setSortKey] = useState<SortMode>("number");
@@ -34,7 +51,6 @@ export default function RankMatrix({ horses, raceId, jockeyData }: Props) {
     return map;
   }, [horses]);
 
-  const RANK_COLORS = ["#FFD700", "#E53935", "#1E88E5", "#43A047", "#9E9E9E"];
   const oddsRank = useMemo(() => {
     const s = horses.filter((h) => h.odds && h.odds > 0).sort((a, b) => (a.odds ?? 999) - (b.odds ?? 999));
     const m: Record<number, string> = {};
@@ -74,13 +90,6 @@ export default function RankMatrix({ horses, raceId, jockeyData }: Props) {
     else { setSortKey(key); setSortAsc(key === "odds" || key === "number"); }
   }
 
-  const SortHeader = ({ col, label, className }: { col: SortMode; label: string; className?: string }) => (
-    <th onClick={() => handleSort(col)} className={`cursor-pointer hover:bg-[#ccc] select-none ${className || ""}`}>
-      <span className={sortKey === col ? "text-[#1f7a1f] font-bold" : ""}>{label}</span>
-      {sortKey === col && <span className="text-[9px] ml-0.5">{sortAsc ? "▼" : "▲"}</span>}
-    </th>
-  );
-
   const COL0_W = 36;
   const COL1_W = 36;
   const COL2_LEFT = COL0_W + COL1_W;
@@ -106,12 +115,12 @@ export default function RankMatrix({ horses, raceId, jockeyData }: Props) {
               </th>
               <th className="min-w-[72px] sm:min-w-[90px] text-left" style={frozenThStyle(COL2_LEFT, undefined, shadowExtra)}>馬名</th>
               <th className="w-14">騎手</th>
-              <SortHeader col="odds" label="オッズ" className="w-12" />
+              <SortHeader col="odds" label="オッズ" className="w-12" sortKey={sortKey} sortAsc={sortAsc} onSort={handleSort} />
               <th className="w-8">人気</th>
-              <SortHeader col="win_prob" label="勝率" className="w-12" />
-              <SortHeader col="place_prob" label="複勝" className="w-12" />
+              <SortHeader col="win_prob" label="勝率" className="w-12" sortKey={sortKey} sortAsc={sortAsc} onSort={handleSort} />
+              <SortHeader col="place_prob" label="複勝" className="w-12" sortKey={sortKey} sortAsc={sortAsc} onSort={handleSort} />
               {RANK_COLUMNS.map((col) => (
-                <SortHeader key={col.key} col={col.key} label={col.label} className="w-[34px]" />
+                <SortHeader key={col.key} col={col.key} label={col.label} className="w-[34px]" sortKey={sortKey} sortAsc={sortAsc} onSort={handleSort} />
               ))}
             </tr>
           </thead>

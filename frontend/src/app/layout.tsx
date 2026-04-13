@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import HeaderLoginButton from "@/components/HeaderLoginButton";
@@ -42,9 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
         <header className="bg-[#163016] sticky top-0 z-50 shadow-md">
           <div className="max-w-[960px] mx-auto px-4 h-14 flex items-center justify-between">
-            <a href="/" className="text-xl font-black text-white tracking-tight">
+            <Link href="/" className="text-xl font-black text-white tracking-tight">
               net<span className="text-[#4ade80]">keita</span>
-            </a>
+            </Link>
             <nav className="flex items-center gap-2 sm:gap-4 text-sm">
               <HeaderLoginButton />
             </nav>

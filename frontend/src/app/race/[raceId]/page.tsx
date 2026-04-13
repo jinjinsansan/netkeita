@@ -200,7 +200,7 @@ function RaceContent() {
       </p>
 
       {/* Chat */}
-      <div className="mt-6 border border-[#e5e7eb] rounded-xl overflow-hidden h-[480px]" style={{ contain: "strict" }}>
+      <div className="chat-embed mt-6 border border-[#e5e7eb] rounded-xl overflow-hidden h-[480px]" style={{ contain: "strict" }}>
         <ChatWidget
           defaultChannel={matrix.is_local ? "nar" : "jra"}
           embedded={true}

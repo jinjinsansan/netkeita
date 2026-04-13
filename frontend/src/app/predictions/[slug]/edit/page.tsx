@@ -73,7 +73,7 @@ function EditForm() {
           const m = part.match(/^(.+?)\s+(\d+)点$/) || part.match(/^(.+)$/);
           if (!m) return { method: "", customMethod: part, count: "" };
           const methodStr = m[1].trim();
-          const count = m[2] ? (Number(m[2]) as number) : ("" as "");
+          const count = m[2] ? Number(m[2]) : "";
           if (BET_METHODS.includes(methodStr)) return { method: methodStr, customMethod: "", count };
           return { method: "その他", customMethod: methodStr, count };
         });

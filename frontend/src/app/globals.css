@@ -43,6 +43,13 @@ body {
   line-height: 1.6;
 }
 
+/* iOS: disable contain on embedded chat to reduce scroll jitter */
+@supports (-webkit-touch-callout: none) {
+  .chat-embed {
+    contain: none !important;
+  }
+}
+
 /*
  * iOS Safari auto-zoom prevention.
  * Safari zooms when a focused input has font-size < 16px.
