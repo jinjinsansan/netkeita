@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, startTransition, useState } from "react";
+
+const PENDING_PREFIX = "pending-";
 import {
   CHAT_API_BASE,
   CHAT_STAMPS,
@@ -156,6 +158,18 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         startTransition(() => {
           setMessages((prev) => {
             if (prev.some((m) => m.id === d.id)) return prev;
+            // Replace a matching optimistic (pending) message if present
+            const pendingIdx = prev.findIndex(
+              (m) => m.id.startsWith(PENDING_PREFIX) &&
+                m.author_token === d.author_token &&
+                m.content === d.content &&
+                m.stamp === d.stamp,
+            );
+            if (pendingIdx !== -1) {
+              const next = [...prev];
+              next[pendingIdx] = d;
+              return next;
+            }
             const next = [...prev, d];
             return next.length > 50 ? next.slice(-50) : next;
           });
@@ -209,13 +223,39 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     return () => obs.disconnect();
   }, [connectSSE, embedded]);
 
+  const makeOptimistic = useCallback((content: string | null, stamp: string | null): ChatMessage => ({
+    id: `${PENDING_PREFIX}${Date.now()}`,
+    channel,
+    nickname: user?.display_name ?? "あなた",
+    avatar_url: user?.picture_url ?? null,
+    author_token: myToken ?? "",
+    content,
+    stamp,
+    reply_to: replyTo,
+    created_at: new Date().toISOString(),
+    pending: true,
+  } as ChatMessage & { pending: boolean }), [channel, user, myToken, replyTo]);
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || sending) return;
+    const optimistic = makeOptimistic(text, null);
     setSending(true); setError(null); setInput(""); setMentionQuery(null);
+    startTransition(() => {
+      setMessages((prev) => {
+        const next = [...prev, optimistic];
+        return next.length > 50 ? next.slice(-50) : next;
+      });
+    });
+    if (isAtBottomRef.current) setTimeout(() => scrollBottom(true), 50);
     const res = await sendChatMessage(channel, text, null, replyTo);
-    if (!res.success) { setError(res.error || "送信に失敗しました"); setInput(text); }
-    else setReplyTo(null);
+    if (!res.success) {
+      setError(res.error || "送信に失敗しました");
+      setInput(text);
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+    } else {
+      setReplyTo(null);
+    }
     setSending(false);
   };
 
@@ -227,10 +267,22 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
 
   const handleStamp = async (stamp: string) => {
     if (!authenticated || sending) return;
+    const optimistic = makeOptimistic(null, stamp);
     setSending(true); setError(null);
+    startTransition(() => {
+      setMessages((prev) => {
+        const next = [...prev, optimistic];
+        return next.length > 50 ? next.slice(-50) : next;
+      });
+    });
+    if (isAtBottomRef.current) setTimeout(() => scrollBottom(true), 50);
     const res = await sendChatMessage(channel, null, stamp, replyTo);
-    if (!res.success) setError(res.error || "送信に失敗しました");
-    else setReplyTo(null);
+    if (!res.success) {
+      setError(res.error || "送信に失敗しました");
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+    } else {
+      setReplyTo(null);
+    }
     setSending(false);
   };
 
@@ -473,17 +525,18 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
           </div>
         ) : (
           <div className="space-y-1.5">
-            {messages.map((msg, i) => {
+            {messages.map((msg) => {
               const isMine = !!myToken && msg.author_token === myToken;
+              const isPending = msg.id.startsWith(PENDING_PREFIX);
               const s = avatarStyle(msg.nickname);
               return (
                 <div
-                  key={msg.id || i}
-                  className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
-                  onTouchStart={(e) => handleTouchStart(msg, e)}
+                  key={msg.id}
+                  className={`flex items-end gap-2 transition-opacity ${isMine ? "flex-row-reverse" : "flex-row"} ${isPending ? "opacity-60" : "opacity-100"}`}
+                  onTouchStart={(e) => { if (!isPending) handleTouchStart(msg, e); }}
                   onTouchEnd={handleTouchEnd}
                   onTouchMove={handleTouchMove}
-                  onContextMenu={(e) => handleContextMenu(msg, e)}
+                  onContextMenu={(e) => { if (!isPending) handleContextMenu(msg, e); }}
                 >
                   {/* Avatar — others only */}
                   {!isMine && (
@@ -540,8 +593,8 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                     )}
 
                     {/* Timestamp */}
-                    <span className={`text-[11px] text-[#aaa] mt-0.5 ${isMine ? "mr-1" : "ml-1"}`}>
-                      {relTime(msg.created_at)}
+                    <span className={`text-[11px] mt-0.5 ${isMine ? "mr-1" : "ml-1"} ${isPending ? "text-[#bbb] italic" : "text-[#aaa]"}`}>
+                      {isPending ? "送信中…" : relTime(msg.created_at)}
                     </span>
                   </div>
                 </div>

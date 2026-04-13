@@ -45,7 +45,7 @@ _ONLINE_PREFIX  = "nk:chat:online"
 _PROFILE_PREFIX = "nk:user:profile"
 
 CACHE_MAX     = 50   # messages retained in Redis
-RATELIMIT_TTL = 5    # seconds between sends per user
+RATELIMIT_TTL = 10   # seconds between sends per user
 PROFILE_TTL   = 300  # seconds to cache user profile
 
 _PRIVATE_FIELDS = {"line_user_id"}  # never sent to clients
@@ -173,10 +173,14 @@ def get_stored_profile(line_user_id: str) -> dict | None:
     return None
 
 
+_PROFILE_STORE_TTL = 86400 * 180  # 180 days — long-lived but not infinite
+
+
 def store_profile(line_user_id: str, profile: dict) -> None:
-    """Save profile permanently to Redis (no TTL)."""
-    _redis.set(
+    """Save profile to Redis with a long TTL (reset on every login/update)."""
+    _redis.setex(
         f"{_PROFILE_STORE_PREFIX}:{line_user_id}",
+        _PROFILE_STORE_TTL,
         json.dumps(profile, ensure_ascii=False),
     )
     # Also refresh the short-lived cache so reads are consistent
