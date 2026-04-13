@@ -85,6 +85,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [, setTick] = useState(0);
 
   const endRef = useRef<HTMLDivElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
@@ -190,6 +191,12 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     return () => document.removeEventListener("visibilitychange", h);
   }, [connectSSE]);
 
+  // Refresh relative timestamps every 60 seconds
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     if (embedded) return;
     const el = widgetRef.current;
@@ -266,7 +273,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     const touch = e.touches[0];
     const dx = Math.abs(touch.clientX - touchStartPos.current.x);
     const dy = Math.abs(touch.clientY - touchStartPos.current.y);
-    if (dx > 8 || dy > 8) {
+    if (dx > 12 || dy > 12) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
@@ -521,7 +528,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                       <span className="text-3xl leading-none py-1 select-none">{msg.stamp}</span>
                     ) : (
                       <div
-                        className={`px-3.5 py-2.5 text-[14px] leading-relaxed break-words select-none
+                        className={`px-3.5 py-2.5 text-[14px] leading-relaxed break-words select-text
                           ${isMine
                             ? "bg-[#163016] text-white rounded-2xl rounded-br-md"
                             : "bg-white text-[#222] rounded-2xl rounded-bl-md shadow-sm"
