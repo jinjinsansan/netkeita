@@ -28,7 +28,6 @@ const CHANNEL_LABELS: Record<Channel, string> = {
   nar: "地方競馬",
 };
 
-// Deterministic avatar color from name
 const PALETTE = [
   { bg: "#fecdd3", fg: "#9f1239" },
   { bg: "#fed7aa", fg: "#9a3412" },
@@ -59,6 +58,12 @@ function relTime(iso: string) {
   } catch { return ""; }
 }
 
+interface ContextMenuState {
+  msg: ChatMessage;
+  canDelete: boolean;
+  confirmDelete: boolean;
+}
+
 interface Props {
   defaultChannel?: Channel;
   embedded?: boolean;
@@ -79,6 +84,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const [newCount, setNewCount] = useState(0);
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const endRef = useRef<HTMLDivElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
@@ -88,9 +94,10 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   const channelRef = useRef<Channel>(channel);
   const wasHiddenRef = useRef(false);
   const isAtBottomRef = useRef(true);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   channelRef.current = channel;
 
-  // Unique recent users for @mention (latest first, deduplicated)
   const mentionUsers = useMemo(() => {
     const seen = new Set<string>();
     const list: string[] = [];
@@ -106,12 +113,11 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     ? mentionUsers.filter(n => n.toLowerCase().startsWith(mentionQuery.toLowerCase()))
     : [];
 
-  // Render message text with @mention highlights
-  const renderContent = (text: string) => {
+  const renderContent = (text: string, isMine: boolean) => {
     const parts = text.split(/(@\S+)/g);
     return parts.map((part, i) =>
       part.startsWith("@")
-        ? <span key={i} className="text-[#163016] font-bold">{part}</span>
+        ? <span key={i} className={`font-bold ${isMine ? "text-[#86efac]" : "text-[#163016]"}`}>{part}</span>
         : <span key={i}>{part}</span>
     );
   };
@@ -165,7 +171,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
 
   useEffect(() => {
     setLoading(true); setMessages([]); setNewCount(0); setIsAtBottom(true);
-    setReplyTo(null); setMentionQuery(null);
+    setReplyTo(null); setMentionQuery(null); setContextMenu(null);
     isAtBottomRef.current = true;
     fetchChatMessages(channel).then((msgs) => {
       setMessages(msgs); setLoading(false);
@@ -174,8 +180,6 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     connectSSE(channel);
     return () => { sseRef.current?.close(); sseRef.current = null; };
   }, [channel, connectSSE, scrollBottom]);
-
-
 
   useEffect(() => {
     const h = () => {
@@ -187,8 +191,6 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   }, [connectSSE]);
 
   useEffect(() => {
-    // Embedded widgets stay connected permanently — no IntersectionObserver
-    // to avoid scroll jank when the widget enters/leaves the viewport.
     if (embedded) return;
     const el = widgetRef.current;
     if (!el) return;
@@ -211,6 +213,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
   };
 
   const handleDelete = async (msg: ChatMessage) => {
+    setContextMenu(null);
     setMessages((prev) => prev.filter((m) => m.id !== msg.id));
     await deleteChatMessage(msg.id, msg.channel);
   };
@@ -237,14 +240,149 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
     inputRef.current?.focus();
   };
 
+  // ── Long-press / context menu ──────────────────────────────────────────────
+
+  const openContextMenu = useCallback((msg: ChatMessage) => {
+    const canDelete = isAdmin || (!!myToken && msg.author_token === myToken);
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try { navigator.vibrate(50); } catch { /* ignore */ }
+    }
+    setContextMenu({ msg, canDelete, confirmDelete: false });
+  }, [isAdmin, myToken]);
+
+  const handleTouchStart = useCallback((msg: ChatMessage, e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    longPressTimer.current = setTimeout(() => openContextMenu(msg), 500);
+  }, [openContextMenu]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+    touchStartPos.current = null;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartPos.current || !longPressTimer.current) return;
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+    const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+    if (dx > 8 || dy > 8) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleContextMenu = useCallback((msg: ChatMessage, e: React.MouseEvent) => {
+    e.preventDefault();
+    openContextMenu(msg);
+  }, [openContextMenu]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+
   const last3 = messages.slice(-3);
   const resonance = last3.length >= 3 && last3.every((m) => m.stamp && m.stamp === last3[0].stamp)
     ? last3[0].stamp : null;
 
-  return (
-    <div ref={widgetRef} className={`flex flex-col ${embedded ? "h-[480px]" : "h-full"} bg-white overflow-hidden`}>
+  const charCount = input.length;
+  const charWarning = charCount > 80;
 
-      {/* ── Header ──────────────────────────────────── */}
+  return (
+    <div
+      ref={widgetRef}
+      className={`relative flex flex-col ${embedded ? "h-[480px]" : "h-full"} bg-white overflow-hidden`}
+    >
+
+      {/* ── Context menu (bottom sheet) ───────────────────────────────── */}
+      {contextMenu && (
+        <div
+          className="absolute inset-0 z-50 flex flex-col justify-end"
+          style={{ background: "rgba(0,0,0,0.5)" }}
+          onClick={() => setContextMenu(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Message preview */}
+            <div className="px-5 py-3.5 bg-[#f7f7f7] border-b border-[#ebebeb]">
+              <p className="text-[11px] font-bold text-[#999] mb-0.5">{contextMenu.msg.nickname}</p>
+              <p className="text-sm text-[#555] line-clamp-2">
+                {contextMenu.msg.content || contextMenu.msg.stamp || ""}
+              </p>
+            </div>
+
+            {!contextMenu.confirmDelete ? (
+              <>
+                {/* Reply */}
+                {authenticated && (
+                  <button
+                    className="w-full flex items-center gap-4 px-5 py-4 active:bg-[#f0f0f0] transition-colors text-left"
+                    onClick={() => {
+                      setReplyTo({
+                        id: contextMenu.msg.id,
+                        nickname: contextMenu.msg.nickname,
+                        content: contextMenu.msg.content || contextMenu.msg.stamp,
+                      });
+                      setContextMenu(null);
+                      setTimeout(() => inputRef.current?.focus(), 150);
+                    }}
+                  >
+                    <span className="w-9 h-9 rounded-full bg-[#e8f5e9] flex items-center justify-center text-lg shrink-0">↩</span>
+                    <span className="text-[15px] font-semibold text-[#222]">返信</span>
+                  </button>
+                )}
+
+                {/* Delete */}
+                {contextMenu.canDelete && (
+                  <button
+                    className="w-full flex items-center gap-4 px-5 py-4 active:bg-red-50 transition-colors text-left border-t border-[#f0f0f0]"
+                    onClick={() => setContextMenu(prev => prev ? { ...prev, confirmDelete: true } : null)}
+                  >
+                    <span className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-lg shrink-0">🗑</span>
+                    <span className="text-[15px] font-semibold text-red-500">削除</span>
+                  </button>
+                )}
+              </>
+            ) : (
+              /* Delete confirmation */
+              <div>
+                <p className="text-center text-[13px] text-[#555] py-4 px-6">
+                  このメッセージを削除しますか？<br />
+                  <span className="text-[11px] text-[#999]">削除後は元に戻せません</span>
+                </p>
+                <div className="flex border-t border-[#ebebeb]">
+                  <button
+                    className="flex-1 py-4 text-[15px] font-semibold text-[#999] active:bg-[#f5f5f5] transition-colors border-r border-[#ebebeb]"
+                    onClick={() => setContextMenu(null)}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    className="flex-1 py-4 text-[15px] font-bold text-red-500 active:bg-red-50 transition-colors"
+                    onClick={() => handleDelete(contextMenu.msg)}
+                  >
+                    削除する
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Cancel row (iOS action sheet style) */}
+            <div className="border-t-[6px] border-[#f0f0f0]">
+              <button
+                className="w-full py-4 text-[15px] font-bold text-[#333] active:bg-[#f5f5f5] transition-colors"
+                onClick={() => setContextMenu(null)}
+              >
+                キャンセル
+              </button>
+            </div>
+            {/* Safe area bottom padding */}
+            <div style={{ height: "env(safe-area-inset-bottom)" }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="bg-[#163016] px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-[#4ade80] shrink-0" fill="currentColor" viewBox="0 0 24 24">
@@ -252,16 +390,17 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
           </svg>
           <span className="text-white font-bold text-sm">みんなのチャット</span>
         </div>
-        <div className="flex items-center gap-2.5">
-          {onClose && (
-            <button onClick={onClose} className="text-white/40 hover:text-white transition-colors text-base leading-none">
-              ✕
-            </button>
-          )}
-        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
-      {/* ── Channel tabs ────────────────────────────── */}
+      {/* ── Channel tabs ──────────────────────────────────────────────── */}
       <div className="flex bg-white border-b border-[#f0f0f0] shrink-0">
         {(Object.keys(CHANNEL_LABELS) as Channel[]).map((ch) => {
           const active = ch === channel;
@@ -281,8 +420,7 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         })}
       </div>
 
-      {/* ── Messages ────────────────────────────────── */}
-      {/* ── Scroll-to-bottom button ──────────────────── */}
+      {/* ── Scroll-to-bottom button ───────────────────────────────────── */}
       {!isAtBottom && (
         <div className="relative h-0 overflow-visible z-10 shrink-0">
           <button
@@ -297,7 +435,13 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         </div>
       )}
 
-      <div ref={scrollBoxRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 min-h-0 bg-[#f9fafb]" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+      {/* ── Messages ──────────────────────────────────────────────────── */}
+      <div
+        ref={scrollBoxRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-3 py-3 min-h-0 bg-[#f2f3f5]"
+        style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-full gap-1">
             {[0, 1, 2].map((i) => (
@@ -321,73 +465,82 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {messages.map((msg, i) => {
+              const isMine = !!myToken && msg.author_token === myToken;
               const s = avatarStyle(msg.nickname);
-              const canDelete = isAdmin || (!!myToken && msg.author_token === myToken);
               return (
-                <div key={msg.id || i} className="flex gap-2.5 group">
-                  {/* Avatar */}
-                  <div className="shrink-0 mt-0.5">
-                    {msg.avatar_url ? (
-                      <img src={msg.avatar_url} alt={msg.nickname} className="w-7 h-7 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black select-none"
-                        style={{ backgroundColor: s.bg, color: s.fg }}>
-                        {initial(msg.nickname)}
-                      </div>
-                    )}
-                  </div>
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-1.5 mb-0.5">
-                      <span className="text-[11px] font-bold text-[#1a1a1a] truncate max-w-[120px]">{msg.nickname}</span>
-                      <span className="text-[9px] text-[#ccc] shrink-0">{relTime(msg.created_at)}</span>
+                <div
+                  key={msg.id || i}
+                  className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
+                  onTouchStart={(e) => handleTouchStart(msg, e)}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={handleTouchMove}
+                  onContextMenu={(e) => handleContextMenu(msg, e)}
+                >
+                  {/* Avatar — others only */}
+                  {!isMine && (
+                    <div className="shrink-0 mb-1">
+                      {msg.avatar_url ? (
+                        <img src={msg.avatar_url} alt={msg.nickname} className="w-9 h-9 rounded-full object-cover" />
+                      ) : (
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-black select-none"
+                          style={{ backgroundColor: s.bg, color: s.fg }}
+                        >
+                          {initial(msg.nickname)}
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  {/* Bubble area */}
+                  <div className={`flex flex-col max-w-[72%] ${isMine ? "items-end" : "items-start"}`}>
+                    {/* Nickname (others only) */}
+                    {!isMine && (
+                      <span className="text-[11px] font-bold text-[#555] mb-0.5 ml-1 truncate max-w-[140px]">
+                        {msg.nickname}
+                      </span>
+                    )}
+
                     {/* Reply quote */}
                     {msg.reply_to && (
-                      <div className="flex items-start gap-1.5 mb-1 pl-2 border-l-2 border-[#163016]/25 bg-white/60 rounded-r py-0.5">
-                        <span className="text-[10px] font-bold text-[#163016]/70 shrink-0">@{msg.reply_to.nickname}</span>
-                        <span className="text-[10px] text-[#888] truncate">{msg.reply_to.content || "スタンプ"}</span>
+                      <div className={`flex items-start gap-1.5 mb-1 px-2.5 py-1.5 rounded-xl max-w-full
+                        ${isMine
+                          ? "bg-[#0f2a0f]/20 border border-[#163016]/20"
+                          : "bg-white/90 border border-[#e0e0e0]"
+                        }`}
+                      >
+                        <span className="text-[11px] font-bold text-[#163016]/80 shrink-0">@{msg.reply_to.nickname}</span>
+                        <span className="text-[11px] text-[#888] truncate">{msg.reply_to.content || "スタンプ"}</span>
                       </div>
                     )}
+
+                    {/* Bubble */}
                     {msg.stamp ? (
-                      <span className="text-2xl leading-none">{msg.stamp}</span>
+                      <span className="text-3xl leading-none py-1 select-none">{msg.stamp}</span>
                     ) : (
-                      <p className="text-[13px] text-[#333] leading-relaxed break-words">
-                        {msg.content ? renderContent(msg.content) : null}
-                      </p>
-                    )}
-                  </div>
-                  {/* Action buttons */}
-                  <div className="flex flex-col gap-0.5 shrink-0 self-start mt-0.5 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
-                    {authenticated && (
-                      <button
-                        onClick={() => {
-                          setReplyTo({ id: msg.id, nickname: msg.nickname, content: msg.content || msg.stamp });
-                          inputRef.current?.focus();
-                        }}
-                        className="text-[#bbb] hover:text-[#163016] active:text-[#163016] transition-colors text-[11px] leading-none px-1"
-                        title="返信"
+                      <div
+                        className={`px-3.5 py-2.5 text-[14px] leading-relaxed break-words select-none
+                          ${isMine
+                            ? "bg-[#163016] text-white rounded-2xl rounded-br-md"
+                            : "bg-white text-[#222] rounded-2xl rounded-bl-md shadow-sm"
+                          }`}
+                        style={{ wordBreak: "break-word" }}
                       >
-                        ↩
-                      </button>
+                        {msg.content ? renderContent(msg.content, isMine) : null}
+                      </div>
                     )}
-                    {canDelete && (
-                      <button
-                        onClick={() => handleDelete(msg)}
-                        className="text-[#ccc] hover:text-red-400 active:text-red-400 transition-colors text-[11px] leading-none px-1"
-                        title="削除"
-                      >
-                        ✕
-                      </button>
-                    )}
+
+                    {/* Timestamp */}
+                    <span className={`text-[11px] text-[#aaa] mt-0.5 ${isMine ? "mr-1" : "ml-1"}`}>
+                      {relTime(msg.created_at)}
+                    </span>
                   </div>
                 </div>
               );
             })}
 
-            {/* Stamp resonance */}
             {resonance && (
               <div className="flex justify-center py-2 pointer-events-none">
                 <span
@@ -403,38 +556,57 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         )}
       </div>
 
-      {/* ── Error ───────────────────────────────────── */}
+      {/* ── Error ─────────────────────────────────────────────────────── */}
       {error && (
         <div className="px-4 py-2 bg-red-50 text-red-500 text-[11px] border-t border-red-100 flex items-center justify-between shrink-0">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-2 opacity-60 hover:opacity-100">✕</button>
+          <button
+            onClick={() => setError(null)}
+            className="ml-2 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-100 active:bg-red-200 transition-colors"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* ── Input ───────────────────────────────────── */}
-      {/* ── Reply preview bar ───────────────────────── */}
+      {/* ── Reply preview bar ─────────────────────────────────────────── */}
       {replyTo && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-[#f0f7f0] border-t border-[#c8e6c9] shrink-0">
+        <div className="flex items-center gap-2 px-3 py-2.5 bg-[#f0f7f0] border-t border-[#c8e6c9] shrink-0">
           <div className="w-0.5 self-stretch bg-[#163016] rounded-full shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold text-[#163016]">↩ @{replyTo.nickname}</p>
-            <p className="text-[10px] text-[#666] truncate">{replyTo.content || "スタンプ"}</p>
+            <p className="text-[11px] font-bold text-[#163016]">↩ @{replyTo.nickname} に返信</p>
+            <p className="text-[11px] text-[#666] truncate">{replyTo.content || "スタンプ"}</p>
           </div>
-          <button onClick={() => setReplyTo(null)} className="text-[#999] hover:text-[#333] text-xs px-1">✕</button>
+          <button
+            onClick={() => setReplyTo(null)}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-[#888] hover:text-[#333] hover:bg-black/5 active:bg-black/10 active:text-[#333] transition-colors shrink-0"
+            aria-label="返信をキャンセル"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      <div className="border-t border-[#f0f0f0] bg-white px-3 pt-2.5 pb-safe-3 shrink-0 relative" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+      {/* ── Input area ────────────────────────────────────────────────── */}
+      <div
+        className="border-t border-[#e8e8e8] bg-white px-3 pt-2.5 shrink-0 relative"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+      >
         {/* @mention dropdown */}
         {mentionQuery !== null && filteredMentions.length > 0 && (
           <div className="absolute bottom-full left-3 right-3 mb-1 bg-white border border-[#e0e0e0] rounded-xl shadow-lg overflow-hidden z-20">
             {filteredMentions.map((n) => {
               const ms = avatarStyle(n);
               return (
-                <button key={n} onMouseDown={(e) => { e.preventDefault(); selectMention(n); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#f5f5f5] active:bg-[#eeeeee] transition-colors text-left">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
-                    style={{ backgroundColor: ms.bg, color: ms.fg }}>
+                <button
+                  key={n}
+                  onMouseDown={(e) => { e.preventDefault(); selectMention(n); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-3 hover:bg-[#f5f5f5] active:bg-[#eeeeee] transition-colors text-left"
+                >
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0"
+                    style={{ backgroundColor: ms.bg, color: ms.fg }}
+                  >
                     {initial(n)}
                   </div>
                   <span className="text-sm font-bold text-[#333]">@{n}</span>
@@ -443,14 +615,15 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
             })}
           </div>
         )}
-        {/* Stamp row — compact pills */}
+
+        {/* Stamp row */}
         <div className="flex gap-1.5 mb-2.5 overflow-x-auto pb-0.5 scrollbar-none">
           {CHAT_STAMPS.map((s) => (
             <button
               key={s}
               onClick={() => handleStamp(s)}
               disabled={!authenticated || sending}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0 select-none transition-all
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full shrink-0 select-none transition-all
                 ${authenticated && !sending
                   ? "bg-[#f0f0f0] hover:bg-[#e4e4e4] active:scale-95 active:bg-[#d8d8d8]"
                   : "bg-[#f5f5f5] opacity-30 cursor-not-allowed"}`}
@@ -461,27 +634,37 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
           ))}
         </div>
 
-        {/* Text row */}
+        {/* Text input row */}
         {authenticated ? (
           <div className="flex items-center gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              maxLength={100}
-              onChange={handleInputChange}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") { setMentionQuery(null); setReplyTo(null); return; }
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-              }}
-              placeholder={replyTo ? `@${replyTo.nickname} に返信…` : "メッセージを入力…"}
-              disabled={sending}
-              className="flex-1 text-base bg-[#f5f5f5] rounded-full px-4 py-2 focus:outline-none focus:bg-[#ededee] transition-colors min-w-0 placeholder-[#bbb]"
-            />
+            <div className="flex-1 relative min-w-0">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                maxLength={100}
+                onChange={handleInputChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") { setMentionQuery(null); setReplyTo(null); return; }
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                }}
+                placeholder={replyTo ? `@${replyTo.nickname} に返信…` : "メッセージを入力…"}
+                disabled={sending}
+                className="w-full bg-[#f5f5f5] rounded-full px-4 py-2.5 focus:outline-none focus:bg-[#ededee] transition-colors placeholder-[#bbb]"
+                style={{ fontSize: "16px" }}
+              />
+              {charWarning && (
+                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold pointer-events-none
+                  ${charCount >= 100 ? "text-red-500" : "text-orange-400"}`}
+                >
+                  {100 - charCount}
+                </span>
+              )}
+            </div>
             <button
               onClick={handleSend}
               disabled={!input.trim() || sending}
-              className="w-9 h-9 rounded-full bg-[#163016] flex items-center justify-center disabled:opacity-25 hover:bg-[#1f4a1f] active:scale-90 transition-all shrink-0"
+              className="w-10 h-10 rounded-full bg-[#163016] flex items-center justify-center disabled:opacity-25 hover:bg-[#1f4a1f] active:scale-90 transition-all shrink-0"
             >
               <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
@@ -491,9 +674,9 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
         ) : (
           <a
             href="/login"
-            className="flex items-center justify-center gap-2 py-2.5 rounded-full bg-[#163016] text-white text-xs font-bold hover:bg-[#1f4a1f] transition-colors"
+            className="flex items-center justify-center gap-2 py-3 rounded-full bg-[#163016] text-white text-sm font-bold hover:bg-[#1f4a1f] active:bg-[#0f2a0f] transition-colors"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
             </svg>
             LINEでログインして参加する
