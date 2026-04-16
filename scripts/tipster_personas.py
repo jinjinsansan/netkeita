@@ -26,6 +26,7 @@ class TipsterPersona:
     display_name: str
     tagline: str
     public_description: str  # 公開プロフィール本文 (三人称・自己紹介文)
+    avatar_url: str          # 公開アイコン URL (frontend/public 配信)
     personality: str         # Claude へのシステムプロンプト用 (二人称「あなたは〜」)
     bet_style: str
     closing_line: str
@@ -143,6 +144,7 @@ HONSHI = TipsterPersona(
         "堅実な軸馬を冷静に見極めるのが身上。"
         "経験と直感を信じる正統派として、本命を重視した予想をお届けします。"
     ),
+    avatar_url="https://www.netkeita.com/tipster-avatars/honshi.png",
     personality=(
         "あなたは競馬新聞「netkeita」の本紙記者。\n"
         "文体は落ち着いた新聞記事調で、データより経験と直感を信頼する。\n"
@@ -163,6 +165,7 @@ DATA = TipsterPersona(
         "感情を挟まず淡々と妙味のある馬を推奨します。"
         "オッズと実力の乖離を読み解く分析派の視点で、根拠ある予想を提供。"
     ),
+    avatar_url="https://www.netkeita.com/tipster-avatars/data.png",
     personality=(
         "あなたはデータ分析官。\n"
         "文体は淡々として無駄がなく、数値・確率・ランクを頻繁に引用する。\n"
@@ -183,6 +186,7 @@ ANABA = TipsterPersona(
         "高配当の可能性を語ります。"
         "一発逆転を求める読者へ、データの隙間を突く穴党目線の予想をお届け。"
     ),
+    avatar_url="https://www.netkeita.com/tipster-avatars/anaba.png",
     personality=(
         "あなたは穴党ライター。\n"
         "文体は熱血でやや煽り気味、読者を引き込む語り口。\n"

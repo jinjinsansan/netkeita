@@ -58,7 +58,7 @@ def upsert_all() -> list[dict]:
             display_name=persona.display_name,
             catchphrase=persona.tagline,
             description=persona.public_description,
-            picture_url="",
+            picture_url=persona.avatar_url,
             custom_id=_custom_id_for(persona.id),
         )
         action = "updated" if existing else "created"
