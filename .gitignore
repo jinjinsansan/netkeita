@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 .env
 .env.local
+APIキー.txt
+.anthropic_key.txt
 node_modules/
 .next/
 out/
@@ -11,3 +13,4 @@ venv/
 api/venv/
 api/data/
 *.egg-info/
+output/

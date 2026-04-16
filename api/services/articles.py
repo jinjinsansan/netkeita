@@ -168,6 +168,8 @@ _PUBLIC_FIELDS = (
     # prediction-specific fields
     "content_type", "tipster_id", "bet_method", "ticket_count",
     "preview_body", "is_premium",
+    # AI-generated prediction fields (auto-posted by managed tipsters)
+    "ai_generated", "ai_model", "picks",
 )
 
 _PUBLIC_SUMMARY_FIELDS = (
@@ -176,6 +178,8 @@ _PUBLIC_SUMMARY_FIELDS = (
     # prediction-specific fields
     "content_type", "tipster_id", "bet_method", "ticket_count",
     "preview_body", "is_premium",
+    # AI-generated prediction fields
+    "ai_generated", "ai_model",
 )
 
 
@@ -329,6 +333,32 @@ def _try_create(slug: str, payload: str) -> bool:
         return False
 
 
+MAX_AI_MODEL_LEN = 100
+
+
+def _sanitize_picks(value: Any) -> dict:
+    """Coerce picks to a safe {str: int} dict, dropping invalid entries.
+
+    Accepts arbitrary input (dict / None / junk) and returns at most 10
+    valid integer picks keyed by short alphanumeric strings. This keeps
+    the record schema stable against malformed AI output.
+    """
+    if not isinstance(value, dict):
+        return {}
+    cleaned: dict[str, int] = {}
+    for k, v in list(value.items())[:10]:
+        if not isinstance(k, str) or not k or len(k) > 20:
+            continue
+        # Keys must be simple identifiers (no spaces, control chars)
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", k):
+            continue
+        if isinstance(v, bool):
+            continue  # bool is a subclass of int — reject explicitly
+        if isinstance(v, int) and 1 <= v <= 30:
+            cleaned[k] = v
+    return cleaned
+
+
 def create_article(
     *,
     title: str,
@@ -346,6 +376,9 @@ def create_article(
     ticket_count: int = 0,
     preview_body: str = "",
     is_premium: bool = False,
+    ai_generated: bool = False,
+    ai_model: str = "",
+    picks: dict | None = None,
 ) -> dict:
     """Create a new article. Returns the saved dict.
 
@@ -399,6 +432,9 @@ def create_article(
         "ticket_count": max(0, int(ticket_count)) if isinstance(ticket_count, (int, float)) else 0,
         "preview_body": _clean_str(preview_body, max_len=MAX_PREVIEW_BODY_LEN),
         "is_premium": bool(is_premium),
+        "ai_generated": bool(ai_generated),
+        "ai_model": _clean_str(ai_model, max_len=MAX_AI_MODEL_LEN),
+        "picks": _sanitize_picks(picks),
     }
 
     chosen_slug: str | None = None

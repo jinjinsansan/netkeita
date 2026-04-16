@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -240,19 +241,39 @@ def update_profile(
     return profile
 
 
+_MANAGED_ID_PREFIX = "managed_"
+_MANAGED_CUSTOM_ID_RE = re.compile(r"^[a-z0-9_]{1,40}$")
+
+
 def create_managed_tipster(
     display_name: str,
     catchphrase: str,
     description: str = "",
     picture_url: str = "",
+    custom_id: str = "",
 ) -> dict:
-    """Admin-only: create a managed tipster with a generated ID."""
+    """Admin-only: create (or upsert) a managed tipster.
+
+    If `custom_id` is provided, use ``managed_{custom_id}`` as the ID and
+    upsert: an existing profile with the same ID is overwritten, and the
+    approved-index is deduplicated (LREM + LPUSH). This makes setup scripts
+    idempotent. Without `custom_id` the ID is randomly generated as before.
+    """
     import uuid
-    managed_id = f"managed_{uuid.uuid4().hex}"
+    if custom_id:
+        cid = custom_id.strip().lower()
+        if not _MANAGED_CUSTOM_ID_RE.match(cid):
+            raise ValueError("custom_id は小文字英数・アンダースコアのみ、40字以内")
+        managed_id = f"{_MANAGED_ID_PREFIX}{cid}"
+    else:
+        managed_id = f"{_MANAGED_ID_PREFIX}{uuid.uuid4().hex}"
     catchphrase_clean = _clean(catchphrase, MAX_CATCHPHRASE_LEN)
     if not catchphrase_clean:
         raise ValueError("キャッチフレーズは必須です")
     now = _now_iso()
+    existing = get_tipster(managed_id) if custom_id else None
+    applied_at = (existing or {}).get("applied_at") or now
+    approved_at = (existing or {}).get("approved_at") or now
     profile = {
         "line_user_id": managed_id,
         "display_name": _clean(display_name, MAX_DISPLAY_NAME_LEN) or "名無し",
@@ -261,8 +282,8 @@ def create_managed_tipster(
         "description": _clean(description, MAX_DESCRIPTION_LEN),
         "status": "approved",
         "is_managed": True,
-        "applied_at": now,
-        "approved_at": now,
+        "applied_at": applied_at,
+        "approved_at": approved_at,
     }
     try:
         pipe = _redis.pipeline(transaction=True)
@@ -273,7 +294,7 @@ def create_managed_tipster(
     except Exception:
         logger.exception("tipsters: create_managed_tipster failed")
         raise
-    logger.info(f"managed tipster created: {display_name} ({managed_id})")
+    logger.info(f"managed tipster upserted: {display_name} ({managed_id})")
     return profile
 
 

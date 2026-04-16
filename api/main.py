@@ -1284,6 +1284,10 @@ class ArticleCreateRequest(BaseModel):
     ticket_count: int = 0
     preview_body: str = ""
     is_premium: bool = False
+    # AI-generated prediction fields (auto-posted by managed tipsters)
+    ai_generated: bool = False
+    ai_model: str = ""
+    picks: dict | None = None
 
 
 class ArticleUpdateRequest(BaseModel):
@@ -1457,6 +1461,9 @@ def api_create_article(
             ticket_count=req.ticket_count,
             preview_body=req.preview_body,
             is_premium=req.is_premium,
+            ai_generated=req.ai_generated,
+            ai_model=req.ai_model,
+            picks=req.picks,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
