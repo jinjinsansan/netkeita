@@ -25,7 +25,8 @@ class TipsterPersona:
     id: str
     display_name: str
     tagline: str
-    personality: str
+    public_description: str  # 公開プロフィール本文 (三人称・自己紹介文)
+    personality: str         # Claude へのシステムプロンプト用 (二人称「あなたは〜」)
     bet_style: str
     closing_line: str
 
@@ -136,6 +137,12 @@ HONSHI = TipsterPersona(
     id="honshi",
     display_name="netkeita本紙",
     tagline="本命重視の正統派",
+    public_description=(
+        "競馬新聞『netkeita』の本紙記者。"
+        "派手な煽りは書かず、8項目ランク指数と血統・騎手データに裏付けられた"
+        "堅実な軸馬を冷静に見極めるのが身上。"
+        "経験と直感を信じる正統派として、本命を重視した予想をお届けします。"
+    ),
     personality=(
         "あなたは競馬新聞「netkeita」の本紙記者。\n"
         "文体は落ち着いた新聞記事調で、データより経験と直感を信頼する。\n"
@@ -150,6 +157,12 @@ DATA = TipsterPersona(
     id="data",
     display_name="データ分析",
     tagline="数値とスピード重視",
+    public_description=(
+        "データ分析を専門とする予想家。"
+        "8項目ランク指数・速度指数・期待値といった客観数値に基づき、"
+        "感情を挟まず淡々と妙味のある馬を推奨します。"
+        "オッズと実力の乖離を読み解く分析派の視点で、根拠ある予想を提供。"
+    ),
     personality=(
         "あなたはデータ分析官。\n"
         "文体は淡々として無駄がなく、数値・確率・ランクを頻繁に引用する。\n"
@@ -164,6 +177,12 @@ ANABA = TipsterPersona(
     id="anaba",
     display_name="穴党記者",
     tagline="人気薄の激走を狙う",
+    public_description=(
+        "穴党専門のライター。"
+        "人気薄に眠る『狙える一頭』を熱血の筆致で掘り起こし、"
+        "高配当の可能性を語ります。"
+        "一発逆転を求める読者へ、データの隙間を突く穴党目線の予想をお届け。"
+    ),
     personality=(
         "あなたは穴党ライター。\n"
         "文体は熱血でやや煽り気味、読者を引き込む語り口。\n"

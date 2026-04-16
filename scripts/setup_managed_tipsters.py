@@ -57,7 +57,7 @@ def upsert_all() -> list[dict]:
         profile = tipsters_service.create_managed_tipster(
             display_name=persona.display_name,
             catchphrase=persona.tagline,
-            description=persona.personality.replace("\n", " "),
+            description=persona.public_description,
             picture_url="",
             custom_id=_custom_id_for(persona.id),
         )
