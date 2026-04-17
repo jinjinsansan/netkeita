@@ -426,7 +426,7 @@ def create_article(
         "race_id": race_id_clean,
         "created_at": now,
         "updated_at": now,
-        "content_type": content_type if content_type in ("article", "prediction") else "article",
+        "content_type": content_type if content_type in ("article", "prediction", "feature") else "article",
         "tipster_id": _clean_str(tipster_id, max_len=100),
         "bet_method": _clean_str(bet_method, max_len=MAX_BET_METHOD_LEN),
         "ticket_count": max(0, int(ticket_count)) if isinstance(ticket_count, (int, float)) else 0,
@@ -603,6 +603,40 @@ def list_predictions_by_tipster(tipster_id: str) -> list[dict]:
             and data.get("tipster_id") == tipster_id
         ):
             results.append(public_summary(data))
+    return results
+
+
+def list_features(limit: int = 3) -> list[dict]:
+    """Return latest published feature articles (newest first, limited).
+
+    Used by the TOP page 「特集」 section.
+    """
+    limit = max(1, min(int(limit or 3), 20))
+    try:
+        slugs = _redis.lrange(_INDEX_KEY, 0, -1) or []
+    except Exception:
+        return []
+    if not slugs:
+        return []
+    try:
+        raws = _redis.mget([_article_key(s) for s in slugs])
+    except Exception:
+        return []
+    results = []
+    for raw in raws:
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            continue
+        if (
+            data.get("status") == "published"
+            and data.get("content_type") == "feature"
+        ):
+            results.append(public_summary(data))
+            if len(results) >= limit:
+                break
     return results
 
 

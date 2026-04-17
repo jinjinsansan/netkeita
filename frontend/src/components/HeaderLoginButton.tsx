@@ -91,6 +91,10 @@ export default function HeaderLoginButton() {
                   className="flex items-center gap-2 px-3 py-2 text-xs text-[#222] hover:bg-[#f0f7f0] transition">
                   予想家一覧
                 </Link>
+                <Link href="/admin/features/new" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs text-[#1565C0] font-bold hover:bg-[#e7f0ff] transition">
+                  📢 特集ページ作成
+                </Link>
                 <Link href="/admin/tipsters" onClick={() => setOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 text-xs text-[#ffd54f] font-bold hover:bg-[#fffde7] transition">
                   管理

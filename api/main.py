@@ -1387,6 +1387,13 @@ def api_get_articles_by_race(race_id: str):
     return {"race_id": race_id, "articles": articles}
 
 
+@app.get("/api/features/latest")
+def api_list_latest_features(limit: int = 3):
+    """Return the latest published feature articles for the TOP page section."""
+    features = articles_service.list_features(limit=limit)
+    return {"features": features, "count": len(features)}
+
+
 @app.get("/api/articles/{slug}")
 def api_get_article(slug: str, authorization: str = Header(default="")):
     """Fetch one article.

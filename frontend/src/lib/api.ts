@@ -391,7 +391,7 @@ export interface ArticleSummary {
   created_at: string;
   updated_at: string;
   race_id?: string;
-  content_type?: "article" | "prediction";
+  content_type?: "article" | "prediction" | "feature";
   tipster_id?: string;
   bet_method?: string;
   ticket_count?: number;
@@ -419,7 +419,7 @@ export interface ArticleInput {
   status: "published" | "draft";
   slug?: string;
   race_id?: string;
-  content_type?: "article" | "prediction";
+  content_type?: "article" | "prediction" | "feature";
   tipster_id?: string;
   bet_method?: string;
   ticket_count?: number;
@@ -507,6 +507,22 @@ export async function fetchArticles(
 ): Promise<ArticleSummary[]> {
   const page = await fetchArticlePage({ includeDrafts });
   return page.articles;
+}
+
+/** Latest `feature` articles for the TOP page 「特集」 section. */
+export async function fetchFeatures(limit = 3): Promise<ArticleSummary[]> {
+  if (!API_URL) return [];
+  try {
+    const res = await fetch(
+      `${API_URL}/api/features/latest?limit=${encodeURIComponent(String(limit))}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.features || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchArticle(slug: string): Promise<Article | null> {

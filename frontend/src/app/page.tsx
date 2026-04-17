@@ -7,7 +7,7 @@ import RankBadge from "@/components/RankBadge";
 import ArticleCard from "@/components/ArticleCard";
 import type { Grade, RaceSummary } from "@/lib/types";
 import type { ArticleSummary, TipsterProfile } from "@/lib/api";
-import { fetchDates, fetchRaces, fetchArticles, fetchTipsters, getLineLoginUrl } from "@/lib/api";
+import { fetchDates, fetchRaces, fetchArticles, fetchFeatures, fetchTipsters, getLineLoginUrl } from "@/lib/api";
 import { raceIdToPath } from "@/lib/venue-codes";
 import { useAuth } from "@/lib/auth-context";
 
@@ -19,6 +19,8 @@ const ChatWidget = dynamic(() => import("@/components/ChatWidget"), {
 // How many latest articles to surface on the top page. 6 fits a 3-column
 // grid on desktop and a 2-column grid on tablets without looking sparse.
 const TOP_LATEST_ARTICLES_LIMIT = 6;
+// How many feature articles to surface on the top page 「特集」 section.
+const TOP_FEATURES_LIMIT = 3;
 
 /* ── Venue tab ordering ─── */
 const JRA_VENUE_ORDER = ["中山", "阪神", "中京", "東京", "京都", "小倉", "新潟", "札幌", "函館", "福島"];
@@ -94,6 +96,7 @@ export default function LandingPage() {
   const [selectedVenue, setSelectedVenue] = useState("");
   const [loading, setLoading] = useState(true);
   const [latestArticles, setLatestArticles] = useState<ArticleSummary[] | null>(null);
+  const [features, setFeatures] = useState<ArticleSummary[] | null>(null);
   const [tipsters, setTipsters] = useState<TipsterProfile[]>([]);
 
 
@@ -144,9 +147,26 @@ export default function LandingPage() {
     (async () => {
       try {
         const list = await fetchArticles(false);
-        setLatestArticles(list.filter((a) => !a.race_id).slice(0, TOP_LATEST_ARTICLES_LIMIT));
+        // content_type === "feature" は専用セクション側で表示するので除外
+        setLatestArticles(
+          list
+            .filter((a) => !a.race_id && a.content_type !== "feature")
+            .slice(0, TOP_LATEST_ARTICLES_LIMIT)
+        );
       } catch {
         setLatestArticles([]);
+      }
+    })();
+  }, []);
+
+  // Fetch published feature articles for the TOP 「特集」 section.
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await fetchFeatures(TOP_FEATURES_LIMIT);
+        setFeatures(list);
+      } catch {
+        setFeatures([]);
       }
     })();
   }, []);
@@ -407,6 +427,65 @@ export default function LandingPage() {
           )}
         </div>
       </section>
+
+      {/* ── Features Section ─────────────────────────── */}
+      {/* 特集 (content_type=feature) の最新 N 件。管理者が /admin/features/new
+          で作成した記事が自動でここに並ぶ。件数0のときはセクションごと非表示。 */}
+      {features && features.length > 0 && (
+        <section
+          id="features"
+          className="py-12 md:py-16 border-t border-[#ececec]"
+          style={{ background: "linear-gradient(135deg, #f1f6ff 0%, #e7f0ff 100%)" }}
+        >
+          <div className="max-w-[960px] mx-auto px-5">
+            <div className="flex items-end justify-between mb-6 md:mb-8">
+              <div>
+                <span className="inline-flex items-center gap-1.5 bg-[#1565C0]/10 text-[#0d47a1] text-xs font-bold px-3 py-1 rounded-full mb-3">
+                  📢 特集
+                </span>
+                <h2 className="text-xl md:text-2xl font-black text-[#111]">
+                  netkeita<span className="text-[#1565C0]">特集</span>
+                </h2>
+                <p className="mt-1 text-xs md:text-sm text-[#666]">
+                  編集部が選ぶ、見逃せないピックアップ
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {features.map((f) => (
+                <Link
+                  key={f.slug}
+                  href={`/articles/${encodeURIComponent(f.slug)}`}
+                  className="group block bg-white rounded-xl overflow-hidden border border-[#d6e4f7] hover:border-[#1565C0] shadow-sm hover:shadow-md transition"
+                >
+                  {f.thumbnail_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={f.thumbnail_url}
+                      alt={f.title}
+                      className="w-full aspect-[16/9] object-cover bg-[#e7f0ff]"
+                    />
+                  ) : (
+                    <div className="w-full aspect-[16/9] bg-gradient-to-br from-[#1565C0] to-[#0d47a1] flex items-center justify-center text-white text-3xl font-black">
+                      📢
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h3 className="text-sm md:text-base font-black text-[#111] leading-snug line-clamp-2 group-hover:text-[#1565C0] transition">
+                      {f.title}
+                    </h3>
+                    {(f.description || f.preview_body) && (
+                      <p className="mt-2 text-xs text-[#666] leading-relaxed line-clamp-2">
+                        {f.description || f.preview_body}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Latest Articles Section ─────────────────── */}
       {/* Hidden entirely until we have at least one published article, so the
