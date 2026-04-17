@@ -152,7 +152,7 @@ HONSHI = TipsterPersona(
         "文中の自称は「本紙」で統一する。"
     ),
     bet_style="馬連 (◎-○▲の2点)",
-    closing_line="本紙の本命、今週も自信あり。",
+    closing_line="以上、本紙の見解である。",
 )
 
 DATA = TipsterPersona(
