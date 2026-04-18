@@ -87,6 +87,29 @@ def fetch_drawer_predictions(race_id: str) -> list[dict]:
     return _get(f"/api/votes/{race_id}/predictions").get("predictions", [])
 
 
+def article_already_exists(race_id: str, tipster_id: str) -> bool:
+    """Return True if a published article for this race_id × tipster_id
+    already exists. Used by cron mode to skip re-posting on retry.
+
+    Network failures return False (best-effort: don't block posting).
+    """
+    if not race_id or not tipster_id:
+        return False
+    try:
+        resp = httpx.get(
+            f"{API_BASE}/api/articles/by-race/{race_id}",
+            timeout=10.0,
+        )
+        if resp.status_code != 200:
+            return False
+        for a in resp.json().get("articles", []) or []:
+            if a.get("tipster_id") == tipster_id:
+                return True
+    except Exception:
+        pass
+    return False
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 印 → picks 変換
 # ─────────────────────────────────────────────────────────────────────────────
@@ -544,6 +567,9 @@ def main() -> int:
                         help="生成後 POST /api/articles に投稿する")
     parser.add_argument("--status", default="draft", choices=["draft", "published"],
                         help="投稿ステータス (--post 時に使用、既定: draft)")
+    parser.add_argument("--force", action="store_true",
+                        help="同 race_id × tipster_id の既存記事があっても投稿する "
+                             "(cron では既定で既存スキップ)")
     args = parser.parse_args()
 
     if args.list:
@@ -555,6 +581,15 @@ def main() -> int:
     race_id = resolve_race_id(args.race_id)
     if not race_id:
         return 1
+
+    # 重複スキップ: --post 時、--force 指定なしなら既存記事の有無をチェック
+    # (Claude 呼び出し前にやる = 生成コストを節約)
+    if args.post and not args.force:
+        tipster_id = PERSONA_TO_MANAGED_ID.get(persona.id, "")
+        if tipster_id and article_already_exists(race_id, tipster_id):
+            print(f"[skip] 既存記事あり race={race_id} persona={persona.id} "
+                  f"(--force で上書き投稿可)")
+            return 0
 
     # ドロワー印取得
     print(f"[info] fetching drawer predictions for {race_id} ...")
