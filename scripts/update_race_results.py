@@ -171,6 +171,23 @@ def _format_winners(result: dict) -> str:
 # 結果確定時に /api/chat に「運営bot」として結果速報を投稿する。
 # 1番人気が 1 着に来なかった場合は「波乱!」サフィックスを追加。
 # 投稿は重複防止のため「初回確定時のみ」実行 (cron 再実行で複数回投げない)。
+#
+# うるさくしないルール: **各場の 11R (メインレース) のみ** 速報対象。
+# 一般戦は速報しない (ユーザーの発言スペースを確保するため)。
+# 将来的に race_name / grade から重賞判定を追加可能。
+
+
+def _is_main_or_featured_race(race: dict) -> bool:
+    """チャット bot で速報する対象か判定する。
+
+    現状は「各場の 11R」を対象とする。JRA/NAR ともに 11R が実質的な
+    メインレースに当たるため、これだけで 1 日 4〜10 件程度に収まる。
+    """
+    try:
+        rno = int(race.get("race_number") or 0)
+    except Exception:
+        return False
+    return rno == 11
 
 
 def _top_popularity_horse(race: dict) -> tuple[int, str] | None:
@@ -190,7 +207,13 @@ def _top_popularity_horse(race: dict) -> tuple[int, str] | None:
 
 
 def _notify_chat_bot_result(race: dict, result: dict) -> None:
-    """結果速報を netkeita 公式 bot としてチャットに投稿する (fire-and-forget)。"""
+    """結果速報を netkeita 公式 bot としてチャットに投稿する (fire-and-forget)。
+
+    速報対象は `_is_main_or_featured_race()` を満たすレースのみ
+    (一般戦はユーザーの発言スペース確保のためスキップ)。
+    """
+    if not _is_main_or_featured_race(race):
+        return
     try:
         from services import chat as chat_service
     except Exception:
