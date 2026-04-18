@@ -277,6 +277,18 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
       setInput(text);
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
     } else {
+      // POST レスポンスで返った実メッセージで即置換 → 「送信中…」を SSE 待たず解消
+      // SSE が先に到着していた場合は optimistic は既に消えているので no-op
+      if (res.message) {
+        const real = res.message;
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.id === optimistic.id);
+          if (idx === -1) return prev;
+          const next = [...prev];
+          next[idx] = real;
+          return next;
+        });
+      }
       setReplyTo(null);
     }
     setSending(false);
@@ -304,6 +316,17 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
       setError(res.error || "送信に失敗しました");
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
     } else {
+      // POST レスポンスで即置換
+      if (res.message) {
+        const real = res.message;
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.id === optimistic.id);
+          if (idx === -1) return prev;
+          const next = [...prev];
+          next[idx] = real;
+          return next;
+        });
+      }
       setReplyTo(null);
     }
     setSending(false);
