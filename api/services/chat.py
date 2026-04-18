@@ -14,6 +14,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import secrets
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -119,6 +120,57 @@ def remove_from_cache(channel: str, msg_id: str) -> None:
                 _redis.lrem(key, 0, r)
         except Exception:
             pass
+
+
+# ── Official bot broadcast ─────────────────────────────────────────────────────
+# netkeita 公式 bot (運営からのお知らせ・結果速報・波乱警告用) の発言者固定値。
+# Rate limit は通さない。is_bot=True フラグをフロント側で拾って装飾する。
+
+BOT_LINE_USER_ID = "bot_netkeita_official"
+BOT_NICKNAME = "netkeita公式"
+BOT_AVATAR_KEY = "bot"
+BOT_AVATAR_EMOJI = "🏇"
+
+
+def post_bot_message(
+    channel: str,
+    content: str,
+    *,
+    avatar_url: str = "",
+) -> dict | None:
+    """Post an official bot message bypassing rate limits.
+
+    Returns the saved message dict, or None when the channel is invalid or
+    the content is empty after trimming.
+    """
+    if channel not in VALID_CHANNELS:
+        return None
+    body = (content or "").strip()
+    if not body:
+        return None
+    # キャラクタ上限は通常メッセージと同じ100字
+    body = body[:100]
+    msg = {
+        "id":           secrets.token_urlsafe(8),
+        "channel":      channel,
+        "line_user_id": BOT_LINE_USER_ID,
+        "nickname":     BOT_NICKNAME,
+        "avatar_key":   BOT_AVATAR_KEY,
+        "avatar_emoji": BOT_AVATAR_EMOJI,
+        "avatar_url":   avatar_url or "",
+        "content":      body,
+        "stamp":        None,
+        "reply_to":     None,
+        "created_at":   datetime.now(_JST).isoformat(),
+        "is_bot":       True,
+    }
+    try:
+        cache_message(channel, msg)
+        publish_message(channel, msg)
+    except Exception:
+        logger.exception("chat: post_bot_message failed")
+        return None
+    return msg
 
 
 # ── Pub/sub broadcast ──────────────────────────────────────────────────────────

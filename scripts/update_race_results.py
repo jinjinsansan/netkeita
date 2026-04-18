@@ -167,6 +167,92 @@ def _format_winners(result: dict) -> str:
     return ", ".join(parts) or "UNKNOWN"
 
 
+# ── Official bot chat notification ──────────────────────────────────────────
+# 結果確定時に /api/chat に「運営bot」として結果速報を投稿する。
+# 1番人気が 1 着に来なかった場合は「波乱!」サフィックスを追加。
+# 投稿は重複防止のため「初回確定時のみ」実行 (cron 再実行で複数回投げない)。
+
+
+def _top_popularity_horse(race: dict) -> tuple[int, str] | None:
+    """prefetch の race dict から 1番人気 (最低オッズ) の馬番と名前を返す。"""
+    horses = race.get("horses") or []
+    ranked = sorted(
+        ((h.get("horse_number"), h.get("horse_name", ""), h.get("odds") or 999.0)
+         for h in horses),
+        key=lambda t: t[2],
+    )
+    if not ranked:
+        return None
+    num, name, _ = ranked[0]
+    if num is None:
+        return None
+    return num, (name or "")
+
+
+def _notify_chat_bot_result(race: dict, result: dict) -> None:
+    """結果速報を netkeita 公式 bot としてチャットに投稿する (fire-and-forget)。"""
+    try:
+        from services import chat as chat_service
+    except Exception:
+        logger.exception("chat_service import failed")
+        return
+    if result.get("cancelled"):
+        return
+    winners = result.get("winner_horse_numbers") or []
+    if not winners and result.get("winner_horse_number"):
+        winners = [result["winner_horse_number"]]
+    if not winners:
+        return
+
+    # 単勝配当 (代表 1 頭分)
+    payouts = result.get("win_payouts") or {}
+    first = winners[0]
+    payout = 0
+    try:
+        payout = int(payouts.get(str(first)) or result.get("win_payout") or 0)
+    except Exception:
+        payout = 0
+
+    # 馬名 (prefetch から引ければ添える)
+    horses = race.get("horses") or []
+    name_by_num = {h.get("horse_number"): (h.get("horse_name") or "") for h in horses}
+    first_name = name_by_num.get(first, "")
+
+    # 人気順位を算出 (オッズ昇順)
+    popularity_map: dict[int, int] = {}
+    ranked = sorted(
+        ((h.get("horse_number"), h.get("odds") or 999.0) for h in horses),
+        key=lambda t: t[1],
+    )
+    for i, (num, _) in enumerate(ranked, 1):
+        if num is not None:
+            popularity_map[num] = i
+    first_pop = popularity_map.get(first, 0)
+
+    # レース表示名 (venue と R番号を短く)
+    venue = race.get("venue", "")
+    rno = race.get("race_number", "?")
+
+    # 波乱判定: 1番人気が winners (= 1着) に入っていない
+    is_upset = bool(popularity_map) and popularity_map.get(first) != 1
+    upset_tag = " 波乱!" if is_upset else ""
+
+    # 馬名は 8 文字で切って全体を 50 字以内に収める
+    name_short = (first_name[:8]) if first_name else f"#{first}"
+    pop_part = f"{first_pop}人気/" if first_pop else ""
+    payout_part = f"{payout}円" if payout else ""
+    body = (
+        f"🏆 {venue}{rno}R 1着 #{first} {name_short}"
+        f" ({pop_part}{payout_part}){upset_tag}"
+    ).rstrip()
+
+    channel = "nar" if race.get("is_local") else "jra"
+    try:
+        chat_service.post_bot_message(channel, body)
+    except Exception:
+        logger.exception(f"chat bot post failed for {race.get('race_id', '?')}")
+
+
 def process_date(date_str: str, force: bool = False) -> None:
     """Scrape results for every race on `date_str` and cache them."""
     path = os.path.join(PREFETCH_DIR, f"races_{date_str}.json")
@@ -221,6 +307,8 @@ def process_date(date_str: str, force: bool = False) -> None:
 
         if result:
             already_cached = get_cached_result(race_id)
+            # 初回確定フラグ (Kリワード付与 + bot 速報の判定に使う)
+            is_first_time = not already_cached or not already_cached.get("finalized")
             save_result(race_id, result)
             if result.get("cancelled"):
                 cancelled += 1
@@ -228,9 +316,14 @@ def process_date(date_str: str, force: bool = False) -> None:
             else:
                 fetched += 1
                 logger.info(f"  {venue} {rno}R: {_format_winners(result)}")
-                # Kリワード: まだ付与していない結果のみ処理
-                if not already_cached or not already_cached.get("finalized"):
+                if is_first_time:
+                    # Kリワード付与 (まだ付与していない結果のみ)
                     process_krewards(race_id, result)
+                    # 運営 bot による結果速報をチャットに投稿 (fire-and-forget)
+                    try:
+                        _notify_chat_bot_result(r, result)
+                    except Exception:
+                        logger.exception(f"  {venue} {rno}R: bot notify failed")
         else:
             not_ready += 1
             logger.info(f"  {venue} {rno}R: not finalised yet")

@@ -574,20 +574,25 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
             {messages.map((msg) => {
               const isMine = !!myToken && msg.author_token === myToken;
               const isPending = msg.id.startsWith(PENDING_PREFIX);
+              const isBot = !!msg.is_bot;
               const s = avatarStyle(msg.nickname);
               return (
                 <div
                   key={msg.id}
                   className={`flex items-end gap-2 transition-opacity ${isMine ? "flex-row-reverse" : "flex-row"} ${isPending ? "opacity-60" : "opacity-100"}`}
-                  onTouchStart={(e) => { if (!isPending) handleTouchStart(msg, e); }}
+                  onTouchStart={(e) => { if (!isPending && !isBot) handleTouchStart(msg, e); }}
                   onTouchEnd={handleTouchEnd}
                   onTouchMove={handleTouchMove}
-                  onContextMenu={(e) => { if (!isPending) handleContextMenu(msg, e); }}
+                  onContextMenu={(e) => { if (!isPending && !isBot) handleContextMenu(msg, e); }}
                 >
                   {/* Avatar — others only */}
                   {!isMine && (
                     <div className="shrink-0 mb-1">
-                      {msg.avatar_url ? (
+                      {isBot ? (
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-[16px] select-none ring-2 ring-[#d4a017] bg-gradient-to-br from-[#fff8e8] to-[#fffbeb]">
+                          {msg.avatar_emoji || "🏇"}
+                        </div>
+                      ) : msg.avatar_url ? (
                         <img src={msg.avatar_url} alt={msg.nickname} className="w-9 h-9 rounded-full object-cover" />
                       ) : (
                         <div
@@ -604,8 +609,13 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                   <div className={`flex flex-col max-w-[72%] ${isMine ? "items-end" : "items-start"}`}>
                     {/* Nickname (others only) */}
                     {!isMine && (
-                      <span className="text-[11px] font-bold text-[#555] mb-0.5 ml-1 truncate max-w-[140px]">
-                        {msg.nickname}
+                      <span className="text-[11px] font-bold text-[#555] mb-0.5 ml-1 flex items-center gap-1 max-w-[180px]">
+                        <span className="truncate">{msg.nickname}</span>
+                        {isBot && (
+                          <span className="shrink-0 text-[9px] font-bold text-[#b8860b] bg-[#fffbeb] border border-[#e8d99a] px-1.5 py-0.5 rounded-full leading-none">
+                            公式
+                          </span>
+                        )}
                       </span>
                     )}
 
@@ -627,10 +637,12 @@ export default function ChatWidget({ defaultChannel = "global", embedded = false
                       <span className="text-3xl leading-none py-1 select-none">{msg.stamp}</span>
                     ) : (
                       <div
-                        className={`px-3.5 py-2.5 text-[14px] leading-relaxed break-words select-text
+                        className={`px-3.5 py-2.5 text-[14px] leading-relaxed break-words select-text whitespace-pre-wrap
                           ${isMine
                             ? "bg-[#163016] text-white rounded-2xl rounded-br-md"
-                            : "bg-white text-[#222] rounded-2xl rounded-bl-md shadow-sm"
+                            : isBot
+                              ? "bg-gradient-to-br from-[#fffbeb] to-[#fff8e8] text-[#1a1a1a] rounded-2xl rounded-bl-md border border-[#e8d99a] shadow-sm"
+                              : "bg-white text-[#222] rounded-2xl rounded-bl-md shadow-sm"
                           }`}
                         style={{ wordBreak: "break-word" }}
                       >

@@ -921,6 +921,8 @@ export interface ChatMessage {
   stamp: string | null;
   reply_to: ReplyTo | null;
   created_at: string;
+  /** netkeita 公式 bot (結果速報など) からの投稿フラグ。装飾に利用。 */
+  is_bot?: boolean;
 }
 
 export interface UserProfile {
