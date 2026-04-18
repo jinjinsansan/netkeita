@@ -74,6 +74,11 @@ export default function PredictionDetailView({ article, tipster, hasPremium, isA
   const hasStructuredMarks = marks.length >= 2;
 
   // Split body into marks section and rest (buy tickets etc.)
+  // restBody は「印ブロックとしてカード化した部分を除いた残り」を指す。
+  // hasStructuredMarks=false のときは印カードを出さず、本文は下段の fallback
+  // ブロック側 (article.body をそのまま) で描画するので、ここは空にしておく。
+  // 以前は article.body をフォールバックにしていたため、fallback ブロックと
+  // 二重に描画されるバグになっていた。
   const bodyLines = article.body.split("\n");
   const MARK_RE = /^[◎○▲△☆✖]/;
   const firstMarkIdx = bodyLines.findIndex((l) => MARK_RE.test(l.trim()));
@@ -81,7 +86,7 @@ export default function PredictionDetailView({ article, tipster, hasPremium, isA
   const lastMark = lastMarkIdx >= 0 ? bodyLines.length - 1 - lastMarkIdx : -1;
   const restBody = hasStructuredMarks && lastMark >= 0
     ? bodyLines.slice(lastMark + 1).join("\n").trim()
-    : article.body;
+    : "";
 
   return (
     <div className="max-w-[680px] mx-auto px-4 py-6">
