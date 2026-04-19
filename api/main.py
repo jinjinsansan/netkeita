@@ -1317,8 +1317,12 @@ def _require_admin(authorization: str) -> dict:
 # ── Simple Redis-backed rate limiter ────────────────────────────────────────
 # Prevents a compromised admin session (or a buggy client) from flooding the
 # write endpoints. Limits are deliberately generous for normal editorial use.
-_ADMIN_WRITE_LIMIT = 30      # writes
-_ADMIN_WRITE_WINDOW = 60     # per this many seconds
+_ADMIN_WRITE_LIMIT = 30        # writes per ADMIN_WRITE_WINDOW (human admin)
+_ADMIN_WRITE_WINDOW = 60       # seconds
+# Internal key (server-to-server cron / batch) gets a much higher limit
+# because we regularly post AI predictions at ~3 per race in a single
+# batch run. 200/60s ≒ 3.3 req/s, plenty for the AI tipster cron.
+_INTERNAL_WRITE_LIMIT = 200    # writes per ADMIN_WRITE_WINDOW (internal cron)
 
 
 def _rate_limit(bucket: str, user_id: str, limit: int, window: int) -> None:
@@ -1424,15 +1428,19 @@ def api_create_article(
     x_internal_key: str = Header(default=""),
 ):
     """Create a new article/prediction. Admin always allowed; approved tipsters may post predictions."""
-    user = _get_user_from_token(authorization) or _get_user_from_internal_key(x_internal_key)
+    user_from_token = _get_user_from_token(authorization)
+    user = user_from_token or _get_user_from_internal_key(x_internal_key)
     if not user:
         raise HTTPException(status_code=401, detail="ログインが必要です")
     uid = user.get("line_user_id", "")
     is_tipster = req.content_type == "prediction" and tipsters_service.is_approved_tipster(uid)
     if not _is_admin_user(user) and not is_tipster:
         raise HTTPException(status_code=403, detail="管理者権限または承認済み予想家のみ投稿できます")
+    # 内部キー経由 (cron / 自動投稿) は limit を大幅に緩和する
+    is_internal = user_from_token is None
+    write_limit = _INTERNAL_WRITE_LIMIT if is_internal else _ADMIN_WRITE_LIMIT
     _rate_limit("article_write", user.get("line_user_id", ""),
-                _ADMIN_WRITE_LIMIT, _ADMIN_WRITE_WINDOW)
+                write_limit, _ADMIN_WRITE_WINDOW)
     try:
         # For predictions posted by tipsters: allow approved tipsters to post,
         # not just admins. The caller's line_user_id is stored as tipster_id.
