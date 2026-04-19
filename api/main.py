@@ -1642,12 +1642,18 @@ def api_list_tipsters():
 
 
 @app.get("/api/tipsters/{tipster_id}")
-def api_get_tipster(tipster_id: str):
-    """Get a tipster profile and their published predictions."""
+def api_get_tipster(tipster_id: str, day: str = "all"):
+    """Get a tipster profile and their published predictions.
+
+    Query params:
+      - day=today: only today's race predictions (JST)
+      - day=past:  only non-today predictions
+      - day=all (default): all predictions
+    """
     profile = tipsters_service.get_tipster(tipster_id)
     if not profile or profile.get("status") != "approved":
         raise HTTPException(status_code=404, detail="予想家が見つかりません")
-    predictions = articles_service.list_predictions_by_tipster(tipster_id)
+    predictions = articles_service.list_predictions_by_tipster(tipster_id, day=day)
     return {"profile": profile, "predictions": predictions}
 
 

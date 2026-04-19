@@ -17,22 +17,36 @@ export default function TipsterPage() {
   const [predictions, setPredictions] = useState<ArticleSummary[]>([]);
   const [hasPremium, setHasPremium] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [predictionsLoading, setPredictionsLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [dayFilter, setDayFilter] = useState<"today" | "past">("today");
 
+  // 初回ロード (プロファイル + 今日の予想)
   useEffect(() => {
-    Promise.all([fetchTipster(id), user ? fetchPremiumStatus() : Promise.resolve(false)]).then(
-      ([data, premium]) => {
-        if (!data) {
-          setNotFound(true);
-        } else {
-          setProfile(data.profile);
-          setPredictions(data.predictions);
-        }
-        setHasPremium(!!premium || !!user?.is_admin);
-        setLoading(false);
+    Promise.all([
+      fetchTipster(id, "today"),
+      user ? fetchPremiumStatus() : Promise.resolve(false),
+    ]).then(([data, premium]) => {
+      if (!data) {
+        setNotFound(true);
+      } else {
+        setProfile(data.profile);
+        setPredictions(data.predictions);
       }
-    );
+      setHasPremium(!!premium || !!user?.is_admin);
+      setLoading(false);
+    });
   }, [id, user]);
+
+  // タブ切替時の predictions 再取得 (profile は再フェッチ不要)
+  const switchDay = async (next: "today" | "past") => {
+    if (next === dayFilter) return;
+    setDayFilter(next);
+    setPredictionsLoading(true);
+    const data = await fetchTipster(id, next);
+    if (data) setPredictions(data.predictions);
+    setPredictionsLoading(false);
+  };
 
   if (loading) {
     return (
@@ -152,7 +166,7 @@ export default function TipsterPage() {
       </div>
 
       {/* Predictions */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-black text-[#222]">
           予想一覧
           {predictions.length > 0 && (
@@ -161,11 +175,45 @@ export default function TipsterPage() {
         </h2>
       </div>
 
-      {predictions.length === 0 ? (
+      {/* Day filter tabs: 今日 / 過去 */}
+      <div
+        role="tablist"
+        aria-label="予想の期間"
+        className="inline-flex items-center gap-1 p-1 mb-4 bg-[#f0f4f0] rounded-full border border-[#e0e6e0]"
+      >
+        {[
+          { value: "today", label: "今日の予想" },
+          { value: "past", label: "過去の予想" },
+        ].map((t) => (
+          <button
+            key={t.value}
+            role="tab"
+            aria-selected={dayFilter === t.value}
+            onClick={() => switchDay(t.value as "today" | "past")}
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition
+              ${dayFilter === t.value
+                ? "bg-[#163016] text-white shadow-sm"
+                : "text-[#4a5d4a] hover:bg-white/60"
+              }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {predictionsLoading ? (
+        <div className="border border-dashed border-[#e0e0e0] rounded-xl py-12 text-center animate-pulse">
+          <p className="text-xs text-[#bbb]">読み込み中...</p>
+        </div>
+      ) : predictions.length === 0 ? (
         <div className="border border-dashed border-[#e0e0e0] rounded-xl py-12 text-center">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" className="mx-auto mb-3"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-          <p className="text-sm font-bold text-[#aaa] mb-1">まだ予想が投稿されていません</p>
-          <p className="text-xs text-[#bbb]">近日公開予定です</p>
+          <p className="text-sm font-bold text-[#aaa] mb-1">
+            {dayFilter === "today" ? "今日はまだ予想が投稿されていません" : "過去の予想はありません"}
+          </p>
+          <p className="text-xs text-[#bbb]">
+            {dayFilter === "today" ? "AI予想家は毎朝6:00に予想を公開します" : ""}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

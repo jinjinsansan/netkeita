@@ -656,13 +656,13 @@ export async function fetchTipsters(): Promise<TipsterProfile[]> {
 }
 
 export async function fetchTipster(
-  tipserId: string
+  tipserId: string,
+  day: "today" | "past" | "all" = "all",
 ): Promise<{ profile: TipsterProfile; predictions: ArticleSummary[] } | null> {
   if (!API_URL) return null;
   try {
-    const res = await fetch(`${API_URL}/api/tipsters/${encodeURIComponent(tipserId)}`, {
-      cache: "no-store",
-    });
+    const url = `${API_URL}/api/tipsters/${encodeURIComponent(tipserId)}?day=${encodeURIComponent(day)}`;
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
     return res.json();
   } catch {

@@ -576,10 +576,24 @@ def get_articles_by_race_id(race_id: str) -> list[dict]:
     return results
 
 
-def list_predictions_by_tipster(tipster_id: str) -> list[dict]:
-    """Return published predictions for a specific tipster (newest first)."""
+def list_predictions_by_tipster(
+    tipster_id: str,
+    *,
+    day: str = "all",
+) -> list[dict]:
+    """Return published predictions for a specific tipster (newest first).
+
+    ``day`` filters the result by the race_id date prefix (JST):
+      - ``"today"``: only records whose race_id starts with today's YYYYMMDD
+      - ``"past"``:  only records whose race_id starts with a different YYYYMMDD
+      - ``"all"``   (default): no filter, preserves legacy behaviour
+
+    Records without a race_id are only included when ``day == "all"``.
+    """
     if not tipster_id:
         return []
+    if day not in ("today", "past", "all"):
+        day = "all"
     try:
         slugs = _redis.lrange(_INDEX_KEY, 0, -1) or []
     except Exception:
@@ -590,6 +604,7 @@ def list_predictions_by_tipster(tipster_id: str) -> list[dict]:
         raws = _redis.mget([_article_key(s) for s in slugs])
     except Exception:
         return []
+    today_prefix = datetime.now(_JST).strftime("%Y%m%d") if day != "all" else ""
     results = []
     for raw in raws:
         if not raw:
@@ -598,11 +613,21 @@ def list_predictions_by_tipster(tipster_id: str) -> list[dict]:
             data = json.loads(raw)
         except Exception:
             continue
-        if (
-            data.get("status") == "published"
-            and data.get("tipster_id") == tipster_id
-        ):
-            results.append(public_summary(data))
+        if data.get("status") != "published":
+            continue
+        if data.get("tipster_id") != tipster_id:
+            continue
+        if day != "all":
+            rid = str(data.get("race_id") or "")
+            prefix = rid.split("-", 1)[0] if rid else ""
+            if not prefix:
+                # race_id 無しは "today"/"past" の両方からは除外
+                continue
+            if day == "today" and prefix != today_prefix:
+                continue
+            if day == "past" and prefix == today_prefix:
+                continue
+        results.append(public_summary(data))
     return results
 
 
