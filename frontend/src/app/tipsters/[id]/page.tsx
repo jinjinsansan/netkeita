@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { fetchTipster, fetchPremiumStatus } from "@/lib/api";
 import type { TipsterProfile, ArticleSummary } from "@/lib/api";
 import PredictionCard from "@/components/PredictionCard";
 import { useAuth } from "@/lib/auth-context";
+
+function todayJSTPrefix(): string {
+  const now = new Date();
+  // JST 変換: UTC+9
+  const jst = new Date(now.getTime() + (9 * 60 + now.getTimezoneOffset()) * 60 * 1000);
+  const y = jst.getFullYear();
+  const m = String(jst.getMonth() + 1).padStart(2, "0");
+  const d = String(jst.getDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
+}
 
 export default function TipsterPage() {
   const params = useParams();
@@ -47,6 +57,18 @@ export default function TipsterPage() {
     if (data) setPredictions(data.predictions);
     setPredictionsLoading(false);
   };
+
+  // API 未対応時やネットワーク遅延時の保険として、race_id の日付プレフィックスで
+  // クライアント側でも絞り込む。API が正しく絞っていればここは no-op と等価。
+  const filteredPredictions = useMemo(() => {
+    const today = todayJSTPrefix();
+    return predictions.filter((p) => {
+      const rid = (p.race_id || "").trim();
+      const prefix = rid.split("-")[0] || "";
+      if (!prefix) return false;
+      return dayFilter === "today" ? prefix === today : prefix !== today;
+    });
+  }, [predictions, dayFilter]);
 
   if (loading) {
     return (
@@ -169,8 +191,8 @@ export default function TipsterPage() {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-black text-[#222]">
           予想一覧
-          {predictions.length > 0 && (
-            <span className="text-[11px] font-normal text-[#999] ml-2">{predictions.length}件</span>
+          {filteredPredictions.length > 0 && (
+            <span className="text-[11px] font-normal text-[#999] ml-2">{filteredPredictions.length}件</span>
           )}
         </h2>
       </div>
@@ -205,7 +227,7 @@ export default function TipsterPage() {
         <div className="border border-dashed border-[#e0e0e0] rounded-xl py-12 text-center animate-pulse">
           <p className="text-xs text-[#bbb]">読み込み中...</p>
         </div>
-      ) : predictions.length === 0 ? (
+      ) : filteredPredictions.length === 0 ? (
         <div className="border border-dashed border-[#e0e0e0] rounded-xl py-12 text-center">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" className="mx-auto mb-3"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
           <p className="text-sm font-bold text-[#aaa] mb-1">
@@ -217,7 +239,7 @@ export default function TipsterPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {predictions.map((p) => (
+          {filteredPredictions.map((p) => (
             <PredictionCard
               key={p.slug}
               prediction={p}
