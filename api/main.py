@@ -1418,7 +1418,9 @@ def api_get_article(slug: str, authorization: str = Header(default="")):
     if record.get("status") != "published" and not is_admin:
         raise HTTPException(status_code=404, detail="記事が見つかりません")
 
-    return articles_service.admin_view(record) if is_admin else articles_service.public_view(record)
+    if is_admin:
+        return articles_service.admin_view(record)
+    return articles_service.public_view(record, is_authenticated=user is not None)
 
 
 @app.post("/api/articles")

@@ -183,17 +183,33 @@ _PUBLIC_SUMMARY_FIELDS = (
 )
 
 
-def public_view(record: dict, has_premium: bool = False) -> dict:
+def public_view(
+    record: dict,
+    has_premium: bool = False,
+    is_authenticated: bool = False,
+) -> dict:
     """Strip private fields (author_id) from a full record.
 
-    For premium predictions, body is only included when has_premium=True.
+    Body gating (strictest applies):
+      - Premium predictions: body shown only when has_premium=True
+      - All other content:   body shown only when is_authenticated=True
+
+    The latter implements the site policy "予想記事の本文は要ログイン" while
+    keeping title / description / thumbnail public so OG cards and SNS
+    shares continue to work for unauthenticated scrapers.
+    `picks` (selected horse numbers) is also gated since it leaks the
+    prediction conclusion.
     """
     if not record:
         return {}
     out = {k: record.get(k, "") for k in _PUBLIC_FIELDS}
     out["reading_time_minutes"] = _estimate_reading_time(out.get("body", ""))
     if out.get("is_premium") and not has_premium:
-        out["body"] = ""  # gate body behind premium access
+        out["body"] = ""
+        out["picks"] = {}
+    elif not is_authenticated:
+        out["body"] = ""
+        out["picks"] = {}
     return out
 
 

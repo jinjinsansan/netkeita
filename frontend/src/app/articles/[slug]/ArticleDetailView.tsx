@@ -41,9 +41,15 @@ export default function ArticleDetailView({
   // Client-side refetch triggers:
   //  1. The SSR fetch returned null AND we're an admin — maybe it was a
   //     draft that SSR couldn't see because it had no cookie.
-  //  2. The slug prop changes (route navigation).
+  //  2. The SSR fetch returned an article with empty body — the backend
+  //     gates body behind auth, and SSR has no token, so the body needs
+  //     a fresh authenticated fetch from the client. Premium-locked
+  //     bodies stay empty by design (`is_premium && !hasPremium`).
+  //  3. The slug prop changes (route navigation).
   useEffect(() => {
-    if (article && article.slug === slug) {
+    const haveBody = !!article?.body;
+    const premiumLocked = !!article?.is_premium;
+    if (article && article.slug === slug && (haveBody || premiumLocked)) {
       // 予想記事なら tipster / premium も取得
       if (article.content_type === "prediction" && article.tipster_id) {
         fetchTipster(article.tipster_id).then((d) => { if (d) setTipster(d.profile); });

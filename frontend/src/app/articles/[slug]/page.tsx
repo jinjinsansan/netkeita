@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ArticleDetailView from "./ArticleDetailView";
+import AuthGuard from "@/components/AuthGuard";
 import { SITE_URL } from "@/lib/site";
 import type { Article } from "@/lib/api";
 
@@ -80,8 +81,15 @@ export default async function ArticleDetailPage(
 ) {
   const { slug } = await params;
   // Fetch once on the server and forward to the Client Component via props.
-  // This eliminates the previous "fetch in generateMetadata + fetch in
-  // useEffect" duplication, halving backend load per article view.
+  // The SSR fetch carries no auth token, so the backend returns body="" for
+  // non-admins — that's intentional. AuthGuard then ensures only authenticated
+  // users render ArticleDetailView, which refetches with Authorization to
+  // populate the body. SEO/OG metadata is still produced by generateMetadata
+  // above (title / description / thumbnail are public).
   const initialArticle = await fetchArticleServer(slug);
-  return <ArticleDetailView slug={slug} initialArticle={initialArticle} />;
+  return (
+    <AuthGuard>
+      <ArticleDetailView slug={slug} initialArticle={initialArticle} />
+    </AuthGuard>
+  );
 }
